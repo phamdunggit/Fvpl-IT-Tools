@@ -3,8 +3,14 @@
 Công cụ cho IT: cài máy mới, join domain, sửa lỗi thường gặp, tối ưu Windows.
 Viết bằng Python 3.13 + PySide6, đóng gói thành exe chạy portable từ USB hoặc share.
 
-- Kế hoạch đầy đủ: [PLAN.md](PLAN.md)
 - Trạng thái: **GĐ0 (nền móng) xong.** Khung app, bộ chạy lệnh, định nghĩa mục bằng YAML, log, hoàn tác, đóng gói exe, 3 mục mẫu.
+
+| Tài liệu | Nội dung |
+|---|---|
+| [docs/HANDOFF.md](docs/HANDOFF.md) | **Đọc đầu tiên:** trạng thái, quy tắc, luồng chạy, việc chưa kiểm, việc tiếp theo |
+| [PLAN.md](PLAN.md) | Kế hoạch tổng: chức năng, kiến trúc, lộ trình, câu hỏi còn mở |
+| [docs/ACTIONS.md](docs/ACTIONS.md) | Tham chiếu khai báo mục sửa lỗi / tweak bằng YAML |
+| [CHANGELOG.md](CHANGELOG.md) | Thay đổi theo phiên bản |
 
 ## Quy ước nhánh
 
@@ -44,7 +50,7 @@ Kết quả: `dist\FVPL-ITTools\` (khoảng 65MB) và `dist\FVPL-ITTools-v<phiê
 
 ## Thêm một mục sửa lỗi / tweak mới
 
-Thêm một khối YAML vào file trong `src/fvpl_ittools/data/actions/`, không cần sửa code. Cách khai báo xem [PLAN.md mục 6.3](PLAN.md#63-định-nghĩa-fixtweak-bằng-yaml). Xong thì chạy `pytest`: test sẽ báo lỗi khai báo bằng tiếng Việt kèm tên file và số thứ tự mục.
+Thêm một khối YAML vào file trong `src/fvpl_ittools/data/actions/`, không cần sửa code. Đủ các khoá và các bẫy hay gặp xem [docs/ACTIONS.md](docs/ACTIONS.md). Xong thì chạy `pytest`: test sẽ báo lỗi khai báo bằng tiếng Việt kèm tên file và số thứ tự mục.
 
 ```yaml
 - id: net.flush_dns            # nhom.ten, chữ thường không dấu

@@ -294,39 +294,52 @@ Danh sách mặc định gợi ý (**cần bồ chốt**):
 | Ngôn ngữ | Python 3.13 | Máy chạy tool không cần cài Python vì đã đóng gói sẵn |
 | Giao diện | PySide6 (Qt 6) | Bản chính thức của Qt, giấy phép LGPL, chạy trên Win10 1809 trở lên |
 | Định nghĩa fix/tweak và danh mục phần mềm | YAML (PyYAML) | Dễ đọc, có comment, thêm fix mới không phải sửa code |
-| Thông tin hệ thống | psutil + PowerShell CIM xuất JSON | |
-| Windows API | `winreg`, `ctypes`, pywin32 (COM cho Windows Update) | |
-| Đóng gói | PyInstaller `--onedir --windowed --uac-admin` | Nuitka là phương án B nếu diệt virus báo nhầm |
-| Kiểm thử | pytest + máy ảo Hyper-V | |
+| Thông tin hệ thống | `winreg` + `ctypes` (GĐ0); thêm psutil + PowerShell CIM xuất JSON từ GĐ1 | |
+| Windows API | `winreg`, `ctypes` (không cần pywin32); pywin32 chỉ thêm khi làm Windows Update API (GĐ1) | |
+| Đóng gói | PyInstaller onedir qua `packaging/build.py` (exe đòi quyền admin) | Nuitka là phương án B nếu diệt virus báo nhầm |
+| Kiểm thử | pytest + `--selftest` (chụp ảnh từng trang) + máy ảo Hyper-V | |
 
 ### 6.2 Cấu trúc thư mục
 
+Cấu trúc hiện tại (sau GĐ0). Mục ghi *(sẽ có)* là phần các giai đoạn sau thêm vào.
+
 ```
 IT Tools/
-├── PLAN.md
+├── PLAN.md, README.md, CHANGELOG.md
+├── docs/
+│   ├── HANDOFF.md             # trạng thái + cách làm tiếp, đọc đầu tiên
+│   └── ACTIONS.md             # tham chiếu khai báo mục bằng YAML
 ├── pyproject.toml
+├── site.example.yaml          # mẫu thông tin nội bộ (site.yaml thật không commit)
 ├── src/fvpl_ittools/
-│   ├── __main__.py            # điểm vào: kiểm tra admin, nạp config, mở cửa sổ
-│   ├── ui/
-│   │   ├── main_window.py     # sidebar + vùng trang + khung log
-│   │   ├── pages/             # overview, setup_wizard, fixes, optimize, software, config, utilities, logs
-│   │   └── widgets/           # action_list, log_panel, credential_dialog, risk_badge
+│   ├── __main__.py            # điểm vào: hỏi quyền admin, --selftest, mở cửa sổ
+│   ├── app.py                 # AppContext: thông tin máy, người dùng, danh sách mục, nhật ký
+│   ├── actions/
+│   │   ├── model.py           # Action, các loại bước, mức rủi ro
+│   │   └── loader.py          # nạp + kiểm tra YAML, báo lỗi tiếng Việt
 │   ├── core/
-│   │   ├── runner.py          # chạy step trong thread nền, stream output, huỷ, timeout
-│   │   ├── shell.py           # gọi cmd/PowerShell, xử lý encoding, đọc JSON
-│   │   ├── registry.py        # đọc/ghi + sao lưu giá trị cũ, HKU\<SID>, Default User
-│   │   ├── safety.py          # restore point, nhật ký hoàn tác, kiểm tra GPO
-│   │   ├── session.py         # người dùng đang đăng nhập thật (SID, profile)
-│   │   ├── state.py           # trạng thái wizard để chạy tiếp sau khi restart
-│   │   └── log.py
-│   ├── actions/               # nạp + kiểm tra schema file YAML
-│   ├── features/              # sysinfo, domain, software (winget/share), cleanup, startup...
+│   │   ├── shell.py           # gọi cmd/PowerShell, giải mã output, timeout, huỷ
+│   │   ├── executor.py        # chạy mục theo lượt, restore point, việc làm sau, hoàn tác
+│   │   ├── registry.py        # đọc/ghi view 64-bit, đổi HKCU → HKU\<SID>
+│   │   ├── journal.py         # nhật ký hoàn tác (JSON)
+│   │   ├── safety.py          # restore point
+│   │   ├── session.py         # tài khoản chạy tool và người đang đăng nhập (SID, profile)
+│   │   ├── sysinfo.py         # tên máy, domain, bản Windows
+│   │   ├── winapi.py          # hàm Windows API qua ctypes
+│   │   ├── config.py          # đọc site.yaml
+│   │   ├── paths.py, log.py
+│   │   └── state.py           # (sẽ có, GĐ2) trạng thái wizard để chạy tiếp sau restart
+│   ├── features/              # (sẽ có) domain, software (winget/share), cleanup, startup...
+│   ├── ui/
+│   │   ├── main_window.py     # thanh trên cùng + sidebar + vùng trang + khung log
+│   │   ├── controller.py      # chạy executor ở thread nền, đẩy log về giao diện
+│   │   ├── log_panel.py, theme.py, widgets.py, text.py
+│   │   └── pages/             # overview, actions_page (Sửa lỗi/Tối ưu/Cấu hình/Tiện ích), history, placeholder
 │   └── data/
 │       ├── actions/*.yaml     # các fix/tweak
-│       ├── apps.yaml          # danh mục mặc định (bản trên share sẽ ghi đè)
-│       └── scripts/*.ps1
-├── tests/
-└── packaging/                 # spec PyInstaller, version info, icon (không dùng build/ vì PyInstaller ghi file tạm vào đó)
+│       └── apps.yaml          # (sẽ có, GĐ2) danh mục mặc định, bản trên share sẽ ghi đè
+├── tests/                     # pytest
+└── packaging/                 # spec PyInstaller + build.py (không dùng build/ vì PyInstaller ghi file tạm vào đó)
 ```
 
 ### 6.3 Định nghĩa fix/tweak bằng YAML
@@ -369,7 +382,9 @@ Mỗi mục là một khối dữ liệu, không viết cứng trong code (cùng
     - powershell: Test-ComputerSecureChannel -Repair -Credential $Credential
 ```
 
-Các loại bước gồm `cmd`, `powershell`, `registry`, `service` (start/stop, kiểu khởi động), và `python` (gọi hàm trong `features/` cho việc phức tạp).
+Các loại bước gồm `cmd`, `powershell`, `registry`, `service` (start/stop/restart; đổi kiểu khởi động làm ở GĐ3) và `builtin` (thao tác viết bằng Python, hiện có `restart_explorer`). Tham chiếu đầy đủ các khoá ở [docs/ACTIONS.md](docs/ACTIONS.md).
+
+Khoá trạng thái tên là `on_value` chứ không phải `on`, vì YAML hiểu `on`/`off`/`yes`/`no` là true/false.
 
 ### 6.4 Danh mục phần mềm và profile
 
@@ -412,8 +427,9 @@ profiles:
 
 ### 6.5 Chạy lệnh hệ thống
 
-- Mọi lệnh chạy trong thread nền (QThreadPool). Output được đẩy từng dòng về khung log qua Qt signal.
-- **PowerShell:** dùng Windows PowerShell 5.1 có sẵn trên mọi máy, không cần PS7. Script được đưa vào qua stdin (`powershell.exe -NoProfile -NonInteractive -Command -`). Lý do: nếu GPO đã đặt Execution Policy thì tham số `-ExecutionPolicy Bypass` không có tác dụng với `-File`, còn lệnh đưa qua stdin thì không bị policy chặn.
+- Mọi lệnh chạy trong một thread nền (mỗi lần chỉ một lượt). Output được đẩy từng dòng về khung log qua Qt signal. Dòng tiến độ kết thúc bằng `\r` (kiểu thanh % của DISM) ghi đè lên dòng trước.
+- **PowerShell:** dùng Windows PowerShell 5.1 có sẵn trên mọi máy, không cần PS7. Script được truyền bằng `-EncodedCommand`. Lý do: nếu GPO đã đặt Execution Policy thì tham số `-ExecutionPolicy Bypass` không có tác dụng với `-File`, còn lệnh truyền thẳng thì không bị policy chặn. Stdin để dành cho tài khoản (xem 6.7). Script dài tối đa khoảng 11.000 ký tự vì giới hạn độ dài dòng lệnh.
+- **cmd:** chạy `cmd.exe /d /s /c` và đặt `chcp 65001` trước. Lệnh có sẵn của cmd (như `echo`) vẫn ghi theo code page OEM, chữ nào không có trong code page đó sẽ thành `?`. Vì vậy muốn in chữ có dấu thì dùng PowerShell.
 - Dữ liệu trả về dạng JSON (`ConvertTo-Json`), không đọc kết quả bằng cách dò chữ, vì Windows tiếng Việt và tiếng Anh in thông báo khác nhau.
 - **Encoding:** ép đầu ra UTF-8. Riêng `sfc` xuất UTF-16 nên có bộ giải mã riêng.
 - **Không dùng tên hiển thị dễ bị dịch** (nhóm Administrators, nhóm firewall "Remote Desktop"). Dùng SID hoặc ID nhóm.
@@ -424,8 +440,8 @@ profiles:
 Tool chạy với quyền admin. Nếu IT mở tool bằng tài khoản admin khác (Run as different user) thì `HKCU` và `%AppData%` là của tài khoản IT. Khi đó các thiết lập theo người dùng (taskbar, đuôi file, máy in share, cache Teams/Office...) sẽ bị áp nhầm vào tài khoản IT. Cách xử lý:
 
 - Mỗi mục khai báo `scope: machine | user`.
-- Mục `user` ghi vào `HKEY_USERS\<SID>` và profile của **người đang đăng nhập thật**. Tool xác định người này qua chủ của process `explorer.exe`.
-- Tuỳ chọn **"Áp cho Default User"**: nạp `C:\Users\Default\NTUSER.DAT` để tài khoản đăng nhập lần đầu sau này nhận luôn thiết lập. Dùng khi cài máy mới, trước khi người dùng đăng nhập.
+- Mục `user` ghi vào `HKEY_USERS\<SID>` và profile của **người đang đăng nhập thật**. Tool xác định người này qua phiên Windows đang chứa tool (`WTSQuerySessionInformation`): "Run as different user" vẫn nằm trong phiên của người dùng. Không tra được SID (ví dụ mất kết nối DC) thì dò `ProfileList`. *(Đã làm ở GĐ0.)*
+- Tuỳ chọn **"Áp cho Default User"** *(GĐ2)*: nạp `C:\Users\Default\NTUSER.DAT` để tài khoản đăng nhập lần đầu sau này nhận luôn thiết lập. Dùng khi cài máy mới, trước khi người dùng đăng nhập.
 - Việc bắt buộc phải chạy trong phiên của người dùng (ví dụ thêm máy in share) thì tool tạo một tác vụ chạy một lần khi họ đăng nhập.
 
 ### 6.7 Mật khẩu và tài khoản
@@ -454,11 +470,12 @@ Repo để public nên **tên domain, tên server, đường dẫn share, OU, ti
 
 ## 7. Kiểm thử
 
-- **Tự động (pytest):**
+- **Tự động (pytest, hiện có 80 test):** test chỉ chạy lệnh vô hại. Registry chỉ ghi vào khoá tạm `HKCU\Software\FVPL-ITTools-Test` rồi xoá. Explorer được giả lập trong test.
   - Mọi file YAML đúng schema và không trùng `id`.
   - Mọi mục Cẩn thận hoặc Nâng cao đều có `undo`, hoặc ghi rõ "không hoàn tác được".
   - Giải mã đúng output của `sfc` (UTF-16) và `winget`.
   - Dựng lệnh đúng và giải đúng profile kế thừa.
+- **`--selftest <thư mục>`:** dựng cửa sổ, chụp ảnh từng trang, ghi `selftest.json`. `build.py --test` chạy selftest trên chính file exe vừa build để chắc đã đóng gói đủ dữ liệu.
 - **Máy ảo Hyper-V** (Win11 Pro có sẵn Hyper-V): snapshot Win10 22H2 sạch, Win11 24H2 và 25H2 sạch. Mỗi mục được chạy thử trên VM rồi revert về snapshot.
 - **Join domain thử:** dùng OU riêng (ví dụ `OU=Test`) và tên máy `FVPL-TEST..`. Test xong thì xoá computer object.
 - **Mỗi bản phát hành:** chạy checklist tay gồm mở exe trên VM sạch chưa cài Python, chạy trọn wizard, chạy 4 gói sửa nhanh, thử hoàn tác.
@@ -467,12 +484,14 @@ Repo để public nên **tên domain, tên server, đường dẫn share, OU, ti
 
 | Giai đoạn | Nội dung | Xong khi |
 |---|---|---|
-| **0. Nền móng** ✔ | Khung PySide6 (sidebar, khung log, thanh trạng thái); kiểm tra quyền admin; runner chạy nền có nút huỷ; nạp và kiểm tra YAML; log ra file; restore point và nhật ký hoàn tác; build exe | Exe chạy được trên VM Win10 và Win11 sạch (không có Python), chạy được 3 mục mẫu, có log, hoàn tác được 1 tweak registry |
+| **0. Nền móng** ✔ 08/10/2026 | Khung PySide6 (sidebar, khung log, thanh trạng thái); kiểm tra quyền admin; runner chạy nền có nút huỷ; nạp và kiểm tra YAML; log ra file; restore point và nhật ký hoàn tác; build exe | Exe chạy được trên VM Win10 và Win11 sạch (không có Python), chạy được 3 mục mẫu, có log, hoàn tác được 1 tweak registry |
 | **1. Tổng quan + Sửa lỗi** | Trang Tổng quan (copy và xuất thông tin); toàn bộ fix P1 (mạng, domain, máy in, Windows Update, hệ thống, Office); 4 gói sửa nhanh; mở nhanh panel | IT dùng hằng ngày thay cho gõ lệnh tay; mục nào cũng có ⓘ và copy lệnh |
 | **2. Cài máy mới** | Wizard 7 bước; đổi tên + join + chạy tiếp sau restart; danh mục phần mềm (winget + share) và profile; sửa winget; Office ODT; cấu hình chuẩn; báo cáo | Từ một VM Windows sạch: vào được domain, cài đủ phần mềm theo profile, có báo cáo trên share. IT chỉ phải chọn phòng ban và nhập mật khẩu join |
 | **3. Tối ưu & dọn dẹp** | Dọn rác có quét trước; quản lý startup; debloat và quyền riêng tư; power; các fix P2 | Thấy được dung lượng trước khi xoá; mọi tweak hoàn tác được |
 | **4. Tiện ích & hoàn thiện** | Các tiện ích; gửi kiểm kê lên share; báo bản mới; ký số; hướng dẫn sử dụng; các mục P3 | Bản 1.0 có trên share |
 | **Để sau** | Điều khiển nhiều máy từ xa, bản rút gọn cho nhân viên tự sửa lỗi, giao diện tối | |
+
+GĐ0 đã chạy được exe trên máy dev (Win11 25H2, không có quyền admin). Còn 2 việc chưa kiểm: chạy trên máy ảo Win10/Win11 sạch, và chạy thật các phần cần quyền admin (restore point, mục `admin: true`). Hai việc này làm khi bắt đầu GĐ1, xem [docs/HANDOFF.md](docs/HANDOFF.md).
 
 Làm Sửa lỗi (GĐ1) trước Cài máy mới (GĐ2) vì hai lý do. Thứ nhất, fix ít rủi ro nên dùng để kiểm chứng bộ máy chạy action. Thứ hai, IT dùng được ngay hằng ngày. Wizard cần môi trường test domain nên làm sau. Nếu cần cài máy mới gấp thì đổi thứ tự được.
 
@@ -498,6 +517,8 @@ Làm Sửa lỗi (GĐ1) trước Cài máy mới (GĐ2) vì hai lý do. Thứ nh
 - **Join domain:** giờ lệch quá 5 phút làm Kerberos lỗi; DNS không trỏ về DC thì báo không tìm thấy domain; join lại tên máy cũ có thể bị chặn (KB5020276). Cả ba đã nằm trong bước kiểm tra trước và hướng dẫn xử lý của wizard.
 - **Restore point:** mỗi 24 giờ chỉ tạo được một điểm, và System Protection có thể đang tắt. Tool tự bật lại và báo rõ khi không tạo được.
 - **Thông báo lỗi khác nhau theo ngôn ngữ Windows.** Chỉ dựa vào mã thoát và JSON, không dò chữ trong output.
+- **Windows để chế độ tối** làm Qt lấy bảng màu tối, ô tick và dòng chọn lệch màu với stylesheet. App luôn ép giao diện sáng.
+- **YAML 1.1** hiểu `on`/`off`/`yes`/`no` là true/false, kể cả khi dùng làm tên khoá. Đường dẫn registry có `\` thì để trong ngoặc đơn hoặc không ngoặc, đừng dùng ngoặc kép.
 
 ## 11. Câu hỏi còn mở
 
