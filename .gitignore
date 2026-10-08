@@ -1,0 +1,17 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+.pytest_cache/
+
+# PyInstaller (spec của dự án nằm trong packaging/, chỉ bỏ qua thư mục tạm và bản build)
+/build/
+/dist/
+packaging/version_info.txt
+
+# Thông tin nội bộ công ty (domain, server, OU...). Repo public nên KHÔNG commit, xem PLAN.md mục 6.9
+site.yaml
+
+# Log khi chạy thử
+*.log

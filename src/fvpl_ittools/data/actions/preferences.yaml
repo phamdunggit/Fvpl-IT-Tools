@@ -1,0 +1,25 @@
+# Tuỳ chọn hay dùng (trang Cấu hình). Cách khai báo: xem PLAN.md mục 6.3.
+
+- id: ui.show_file_ext
+  name: Hiện đuôi file
+  category: Tuỳ chọn hay dùng
+  page: config
+  risk: safe
+  scope: user
+  admin: false
+  description: >
+    Hiện phần đuôi (.docx, .pdf, .exe...) của tên file trong File Explorer, giúp người dùng
+    nhận ra file lạ giả dạng tài liệu. Áp cho người đang đăng nhập; Explorer sẽ được khởi động lại.
+  check:
+    registry:
+      key: HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced
+      name: HideFileExt
+      on_value: 0
+  apply:
+    - registry:
+        key: HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced
+        name: HideFileExt
+        type: DWORD
+        value: 0
+  undo: auto
+  after: [restart_explorer]

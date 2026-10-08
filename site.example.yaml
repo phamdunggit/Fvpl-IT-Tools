@@ -1,0 +1,15 @@
+# Mẫu cấu hình riêng của công ty.
+# Sao chép thành site.yaml, đặt cạnh file exe (hoặc trong %ProgramData%\FVPL-ITTools\),
+# rồi điền thông tin thật. site.yaml KHÔNG được commit vì repo để public.
+
+# Tên domain Active Directory (FQDN)
+domain: corp.example
+
+# Tên domain kiểu cũ (NetBIOS), dùng cho tài khoản dạng DOMAIN\user
+netbios_domain: CORP
+
+# Thư mục share chứa bộ cài và config dùng chung
+share_root: '\\fileserver.corp.example\IT$\ITTools'
+
+# Tiền tố tên máy, ví dụ FVPL- cho FVPL-KT05
+computer_prefix: FVPL-

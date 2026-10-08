@@ -1,0 +1,12 @@
+# Mạng & Internet. Cách khai báo: xem PLAN.md mục 6.3.
+
+- id: net.flush_dns
+  name: Xoá cache DNS
+  category: Mạng & Internet
+  page: fixes
+  risk: safe
+  description: >
+    Xoá bộ nhớ đệm phân giải tên miền. Dùng khi vào web hoặc ổ mạng bị trỏ sai
+    địa chỉ, ví dụ sau khi đổi IP server hay đổi bản ghi DNS.
+  apply:
+    - cmd: ipconfig /flushdns

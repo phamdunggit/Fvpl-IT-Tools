@@ -1,0 +1,34 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "fvpl-ittools"
+description = "Công cụ IT: cài máy mới, join domain, sửa lỗi thường gặp, tối ưu Windows"
+dynamic = ["version"]
+requires-python = ">=3.12"
+dependencies = [
+    "PySide6>=6.7",
+    "PyYAML>=6.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8",
+    "pyinstaller>=6.10",
+]
+
+[project.gui-scripts]
+fvpl-ittools = "fvpl_ittools.__main__:main"
+
+[tool.setuptools.dynamic]
+version = { attr = "fvpl_ittools.__version__" }
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+fvpl_ittools = ["data/**/*.yaml"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
