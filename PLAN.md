@@ -1,6 +1,6 @@
 # FVPL IT Toolkit: kế hoạch
 
-> Tên tạm. Lập ngày 08/10/2026. **Trạng thái: bản nháp, chờ duyệt.**
+> Tên tạm. Lập ngày 08/10/2026. **Trạng thái: đã duyệt 08/10/2026. GĐ0 xong trên nhánh `featured`.**
 > Những điểm chưa rõ nằm ở [mục 11, Câu hỏi còn mở](#11-câu-hỏi-còn-mở).
 
 ---
@@ -354,7 +354,7 @@ Mỗi mục là một khối dữ liệu, không viết cứng trong code (cùng
   risk: safe
   scope: user
   check:                  # đọc trạng thái hiện tại để hiện công tắc bật/tắt
-    registry: { key: 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced', name: HideFileExt, on: 0 }
+    registry: { key: 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced', name: HideFileExt, on_value: 0 }
   apply:
     - registry: { key: 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced', name: HideFileExt, type: DWORD, value: 0 }
   undo: auto              # trả về giá trị đã sao lưu trước khi đổi
@@ -438,6 +438,7 @@ Tool chạy với quyền admin. Nếu IT mở tool bằng tài khoản admin kh
 ### 6.8 Đóng gói và phát hành
 
 - PyInstaller kiểu `onedir`: khởi động nhanh hơn và ít bị diệt virus báo nhầm hơn `onefile`. Nhúng manifest đòi quyền admin, thông tin phiên bản và icon.
+- Bản GĐ0 nặng khoảng 65MB sau khi bỏ các phần Qt không dùng (bàn phím ảo, Quick/Qml, PDF, OpenGL phần mềm). Chưa bỏ thì là 108MB.
 - Phát hành thư mục `FVPL-ITTools-vX.Y.Z` lên share, kèm bản nén zip để chép vào USB. File `version.json` trên share để tool báo khi có bản mới.
 - **Ký số file exe** (nếu công ty có AD CS hoặc mua chứng chỉ code signing) để SmartScreen và Defender không chặn. Chưa ký được thì gửi file cho Microsoft xét báo nhầm.
 - Config lấy từ share trước (bản mới nhất). Không vào được share thì dùng bản đóng gói kèm theo.
@@ -466,7 +467,7 @@ Repo để public nên **tên domain, tên server, đường dẫn share, OU, ti
 
 | Giai đoạn | Nội dung | Xong khi |
 |---|---|---|
-| **0. Nền móng** | Khung PySide6 (sidebar, khung log, thanh trạng thái); kiểm tra quyền admin; runner chạy nền có nút huỷ; nạp và kiểm tra YAML; log ra file; restore point và nhật ký hoàn tác; build exe | Exe chạy được trên VM Win10 và Win11 sạch (không có Python), chạy được 3 mục mẫu, có log, hoàn tác được 1 tweak registry |
+| **0. Nền móng** ✔ | Khung PySide6 (sidebar, khung log, thanh trạng thái); kiểm tra quyền admin; runner chạy nền có nút huỷ; nạp và kiểm tra YAML; log ra file; restore point và nhật ký hoàn tác; build exe | Exe chạy được trên VM Win10 và Win11 sạch (không có Python), chạy được 3 mục mẫu, có log, hoàn tác được 1 tweak registry |
 | **1. Tổng quan + Sửa lỗi** | Trang Tổng quan (copy và xuất thông tin); toàn bộ fix P1 (mạng, domain, máy in, Windows Update, hệ thống, Office); 4 gói sửa nhanh; mở nhanh panel | IT dùng hằng ngày thay cho gõ lệnh tay; mục nào cũng có ⓘ và copy lệnh |
 | **2. Cài máy mới** | Wizard 7 bước; đổi tên + join + chạy tiếp sau restart; danh mục phần mềm (winget + share) và profile; sửa winget; Office ODT; cấu hình chuẩn; báo cáo | Từ một VM Windows sạch: vào được domain, cài đủ phần mềm theo profile, có báo cáo trên share. IT chỉ phải chọn phòng ban và nhập mật khẩu join |
 | **3. Tối ưu & dọn dẹp** | Dọn rác có quét trước; quản lý startup; debloat và quyền riêng tư; power; các fix P2 | Thấy được dung lượng trước khi xoá; mọi tweak hoàn tác được |
