@@ -88,7 +88,7 @@ def test_joined_machine_and_share_errors():
     assert checks["joined"].state == "ok"
     assert checks["share"].state == "bad"
     no_share = by_key(precheck.evaluate(facts(share_root="")))["share"]
-    assert no_share.state == "warn" and "share_root" in no_share.detail
+    assert no_share.state == "warn" and "share_root" in no_share.detail and "SOFT" in no_share.detail
 
 
 def test_network_script_failure():
@@ -104,7 +104,7 @@ def test_to_text():
 
 def test_collect_on_this_machine_reads_only():
     app = build_context()
-    collected = precheck.collect(replace(app, site=replace(app.site, share_root="")))
+    collected = precheck.collect(replace(app, software=replace(app.software, root="")))
     assert collected.network is not None, collected.network_error
     assert collected.disk_free_gb > 0
     checks = precheck.evaluate(collected)

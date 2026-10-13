@@ -4,7 +4,7 @@ Cập nhật: 13/10/2026. File này được cập nhật trước mỗi commit.
 
 ## Đang làm
 
-- Hai bản mang theo: **USB** (tool + cài qua share mạng) và **SSD** (tool + kho bộ cài/ISO `SOFT` cạnh tool, không cần mạng).
+- Không có việc dở. Việc tiếp theo: GĐ2 wizard (chờ thông tin công ty) hoặc GĐ4.
 
 ## Đã xong (code xong, **chưa chạy thử bằng quyền admin trên máy ảo**)
 
@@ -13,6 +13,7 @@ Cập nhật: 13/10/2026. File này được cập nhật trước mỗi commit.
 | GĐ0 Nền móng | Khung app, chạy lệnh nền, YAML, log, hoàn tác, restore point, đóng gói exe |
 | GĐ1 Tổng quan + Sửa lỗi | Trang Tổng quan (copy, xuất HTML); 24 mục sửa lỗi P1; 5 gói sửa nhanh; Tiện ích (mở nhanh 29 công cụ, ping/tracert/nslookup/cổng) |
 | GĐ2 Cài máy mới (một phần) | Trang Phần mềm (winget, share MSI/EXE/ISO/portable, profile phòng ban); bước 0 Kiểm tra trước; cấu hình chuẩn máy mới; sửa / cài lại winget; danh mục công ty trong `SOFT` (Office 2010/2013/2016 từ ISO, Symantec) |
+| Hai bản mang theo | **USB** (tool + cài qua share) và **SSD** (tool + kho `SOFT` cạnh exe, không cần mạng); `packaging/deploy.py usb/ssd` chép ra ổ |
 | GĐ3 Tối ưu & dọn dẹp | Dọn rác có quét trước (8 loại, có cache trình duyệt); tìm file lớn; khởi động cùng Windows; tắt quảng cáo / theo dõi; power; gỡ app cài sẵn; các mục sửa lỗi P2 (hosts, firewall, Windows Update, WMI, MSI, Teams, RDP, BitLocker, Defender…) |
 
 ## Còn lại
@@ -31,3 +32,4 @@ Cập nhật: 13/10/2026. File này được cập nhật trước mỗi commit.
 - Chạy thử trên máy ảo bằng quyền admin (danh sách từng mục trong [HANDOFF](HANDOFF.md)).
 - Trả lời PLAN mục 11, nhất là câu 2–5.
 - Điền key MAK vào `SOFT\config\office\*.xml` (nếu công ty dùng MAK).
+- Build bản phát hành rồi chép ra ổ: `packaging\deploy.py usb E:\` / `ssd F:\`.

@@ -8,7 +8,8 @@ domain: corp.example
 # Tên domain kiểu cũ (NetBIOS), dùng cho tài khoản dạng DOMAIN\user
 netbios_domain: CORP
 
-# Thư mục share chứa bộ cài và config dùng chung. Cấu trúc tool đọc:
+# Thư mục share chứa bộ cài và config dùng chung (kho bộ cài của bản USB). Bản SSD dùng thư mục SOFT
+# cạnh file exe thay cho share, cùng cấu trúc. Cấu trúc tool đọc:
 #   config\apps.yaml          danh mục phần mềm và profile (docs/SOFTWARE.md)
 #   Installers\...            bộ cài phần mềm nguồn share (đường dẫn khai báo trong apps.yaml)
 #   Installers\winget\        App Installer (.msixbundle, .appx phụ thuộc, license .xml) để cài lại winget

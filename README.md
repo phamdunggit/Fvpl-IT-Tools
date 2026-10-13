@@ -50,6 +50,24 @@ Tự kiểm tra giao diện (chụp ảnh từng trang + `selftest.json`):
 
 Kết quả: `dist\FVPL-ITTools\` (khoảng 65MB) và `dist\FVPL-ITTools-v<phiên bản>.zip`.
 
+## Hai bản mang theo: USB và SSD
+
+Cùng một chương trình, khác nhau ở **kho bộ cài** (nơi lấy Office, Symantec, nguồn .NET 3.5…):
+
+| Bản | Trên ổ có gì | Kho bộ cài |
+|---|---|---|
+| **USB** | `FVPL-ITTools\` + `site.yaml` | Share mạng (`share_root` trong site.yaml): sửa lỗi, cài phần mềm qua mạng |
+| **SSD** | như USB + `FVPL-ITTools\SOFT\` (ISO, bộ cài, `config\apps.yaml`) | Thư mục `SOFT` cạnh file exe: cài máy mới không cần tải, không cần vào share |
+
+Tool tự nhận: có thư mục `SOFT` cạnh file exe thì dùng nó, không thì dùng share. Trang Phần mềm và bước Kiểm tra trước ghi rõ đang dùng kho nào. Chép ra ổ (sau khi build bản phát hành):
+
+```powershell
+.venv\Scripts\python packaging\deploy.py usb E:\    # bản USB
+.venv\Scripts\python packaging\deploy.py ssd F:\    # bản SSD, chép thêm thư mục SOFT của repo (không bao giờ commit)
+```
+
+Chép lại lần sau chỉ chép phần thay đổi. Cấu trúc thư mục `SOFT` giống thư mục share, xem [site.example.yaml](site.example.yaml) và [docs/SOFTWARE.md](docs/SOFTWARE.md).
+
 ## Thêm một mục sửa lỗi / tweak mới
 
 Thêm một khối YAML vào file trong `src/fvpl_ittools/data/actions/`, không cần sửa code. Đủ các khoá và các bẫy hay gặp xem [docs/ACTIONS.md](docs/ACTIONS.md). Xong thì chạy `pytest`: test sẽ báo lỗi khai báo bằng tiếng Việt kèm tên file và số thứ tự mục.

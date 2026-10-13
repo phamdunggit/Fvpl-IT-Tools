@@ -8,6 +8,8 @@
   - **Dọn rác**: quét trước 7 loại (Temp người dùng, Temp Windows, bản cập nhật đã tải, cache Delivery Optimization, dump và báo cáo lỗi, thùng rác, Windows.old), hiện dung lượng và số file, tick rồi mới xoá. File Temp sửa trong 24 giờ được giữ; không đi theo junction/symlink; file đang khoá thì bỏ qua. Windows.old và Delivery Optimization dọn bằng Disk Cleanup.
   - **Khởi động cùng Windows**: danh sách từ khoá Run và thư mục Startup, bật/tắt kiểu Task Manager (StartupApproved), có nhật ký và hoàn tác.
   - **Tối ưu & quyền riêng tư**: tắt quảng cáo và gợi ý, Bing trong Start, Widgets, Copilot, ID quảng cáo, giảm telemetry; power plan High performance, tắt ngủ đông, tắt USB selective suspend; gỡ app cài sẵn theo danh sách chọn lọc (kèm mục liệt kê để xem trước); gói "Tắt quảng cáo và theo dõi".
+- **Hai bản mang theo**: tool tự chọn kho bộ cài: thư mục `SOFT` cạnh file exe (bản SSD, không cần mạng), không thì `share_root` (bản USB). `packaging/deploy.py usb|ssd <ổ>` chép tool (và kho SOFT) ra ổ bằng robocopy, kiểm tra chỗ trống.
+- Danh mục phần mềm cài thẳng từ ISO (kiểu `iso`); dọn cache trình duyệt; tab Tìm file lớn.
 - Cột trạng thái của mục có phần kiểm tra hiện "✔ Đã áp dụng" / "Chưa áp dụng" thay cho "Đang bật" / "Đang tắt".
 
 - Trang **Phần mềm**:

@@ -59,7 +59,7 @@ class Facts:
     os_label: str
     joined_domain: bool
     domain: str                    # domain cần join / đang ở (rỗng nếu chưa khai báo)
-    share_root: str
+    share_root: str               # kho bộ cài: SOFT cạnh tool (bản SSD) hoặc share mạng (bản USB)
     share_ok: bool
     winget: bool
     disk_free_gb: float
@@ -130,7 +130,7 @@ def collect(app: AppContext, cancel: threading.Event | None = None) -> Facts:
     domain = target_domain(app)
     system_drive = os.environ.get("SystemDrive", "C:") + "\\"
     has_battery, on_ac = power_status()
-    share_root = app.site.share_root
+    share_root = app.software.root
     facts = Facts(
         is_admin=app.env.is_admin,
         build=app.env.build,
@@ -254,14 +254,15 @@ def evaluate(facts: Facts) -> list[Check]:
                                "Bỏ qua bước đổi tên + join; vẫn cài phần mềm và cấu hình được"))
 
     if not facts.share_root:
-        checks.append(Check("share", "Thư mục share", "warn", "Chưa khai báo share_root trong site.yaml",
+        checks.append(Check("share", "Kho bộ cài", "warn",
+                            "Không có thư mục SOFT cạnh tool, chưa khai báo share_root trong site.yaml",
                             "Không cài được phần mềm từ share; danh mục dùng bản đóng gói kèm tool"))
     elif facts.share_ok:
-        checks.append(Check("share", "Thư mục share", "ok", f"Vào được {facts.share_root}"))
+        checks.append(Check("share", "Kho bộ cài", "ok", f"Vào được {facts.share_root}"))
     else:
         hint = "Máy chưa vào domain thì vào share cần tài khoản: join domain trước rồi cài phần mềm từ share sau" \
             if not facts.joined_domain else "Kiểm tra quyền của tài khoản trên share và đường dẫn trong site.yaml"
-        checks.append(Check("share", "Thư mục share", "bad" if facts.joined_domain else "warn",
+        checks.append(Check("share", "Kho bộ cài", "bad" if facts.joined_domain else "warn",
                             f"Không vào được {facts.share_root}", hint))
 
     if facts.winget:

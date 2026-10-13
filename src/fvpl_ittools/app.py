@@ -7,7 +7,7 @@ import logging
 import os
 import subprocess
 import sys
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 from .actions import loader
@@ -29,6 +29,7 @@ class AppContext:
     journal: UndoJournal
     site: config.SiteConfig
     log_file: Path | None
+    software: config.SoftwareSource = field(default_factory=config.SoftwareSource)
 
     @property
     def runs_as_other_user(self) -> bool:
@@ -46,13 +47,14 @@ def build_context(log_file: Path | None = None) -> AppContext:
     site = config.load_site_config()
     for error in site.errors:
         log.warning("%s", error)
+    software = config.software_source(site)
     env = Env(
         is_admin=winapi.is_admin(),
         build=machine.build,
         process_user=process_user,
         target_user=session_user,
         joined_domain=machine.joined_domain,
-        share_root=site.share_root,
+        share_root=software.root,
     )
     actions, errors = loader.load_builtin_actions()
     packs, pack_errors = loader.load_builtin_packs(actions)
@@ -60,9 +62,9 @@ def build_context(log_file: Path | None = None) -> AppContext:
     for error in errors:
         log.warning("Bỏ qua mục khai báo sai: %s", error)
     log.info(
-        "Máy %s | %s | %s | admin=%s | chạy bằng %s | áp cho %s | %d mục",
+        "Máy %s | %s | %s | admin=%s | chạy bằng %s | áp cho %s | %d mục | kho bộ cài: %s",
         machine.computer_name, machine.domain_label, machine.os_label, env.is_admin,
-        process_user.name, session_user.name, len(actions),
+        process_user.name, session_user.name, len(actions), software.label,
     )
     return AppContext(
         machine=machine,
@@ -73,6 +75,7 @@ def build_context(log_file: Path | None = None) -> AppContext:
         journal=UndoJournal(paths.undo_journal_path()),
         site=site,
         log_file=log_file,
+        software=software,
     )
 
 

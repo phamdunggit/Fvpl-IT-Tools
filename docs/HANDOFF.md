@@ -9,7 +9,7 @@ Cập nhật lần cuối: 13/10/2026, sau khi xong trang Phần mềm (phần �
 | Giai đoạn | **GĐ1 (Tổng quan + Sửa lỗi) xong phần code.** Còn chạy thử các mục đổi hệ thống bằng quyền admin (danh sách bên dưới) rồi mới coi là xong. **GĐ2 đang làm:** đã có trang Phần mềm; wizard Cài máy mới chưa làm |
 | Nhánh | Code mới làm trên `featured`. Chỉ merge về `main` khi được duyệt |
 | Phiên bản | 0.2.0, xem [CHANGELOG.md](../CHANGELOG.md) (trang Phần mềm nằm ở mục "Chưa phát hành") |
-| Test | 203 test pytest, tất cả đều qua (khoảng 25 giây) |
+| Test | 212 test pytest, tất cả đều qua (khoảng 25 giây) |
 | Bản exe | `python packaging\build.py`: thư mục 64MB, zip 27MB. `--test` chạy selftest trên exe, gồm cả đọc thông tin máy |
 
 Đã có:
@@ -122,6 +122,10 @@ Trang Tối ưu & dọn dẹp (GĐ3). Quét rác, danh sách khởi động, li�
 - [ ] **Khởi động cùng Windows**: tắt một mục rồi đăng xuất / đăng nhập, mục không chạy; Task Manager cũng hiện Disabled; hoàn tác ở trang Nhật ký thì bật lại.
 - [ ] **Tối ưu**: gói "Tắt quảng cáo và theo dõi" rồi xem Start, Settings, taskbar; Widgets tắt bằng policy `Dsh\AllowNewsAndInterests`; power plan High performance trên laptop Modern Standby (có thể Windows không cho).
 - [ ] **Gỡ app cài sẵn**: chạy "Liệt kê" rồi "Gỡ" trên VM; tài khoản mới tạo sau đó không bị cài lại; các app trong danh sách giữ vẫn còn.
+
+Hai bản USB / SSD:
+- [ ] `deploy.py ssd` ra SSD thật, chạy tool từ SSD trên máy chưa vào domain: trang Phần mềm ghi "kho trên ổ mang theo", cài Office từ ISO trên SSD (mount ISO từ ổ USB/SSD).
+- [ ] Bản USB: kho là share; máy chưa join thì báo không vào được kho, không treo.
 
 ## Việc tiếp theo
 

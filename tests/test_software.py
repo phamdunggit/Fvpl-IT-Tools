@@ -205,7 +205,7 @@ def test_blocked_reasons():
     assert "quyền admin" in install.blocked_reason(winget_app(), senv(is_admin=False))
     assert "winget" in install.blocked_reason(winget_app(), senv(winget=None))
     assert "share_root" in install.blocked_reason(share_app(), senv(share_root=""))
-    assert "Không vào được share" in install.blocked_reason(share_app(), senv(share_ok=False))
+    assert "Không vào được kho bộ cài" in install.blocked_reason(share_app(), senv(share_ok=False))
     assert "Không thấy bộ cài" in install.blocked_reason(share_app(), senv(missing=frozenset({"office"})))
     user_app = winget_app(scope="user")
     assert "tài khoản khác" in install.blocked_reason(user_app, senv(runs_as_other_user=True))

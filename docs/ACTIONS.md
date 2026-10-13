@@ -109,7 +109,7 @@ Biến, có sẵn trong mọi script:
 | `$TargetUserProfile` | Thư mục profile của họ, ví dụ `C:\Users\nva`. |
 | `$ReportDir` | Thư mục `reports` của tool, nơi lưu file báo cáo (gpresult, thông tin máy). |
 | `$LogDir` | Thư mục `logs` của tool (ví dụ log MSI). |
-| `$ShareRoot` | `share_root` trong site.yaml, rỗng nếu chưa khai báo. Ví dụ nguồn .NET 3.5 offline: `$ShareRoot\Sources\sxs\<build>`. |
+| `$ShareRoot` | Kho bộ cài: thư mục `SOFT` cạnh file exe (bản SSD) nếu có, không thì `share_root` trong site.yaml (bản USB); rỗng nếu chưa có. Ví dụ nguồn .NET 3.5 offline: `$ShareRoot\Sources\sxs\<build>`. |
 | `$Credential` | Chỉ có ở mục `needs_credential`. |
 
 Hàm, khai báo trong `src/fvpl_ittools/core/pslib.py`. Tool chỉ thêm chúng vào script nào có gọi tới; nút "Copy lệnh" copy kèm luôn để chạy tay vẫn đúng.

@@ -28,6 +28,37 @@ class SiteConfig:
         return self.source is not None
 
 
+LOCAL_REPO = "SOFT"
+
+
+@dataclass(frozen=True)
+class SoftwareSource:
+    """Kho bộ cài mà {share} / $ShareRoot trỏ tới.
+
+    Bản SSD: thư mục SOFT nằm cạnh file exe (ISO, bộ cài, config\\apps.yaml), dùng được không cần mạng.
+    Bản USB: không có SOFT, lấy share_root trong site.yaml (cài qua mạng).
+    """
+    root: str = ""
+    kind: str = ""  # local | share | "" (chưa có)
+
+    @property
+    def label(self) -> str:
+        if self.kind == "local":
+            return f"kho trên ổ mang theo {self.root}"
+        if self.kind == "share":
+            return f"share {self.root}"
+        return "chưa có (không có thư mục SOFT cạnh tool, chưa khai báo share_root trong site.yaml)"
+
+
+def software_source(site: SiteConfig, app_root: Path | None = None) -> SoftwareSource:
+    local = (app_root if app_root is not None else paths.app_root()) / LOCAL_REPO
+    if local.is_dir():
+        return SoftwareSource(str(local), "local")
+    if site.share_root:
+        return SoftwareSource(site.share_root, "share")
+    return SoftwareSource()
+
+
 def site_config_candidates() -> list[Path]:
     """Thứ tự tìm: biến môi trường FVPL_ITTOOLS_SITE → cạnh file exe/gốc repo → %ProgramData%\\FVPL-ITTools."""
     candidates: list[Path] = []

@@ -24,7 +24,7 @@ class SoftwareState:
 
 
 def scan(app: AppContext) -> SoftwareState:
-    share_root = app.site.share_root
+    share_root = app.software.root  # SOFT cạnh tool (bản SSD) hoặc share_root (bản USB)
     share_ok = bool(share_root) and os.path.isdir(share_root)
     catalog = catalog_module.load_catalog(share_root if share_ok else "")
     missing = frozenset(

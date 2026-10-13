@@ -2,7 +2,7 @@
 
 Trang **Phần mềm** đọc danh mục từ `apps.yaml`:
 
-1. `<share_root>\config\apps.yaml` nếu `site.yaml` có `share_root` và vào được share. IT sửa file này là xong, không phải build lại tool.
+1. `<kho bộ cài>\config\apps.yaml`. Kho bộ cài là thư mục `SOFT` cạnh file exe (bản SSD) nếu có, không thì `share_root` trong `site.yaml` (bản USB, cần vào được share). IT sửa file này là xong, không phải build lại tool. `{share}` trong danh mục trỏ tới kho đang dùng.
 2. Không có thì dùng bản đóng gói kèm tool: `src/fvpl_ittools/data/apps.yaml` (danh sách gợi ý, chưa chốt).
 
 Khai báo sai thì ứng dụng / profile đó bị loại, khung log báo lỗi tiếng Việt kèm tên file và số thứ tự; phần còn lại vẫn dùng được. Sửa bản đóng gói thì chạy `pytest` (test `test_bundled_catalog_loads_without_errors`). Sửa bản trên share thì mở tool, vào trang Phần mềm, xem khung log.

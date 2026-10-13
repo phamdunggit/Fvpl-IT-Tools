@@ -164,16 +164,17 @@ class SoftwarePage(QWidget):
         state = self.state
         senv = state.senv
         installed = sum(1 for detection in state.detections.values() if detection.installed)
-        if not senv.share_root:
-            share = "chưa khai báo share_root trong site.yaml"
+        source = self.app.software
+        if not source.root:
+            share = source.label
         elif senv.share_ok:
-            share = f"vào được {senv.share_root}"
+            share = source.label
         else:
-            share = f"không vào được {senv.share_root}"
+            share = f"không vào được {source.label}"
         parts = [
             f"Danh mục: {state.catalog.source} ({len(state.catalog.apps)} ứng dụng, đã cài {installed})",
             f"winget: {'có' if senv.winget else 'không có'}",
-            f"share: {share}",
+            f"kho bộ cài: {share}",
         ]
         if state.catalog.errors:
             parts.append(f"{len(state.catalog.errors)} mục khai báo sai (xem khung log)")

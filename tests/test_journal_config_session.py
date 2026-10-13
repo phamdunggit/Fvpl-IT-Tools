@@ -45,6 +45,18 @@ def test_site_config(tmp_path):
     assert site.errors == ("site.yaml: không hiểu khoá 'typo'",)
 
 
+def test_software_source_prefers_soft_next_to_tool(tmp_path):
+    site = config.SiteConfig(share_root=r"\\files.corp.example\IT$")
+    usb = config.software_source(site, app_root=tmp_path)
+    assert (usb.root, usb.kind) == (r"\\files.corp.example\IT$", "share")
+    (tmp_path / "SOFT").mkdir()
+    ssd = config.software_source(site, app_root=tmp_path)
+    assert (ssd.root, ssd.kind) == (str(tmp_path / "SOFT"), "local")
+    assert "ổ mang theo" in ssd.label
+    nothing = config.software_source(config.SiteConfig(), app_root=tmp_path / "khac")
+    assert nothing.kind == "" and "SOFT" in nothing.label
+
+
 def test_process_and_session_user():
     me = session.process_user()
     assert me.sid.startswith("S-1-5-")

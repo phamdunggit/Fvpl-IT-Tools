@@ -65,9 +65,10 @@ def blocked_reason(app: App, senv: SoftwareEnv) -> str | None:
         return "Chưa có winget cho tài khoản đang chạy tool: chạy mục Sửa / cài lại winget ở trang Sửa lỗi"
     if app.source == "share":
         if not senv.share_root:
-            return "Chưa khai báo share_root trong site.yaml"
+            return ("Chưa có kho bộ cài: chép thư mục SOFT cạnh tool (bản SSD) "
+                    "hoặc khai báo share_root trong site.yaml (bản USB)")
         if not senv.share_ok:
-            return f"Không vào được share {senv.share_root}"
+            return f"Không vào được kho bộ cài {senv.share_root}"
         if app.id in senv.missing:
             return "Không thấy bộ cài trên share"
     if app.scope == "user" and senv.runs_as_other_user:
