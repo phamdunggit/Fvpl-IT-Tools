@@ -240,7 +240,7 @@ Mỗi nhóm có một **gói sửa nhanh** (*Sửa mạng*, *Sửa máy in*, *S�
 | Cài từ winget | `winget install --id … --exact --source winget --silent --accept-package-agreements --accept-source-agreements --disable-interactivity`. *Đã làm* | P1 |
 | Cài từ share | MSI (`/qn /norestart`), EXE kèm tham số cài im lặng, app portable (copy + tạo shortcut). Xử lý mã thoát 0 / 3010 / 1641 / 1618. *Đã làm* | P1 |
 | Hàng đợi cài | Chạy tuần tự, ghi log từng app, có nút thử lại khi lỗi. *Đã làm* | P1 |
-| Sửa / cài lại winget | Cài lại App Installer và các gói phụ thuộc từ share (giống "WinGet Reinstall" của WinUtil) | P1 |
+| Sửa / cài lại winget | Đăng ký lại App Installer cho tài khoản; không được thì cài App Installer và các gói phụ thuộc từ share (giống "WinGet Reinstall" của WinUtil). *Đã làm: mục `sw.repair_winget` ở trang Sửa lỗi* | P1 |
 | Office | Cài bằng Office Deployment Tool với file `config.xml` trên share, dùng license của công ty | P1 |
 | Cập nhật app | `winget upgrade`, có danh sách loại trừ | P2 |
 | Gỡ cài đặt | | P2 |

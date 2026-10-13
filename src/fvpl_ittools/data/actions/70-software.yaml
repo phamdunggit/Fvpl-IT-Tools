@@ -1,0 +1,62 @@
+# Phần mềm (trang Sửa lỗi). Cách khai báo: xem docs/ACTIONS.md.
+
+- id: sw.repair_winget
+  name: Sửa / cài lại winget
+  category: Phần mềm
+  risk: safe
+  description: >
+    Dùng khi trang Phần mềm báo "Máy chưa có winget" hoặc lệnh winget không chạy. Đăng ký lại App Installer cho
+    tài khoản đang chạy tool (hay gặp ở tài khoản mới đăng nhập lần đầu); không được thì cài từ share:
+    <share>\Installers\winget\ chứa file .msixbundle của App Installer, các file phụ thuộc .appx (VCLibs,
+    UI.Xaml) và file license .xml (xem docs/SOFTWARE.md). Áp cho tài khoản đang chạy tool.
+  apply:
+    - powershell: |
+        function Test-Winget {
+            $command = Get-Command winget.exe -ErrorAction SilentlyContinue
+            if (-not $command) { return $false }
+            # Không dùng 2>$null: với ErrorActionPreference = Stop, PowerShell 5.1 biến dòng stderr thành lỗi dừng script.
+            try { $version = & $command.Source --version } catch { return $false }
+            if ($LASTEXITCODE) { return $false }
+            Write-Line "winget $version"
+            return $true
+        }
+
+        if (Test-Winget) { Write-Ok 'winget đang chạy bình thường.'; exit 0 }
+
+        Write-Line 'Đăng ký lại App Installer cho tài khoản này…'
+        try {
+            Add-AppxPackage -RegisterByFamilyName -MainPackage Microsoft.DesktopAppInstaller_8wekyb3d8bbwe -ErrorAction Stop
+        }
+        catch { Write-Warn "Đăng ký lại không được: $($_.Exception.Message)" }
+        if (Test-Winget) { Write-Ok 'Đã sửa xong winget.'; exit 0 }
+
+        $folder = if ($ShareRoot) { Join-Path $ShareRoot 'Installers\winget' } else { $null }
+        if (-not $folder -or -not (Test-Path -LiteralPath $folder)) {
+            Write-Bad "Không có bộ cài winget trên share ($folder)."
+            exit 3
+        }
+        $bundle = Get-ChildItem -LiteralPath $folder -Filter '*.msixbundle' | Select-Object -First 1
+        if (-not $bundle) { Write-Bad "Không thấy file .msixbundle trong $folder."; exit 3 }
+        $arch = if ([Environment]::Is64BitOperatingSystem) { 'x64' } else { 'x86' }
+        $dependencies = @(Get-ChildItem -LiteralPath $folder -Filter '*.appx' |
+            Where-Object { $_.Name -match "_$arch" -or $_.Name -notmatch '_(x64|x86|arm64|arm)' } | ForEach-Object FullName)
+        Write-Line "Cài $($bundle.Name) kèm $($dependencies.Count) gói phụ thuộc…"
+        # Truyền tham số qua hashtable: -DependencyPath với mảng rỗng làm lệnh báo lỗi.
+        $install = @{ Path = $bundle.FullName; ForceApplicationShutdown = $true }
+        if ($dependencies) { $install.DependencyPath = $dependencies }
+        Add-AppxPackage @install
+        $license = Get-ChildItem -LiteralPath $folder -Filter '*.xml' | Select-Object -First 1
+        if ($license) {
+            # Cài sẵn cho cả máy để tài khoản đăng nhập sau này cũng có winget.
+            Write-Line 'Cài sẵn App Installer cho các tài khoản đăng nhập sau này…'
+            $provision = @{ Online = $true; PackagePath = $bundle.FullName; LicensePath = $license.FullName }
+            if ($dependencies) { $provision.DependencyPackagePath = $dependencies }
+            Add-AppxProvisionedPackage @provision | Out-Null
+        }
+        if (Test-Winget) { Write-Ok 'Đã cài xong winget.'; exit 0 }
+        Write-Bad 'Đã cài nhưng chưa gọi được winget. Đăng xuất rồi đăng nhập lại, hoặc khởi động lại máy.'
+        exit 2
+      timeout: 900
+      messages:
+        2: Đã cài App Installer nhưng chưa gọi được winget, đăng xuất rồi đăng nhập lại
+        3: Không đăng ký lại được và share không có bộ cài winget (Installers\winget)

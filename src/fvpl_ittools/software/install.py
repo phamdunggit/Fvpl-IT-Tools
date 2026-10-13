@@ -61,7 +61,7 @@ def blocked_reason(app: App, senv: SoftwareEnv) -> str | None:
     if not senv.is_admin:
         return "Cần mở tool bằng quyền admin"
     if app.source == "winget" and not senv.winget:
-        return "Máy chưa có winget (App Installer), hoặc tài khoản đang chạy tool chưa đăng nhập lần nào"
+        return "Chưa có winget cho tài khoản đang chạy tool: chạy mục Sửa / cài lại winget ở trang Sửa lỗi"
     if app.source == "share":
         if not senv.share_root:
             return "Chưa khai báo share_root trong site.yaml"

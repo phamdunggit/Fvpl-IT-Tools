@@ -98,6 +98,7 @@ Trang Phần mềm (GĐ2). Danh mục và phát hiện đã cài đã chạy th�
 - [ ] **Portable (UniKey):** chép vào Program Files, có shortcut Start Menu và Startup chung, đăng nhập tài khoản khác thấy UniKey tự chạy.
 - [ ] **Office bằng ODT:** cần file `setup.exe` và `config.xml` thật trên share; xem có bị timeout 3600 giây không.
 - [ ] **Run as different user:** ứng dụng `scope: user` (Zalo) bị khoá; phần mềm cài riêng cho người dùng (HKU\<SID>\…\Uninstall) vẫn được nhận là đã cài.
+- [ ] **Sửa / cài lại winget:** tài khoản mới đăng nhập lần đầu chưa có winget → mục đăng ký lại được; xoá App Installer của tài khoản (`Get-AppxPackage Microsoft.DesktopAppInstaller | Remove-AppxPackage`) → mục cài lại từ `<share>\Installers\winget\`. Phần kiểm tra `winget --version` đã chạy thật trên máy dev.
 - [ ] **Máy chưa vào domain:** trang báo "Không vào được share", danh mục quay về bản đóng gói; không bị treo lâu khi share không trả lời (quét chạy ở thread nền, nhưng `os.path.isdir` trên UNC có thể chờ 20–60 giây).
 
 Trang Cài máy mới, bước Kiểm tra trước. Đã chạy thật trên máy dev (máy đã join, đang ở Wi-Fi ngoài nên DNS không trỏ về DC):

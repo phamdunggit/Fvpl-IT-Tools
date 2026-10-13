@@ -86,5 +86,8 @@ Các ứng dụng cài **lần lượt**; một ứng dụng lỗi thì vẫn c�
 ## Lưu ý
 
 - **Máy chưa vào domain thì thường không vào được share.** Bước join domain của wizard Cài máy mới (GĐ2) sẽ lo việc này; hiện tại cần map share bằng tài khoản domain trước (`net use`), hoặc cài phần mềm sau khi join.
-- **winget thuộc từng tài khoản.** Tool dùng winget của tài khoản đang chạy tool; tài khoản chưa đăng nhập lần nào thì có thể chưa có winget. Việc cài lại winget từ share làm ở GĐ2.
+- **winget thuộc từng tài khoản.** Tool dùng winget của tài khoản đang chạy tool; tài khoản mới đăng nhập lần đầu thường chưa có. Mục **Sửa / cài lại winget** (trang Sửa lỗi, nhóm Phần mềm) đăng ký lại App Installer cho tài khoản đó; không được thì cài từ `<share_root>\Installers\winget\`. Chuẩn bị thư mục này từ trang phát hành của winget-cli trên GitHub (bản mới nhất):
+  - `Microsoft.DesktopAppInstaller_8wekyb3d8bbwe.msixbundle`
+  - file license `*_License1.xml` (có thì tool cài sẵn cho cả máy, tài khoản đăng nhập sau này cũng có winget)
+  - các gói phụ thuộc `.appx` bản x64: `Microsoft.VCLibs.140.00.UWPDesktop_*_x64.appx`, `Microsoft.UI.Xaml.2.8_*_x64.appx` (lấy trong file `DesktopAppInstaller_Dependencies.zip` cùng trang phát hành)
 - **Tìm tham số cài im lặng** cho EXE: thử `setup.exe /?`, xem trang của hãng, hoặc tra "<tên phần mềm> silent install". Thử trên máy ảo trước khi đưa vào danh mục.

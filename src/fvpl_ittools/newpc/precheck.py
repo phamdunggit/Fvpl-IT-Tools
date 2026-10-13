@@ -268,7 +268,7 @@ def evaluate(facts: Facts) -> list[Check]:
         checks.append(Check("winget", "winget", "ok", "Có winget"))
     else:
         checks.append(Check("winget", "winget", "warn", "Không có winget cho tài khoản đang chạy tool",
-                            "Cập nhật App Installer từ Microsoft Store, hoặc chờ nút cài lại winget từ share (GĐ2)"))
+                            "Chạy mục Sửa / cài lại winget ở trang Sửa lỗi"))
 
     free = facts.disk_free_gb
     disk_state = "ok" if free >= DISK_OK_GB else ("warn" if free >= DISK_MIN_GB else "bad")

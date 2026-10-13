@@ -19,6 +19,7 @@
   - Nhóm "Cấu hình chuẩn" (bước 5 của wizard sẽ dùng lại): múi giờ UTC+7, tắt Fast Startup, hiện This PC trên desktop, cài .NET 3.5 (nguồn offline `<share>\Sources\sxs\<build>` nếu có, không thì Windows Update), bật System Protection và tạo restore point "sau khi cài máy".
   - Nhóm "Tuỳ chọn hay dùng" thêm: hiện file ẩn, menu chuột phải kiểu cũ (Win11), End task trên taskbar (Win11 23H2+), căn trái taskbar (Win11), Long Paths. Mỗi mục hiện trạng thái đang bật/tắt và hoàn tác được.
   - Gói "Cấu hình chuẩn máy mới": làm lần lượt, một mục lỗi vẫn làm tiếp.
+- Mục **Sửa / cài lại winget** (trang Sửa lỗi, nhóm Phần mềm): đăng ký lại App Installer cho tài khoản đang chạy tool; không được thì cài từ `<share>\Installers\winget\` (có file license thì cài sẵn cho cả máy). Trang Phần mềm và bước Kiểm tra trước trỏ tới mục này khi thiếu winget.
 - Gói có thêm khoá `page` (hiện ở trang nào) và `stop_on_error`. Script PowerShell có thêm biến `$ShareRoot`, `$LogDir`.
 - `--selftest` chờ trang Phần mềm quét xong và báo lỗi danh mục.
 
