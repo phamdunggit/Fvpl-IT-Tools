@@ -29,6 +29,7 @@ from .pages.actions_page import ActionsPage
 from .pages.history import HistoryPage
 from .pages.overview import OverviewPage
 from .pages.placeholder import PlaceholderPage
+from .pages.utilities import UtilitiesPage
 from .widgets import chip
 
 
@@ -100,11 +101,7 @@ def _pages(app: AppContext, controller: RunController) -> list[tuple[str, QWidge
             "config", "Cấu hình", "Tuỳ chọn Windows hay dùng. Mỗi mục hiện trạng thái hiện tại và hoàn tác được.",
             "Chưa có mục cấu hình nào.", app, controller,
         )),
-        ("Tiện ích", ActionsPage(
-            "utilities", "Tiện ích", "Công cụ nhỏ cho IT: chẩn đoán mạng, sao lưu driver, xem event log…",
-            "Chưa có tiện ích nào. Phần này làm ở GĐ1 (chẩn đoán mạng) và GĐ4 (các tiện ích còn lại).",
-            app, controller,
-        )),
+        ("Tiện ích", UtilitiesPage(app, controller)),
         ("Nhật ký", HistoryPage(app, controller)),
     ]
 

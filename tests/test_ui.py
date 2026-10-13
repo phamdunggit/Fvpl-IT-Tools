@@ -70,6 +70,26 @@ def test_overview_loads_parts_copies_and_alerts(window, qt_app, state_dir, monke
     assert window.header.alerts.count() == 1
 
 
+def test_utilities_page_opens_shortcuts_and_runs_network_tools(window, monkeypatch):
+    from fvpl_ittools.ui.pages import utilities
+    window.select_page("Tiện ích")
+    page = window.stack.currentWidget()
+    launched = []
+    monkeypatch.setattr(utilities, "launch", launched.append)
+    page.shortcuts.buttons["Services"].click()
+    assert launched and launched[0][-1].lower().endswith("services.msc")
+    assert "Đã mở Services." in window.log_panel.plain_text()
+
+    runs = []
+    monkeypatch.setattr(window.controller, "run", lambda actions, **kw: runs.append(actions))
+    page.network.host.setText("8.8.8.8 & del")
+    page.network.run("ping")
+    assert runs == [] and page.network.error.text()
+    page.network.host.setText("8.8.8.8")
+    page.network.run("ping")
+    assert runs[0][0].apply[0].command == "ping -n 4 8.8.8.8"
+
+
 def test_every_page_renders(window, qt_app):
     for row in range(window.sidebar.count()):
         window.sidebar.setCurrentRow(row)

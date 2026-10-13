@@ -58,6 +58,8 @@ QLabel[state="warn"] { color: #b45309; }
 QLabel[state="bad"] { color: #b91c1c; font-weight: 600; }
 QLabel[state="muted"] { color: #7b8794; }
 #InfoView { background: #f4f6f8; border: none; }
+#ShortcutsPanel { background: #ffffff; }
+#ShortcutsPanel QPushButton { min-height: 22px; }
 
 QPushButton { padding: 6px 14px; border: 1px solid #c5cfda; border-radius: 6px; background: #ffffff; }
 QPushButton:hover { background: #f0f5fb; }
