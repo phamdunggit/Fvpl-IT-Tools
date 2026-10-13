@@ -38,7 +38,7 @@ from PySide6.QtWidgets import (
 
 from ... import __version__
 from ...app import AppContext
-from ...core import config, inventory, paths
+from ...core import config, inventory, paths, sysinfo
 from ...core.executor import BatchResult, Level, RunContext, Status
 from ...newpc import naming, precheck, report, state as wizard_state, steps
 from ...software import catalog as catalog_module
@@ -53,6 +53,7 @@ STATE_TEXT_COLORS = {"ok": "#15803d", "warn": "#b45309", "bad": "#b91c1c", "skip
 STEP_MARKS = {"ok": "✔", "failed": "✖", "skipped": "–", "": "○"}
 STEP_COLORS = {"ok": "#15803d", "failed": "#b91c1c", "skipped": "#7b8794"}
 STEP_KEYS = [key for key, _name in wizard_state.STEPS]
+UPDATE_ACTIONS = ("drv.vendor_update", "wu.scan_install")  # bước 6, chạy lần lượt
 
 
 # ---------------------------------------------------------------- bước 0: kiểm tra trước
@@ -467,15 +468,20 @@ class NewPcPage(QWidget):
         return panel
 
     def _update_panel(self) -> QWidget:
-        panel, layout = self._panel("6. Windows Update")
-        layout.addWidget(_note("Quét và cài bản cập nhật của Windows (mục Quét và cài bản cập nhật ở trang Sửa lỗi). "
-                               "Có thể mất lâu và cần khởi động lại; không cần thì bỏ qua."))
-        self.update_button = QPushButton("Quét và cài cập nhật")
+        panel, layout = self._panel("6. Driver + Windows Update")
+        layout.addWidget(_note(
+            "Chạy lần lượt, mục lỗi thì vẫn làm tiếp:<ul>"
+            "<li><b>Cập nhật driver, BIOS của hãng</b>: máy Dell dùng Dell Command | Update, máy Lenovo dòng Think "
+            "dùng Lenovo System Update (chưa có thì tự cài bằng winget). Hãng khác thì bỏ qua mục này.</li>"
+            "<li><b>Quét và cài bản cập nhật</b> của Windows.</li></ul>"
+            "Cần Internet, có thể mất 30 phút trở lên; xong thì tool hỏi khởi động lại."))
+        self.update_button = QPushButton("Cập nhật driver và Windows")
         self.update_button.setObjectName("Primary")
-        self.update_button.setEnabled("wu.scan_install" in self._actions)
-        self._buttons(layout, self.update_button, self._skip_button("update"))
+        self.update_done_button = QPushButton("Đánh dấu đã xong")
+        self._buttons(layout, self.update_button, self.update_done_button, self._skip_button("update"))
         layout.addStretch(1)
         self.update_button.clicked.connect(self.run_update)
+        self.update_done_button.clicked.connect(lambda: self.record("update", "ok", "IT đánh dấu xong", advance=True))
         return panel
 
     def _report_panel(self) -> QWidget:
@@ -771,11 +777,18 @@ class NewPcPage(QWidget):
         self._pending = "config"
         self.controller.run([self._actions[action_id] for action_id in pack.actions], stop_on_error=False)
 
+    def update_actions(self) -> list:
+        """Bước 6: bỏ mục driver của hãng nếu máy không phải Dell / Lenovo (mục đó chỉ báo không hỗ trợ)."""
+        vendor = sysinfo.manufacturer().lower()
+        wanted = [action_id for action_id in UPDATE_ACTIONS
+                  if action_id != "drv.vendor_update" or not vendor or "dell" in vendor or "lenovo" in vendor]
+        return [self._actions[action_id] for action_id in wanted if action_id in self._actions]
+
     def run_update(self) -> None:
-        action = self._actions.get("wu.scan_install")
-        if action is not None:
+        actions = self.update_actions()
+        if actions:
             self._pending = "update"
-            self.controller.run([action])
+            self.controller.run(actions, stop_on_error=False)
 
     def _run_finished(self, result: object) -> None:
         key = self._pending

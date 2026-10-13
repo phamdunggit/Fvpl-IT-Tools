@@ -34,7 +34,7 @@ STEPS = (
     ("after", "3. Sau khởi động lại"),
     ("software", "4. Cài phần mềm"),
     ("config", "5. Cấu hình chuẩn"),
-    ("update", "6. Windows Update"),
+    ("update", "6. Driver + Windows Update"),
     ("report", "7. Báo cáo"),
 )
 STEP_NAMES = dict(STEPS)

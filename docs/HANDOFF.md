@@ -9,7 +9,7 @@ Cập nhật lần cuối: 13/10/2026, sau khi xong wizard Cài máy mới (GĐ2
 | Giai đoạn | **GĐ1, GĐ2 (wizard Cài máy mới), phần lớn GĐ3 xong phần code.** Còn chạy thử các mục đổi hệ thống bằng quyền admin trên VM (danh sách bên dưới) rồi mới coi là xong |
 | Nhánh | Code mới làm trên `featured`. Chỉ merge về `main` khi được duyệt |
 | Phiên bản | 0.2.0, xem [CHANGELOG.md](../CHANGELOG.md) (trang Phần mềm nằm ở mục "Chưa phát hành") |
-| Test | 266 test pytest, tất cả đều qua (khoảng 35 giây) |
+| Test | 267 test pytest, tất cả đều qua (khoảng 40 giây) |
 | Bản exe | `python packaging\build.py`: thư mục 64MB, zip 27MB. `--test` chạy selftest trên exe, gồm cả đọc thông tin máy |
 
 Đã có:
@@ -111,6 +111,11 @@ Wizard Cài máy mới. "Gợi ý tên" (hỏi AD, máy đã join) và tạo bá
 - [ ] **Bản SSD:** bắt đầu từ SSD, sau khởi động lại SSD vẫn cắm cùng ký tự ổ → trang Phần mềm dùng kho SOFT trên SSD (`origin` trong newpc-wizard.json). Cắm khác ký tự ổ thì quay về share.
 - [ ] **Định dạng vùng vi-VN:** `rundll32 shell32.dll,Control_RunDLL intl.cpl,,/f:"x.xml"` có chờ xong mới thoát không; tài khoản mới tạo sau đó nhận vi-VN; màn hình đăng nhập (`HKU\.DEFAULT`) đổi theo.
 - [ ] **Báo cáo:** mở được bằng trình duyệt của người dùng; có bản trong `Reports\` trên USB. Kết thúc wizard thì tác vụ mở lại bị xoá.
+
+Cập nhật driver, BIOS của hãng (`drv.vendor_update`). Máy dev là Dell nhưng chưa có Dell Command | Update và không có quyền admin nên **chưa chạy lần nào**:
+- [ ] **Dell chưa có DCU:** winget cài `Dell.CommandUpdate.Universal`, rồi `dcu-cli /applyUpdates` chạy, có dòng tiến độ trong khung log, log ở thư mục logs. Mã 1 → tool hỏi khởi động lại; 500 → báo đã mới nhất. Máy có BitLocker: BIOS cập nhật được nhờ `-autoSuspendBitLocker=enable`.
+- [ ] **Lenovo ThinkPad / ThinkCentre:** winget cài `Lenovo.SystemUpdate`; `tvsu.exe /CM -search R -action INSTALL -includerebootpackages 3 -nolicense -noreboot -noicon` có hiện cửa sổ / hỏi gì không; tool có chờ đúng tới khi `tvsukernel.exe` xong; mã thoát khi không có gì để cài.
+- [ ] Máy hãng khác: bước 6 của wizard chỉ chạy Windows Update.
 
 Trang Cài máy mới, bước Kiểm tra trước. Đã chạy thật trên máy dev (máy đã join, đang ở Wi-Fi ngoài nên DNS không trỏ về DC):
 - [ ] VM **chưa join**, có `site.yaml` khai báo `domain`, cắm mạng công ty: DNS tìm được DC, DC trả lời LDAP, đo được giờ lệch.

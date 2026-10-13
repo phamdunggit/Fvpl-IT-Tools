@@ -253,7 +253,7 @@ Mỗi nhóm có một **gói sửa nhanh** (*Sửa mạng*, *Sửa máy in*, *S�
 | Office | Cài bằng Office Deployment Tool với file `config.xml` trên share, dùng license của công ty | P1 |
 | Cập nhật app | `winget upgrade`, có danh sách loại trừ | P2 |
 | Gỡ cài đặt | | P2 |
-| Driver theo hãng | Dell Command \| Update, Lenovo System Update, HP Support Assistant | P2 |
+| Driver theo hãng ✔ (Dell, Lenovo) | Mục "Cập nhật driver, BIOS của hãng" (`55-drivers.yaml`): tự nhận hãng; Dell Command \| Update (`dcu-cli /applyUpdates`, tự tạm dừng BitLocker) hoặc Lenovo System Update (`tvsu /CM`), chưa có thì cài bằng winget; bước 6 của wizard dùng. HP chưa làm (máy HP ít) | P2 |
 
 Danh sách mặc định gợi ý (**cần bồ chốt**; đã đưa phần có winget vào `data/apps.yaml` đóng gói kèm tool):
 

@@ -8,9 +8,10 @@
   - Bước 1: chọn phòng ban, **thêm mã phòng mới** (ghi vào `departments` trong site.yaml, giữ chú thích), **gợi ý tên** `<tiền tố><mã><2 số>` theo số lớn nhất đang có trong AD (máy chưa join thì hỏi AD bằng tài khoản join), báo tên đã có (KB5020276); người dùng chính, profile phần mềm.
   - Bước 2: chép tool vào `%ProgramData%\FVPL-ITTools\app` (chỉ admin ghi được), đổi tên + join domain vào OU chung trong một lần khởi động lại, hẹn tool tự mở lại (`--resume`) khi admin đăng nhập; lỗi join kèm gợi ý theo nguyên nhân.
   - Bước 3: kiểm tra đã vào domain / đúng tên / secure channel, đồng bộ giờ, gpupdate, thêm nhóm IT (`it_admins_group`) vào Administrators.
-  - Bước 4–6: mở trang Phần mềm với profile tick sẵn, gói Cấu hình chuẩn, Windows Update; kết quả tự ghi vào bước.
+  - Bước 4–6: mở trang Phần mềm với profile tick sẵn, gói Cấu hình chuẩn, driver của hãng + Windows Update; kết quả tự ghi vào bước.
   - Bước 7: báo cáo HTML (các bước, hệ điều hành, phần cứng + serial, phần mềm như Programs and Features), lưu trên máy và `Reports\` cạnh tool trên ổ mang theo; Kết thúc thì bỏ hẹn mở lại.
   - Sau khởi động lại, trang Phần mềm vẫn dùng được kho SOFT trên SSD nếu ổ còn cắm đúng chỗ.
+- Mục **Cập nhật driver, BIOS của hãng** (trang Sửa lỗi, nhóm Driver & BIOS; bước 6 của wizard): tự nhận Dell / Lenovo, chạy Dell Command | Update (tạm dừng BitLocker khi cập nhật BIOS) hoặc Lenovo System Update, chưa có công cụ thì cài bằng winget; giải thích mã lỗi của Dell bằng tiếng Việt. Danh mục phần mềm thêm nhóm "Công cụ hãng máy".
 - Mục **Định dạng vùng Việt Nam (vi-VN)** (trang Cấu hình, có trong gói Cấu hình chuẩn): tài khoản đang chạy tool, màn hình đăng nhập và tài khoản mới.
 - site.yaml thêm `computer_ou`, `it_admins_group`, `departments`.
 - Trang **Máy in** (mục sửa máy in chuyển từ trang Sửa lỗi sang), ba tab:

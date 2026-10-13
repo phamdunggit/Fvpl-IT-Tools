@@ -172,6 +172,15 @@ def test_newpc_page_shows_checks_and_time_fix(window, qt_app, monkeypatch):
     assert QtWidgets.QApplication.clipboard().text().startswith("Kiểm tra trước khi cài máy")
 
 
+def test_newpc_update_step_skips_vendor_tool_on_other_brands(window, monkeypatch):
+    from fvpl_ittools.ui.pages import newpc as newpc_module
+    page = window.newpc
+    for vendor, expected in (("HP", ["wu.scan_install"]), ("LENOVO", ["drv.vendor_update", "wu.scan_install"]),
+                             ("Dell Inc.", ["drv.vendor_update", "wu.scan_install"])):
+        monkeypatch.setattr(newpc_module.sysinfo, "manufacturer", lambda value=vendor: value)
+        assert [action.id for action in page.update_actions()] == expected
+
+
 def _finish_batch(window, actions, status):
     from fvpl_ittools.core.executor import ActionResult, BatchResult
     window.controller.finished.emit(BatchResult(results=[ActionResult(action, status) for action in actions]))

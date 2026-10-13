@@ -1,6 +1,6 @@
 # Khai báo mục sửa lỗi / tweak bằng YAML
 
-Mỗi mục là một khối trong file `src/fvpl_ittools/data/actions/NN-ten.yaml`. Số `NN` đầu tên file quyết định thứ tự nhóm trong cây (10 mạng, 20 domain, 30 máy in, 40 Windows Update, 50 hệ thống, 60 Office, 90 tuỳ chọn). Thêm mục không cần sửa code.
+Mỗi mục là một khối trong file `src/fvpl_ittools/data/actions/NN-ten.yaml`. Số `NN` đầu tên file quyết định thứ tự nhóm trong cây (10 mạng, 20 domain, 30 máy in, 40 Windows Update, 50 hệ thống, 55 driver, 60 Office, 90 tuỳ chọn). Thêm mục không cần sửa code.
 Khai báo sai thì mục đó bị loại, tool báo lỗi bằng tiếng Việt kèm tên file và số thứ tự. Các mục khác vẫn chạy bình thường.
 
 **Sau khi thêm hoặc sửa thì chạy `.venv\Scripts\python -m pytest`.** Ba test hay bắt lỗi nhất:

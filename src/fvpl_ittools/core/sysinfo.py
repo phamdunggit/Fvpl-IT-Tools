@@ -53,6 +53,15 @@ def windows_version() -> tuple[str, str, int, int]:
     return name, display, build, ubr
 
 
+def manufacturer() -> str:
+    """Hãng máy (SMBIOS), đọc từ registry nên không phải chờ WMI. Rỗng nếu không đọc được."""
+    try:
+        with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r"HARDWARE\DESCRIPTION\System\BIOS") as key:
+            return str(_read(key, "SystemManufacturer", "") or "").strip()
+    except OSError:
+        return ""
+
+
 def quick_machine_info() -> MachineInfo:
     name, display, build, ubr = windows_version()
     join_name, status = winapi.join_information()

@@ -4,7 +4,7 @@ Cập nhật: 13/10/2026. File này được cập nhật trước mỗi commit.
 
 ## Đang làm
 
-- Không có việc dở. Việc tiếp theo: số 1 ở bảng "Còn lại" (driver Dell / Lenovo).
+- Không có việc dở. Việc tiếp theo: số 1 ở bảng "Còn lại" (kiểm kê ra ổ mang theo).
 
 ## Đã xong (code xong, **chưa chạy thử bằng quyền admin trên máy ảo**)
 
@@ -12,7 +12,7 @@ Cập nhật: 13/10/2026. File này được cập nhật trước mỗi commit.
 |---|---|
 | GĐ0 Nền móng | Khung app, chạy lệnh nền, YAML, log, hoàn tác, restore point, đóng gói exe |
 | GĐ1 Tổng quan + Sửa lỗi | Trang Tổng quan (copy, xuất HTML); các mục sửa lỗi P1; gói sửa nhanh; Tiện ích (mở nhanh 29 công cụ, ping/tracert/nslookup/cổng) |
-| GĐ2 Cài máy mới | **Wizard 8 bước:** kiểm tra trước; tên `FVPL-<mã phòng><2 số>` (thêm mã phòng mới, lưu vào site.yaml; gợi ý số kế tiếp từ AD); đổi tên + join OU chung; tự mở lại sau khi khởi động lại; gpupdate, nhóm IT vào Administrators; phần mềm theo profile; cấu hình chuẩn (có vi-VN); Windows Update; báo cáo HTML trên máy và ổ mang theo. Trang Phần mềm (winget, share MSI/EXE/ISO/portable); danh mục công ty trong `SOFT` |
+| GĐ2 Cài máy mới | **Wizard 8 bước:** kiểm tra trước; tên `FVPL-<mã phòng><2 số>` (thêm mã phòng mới, lưu vào site.yaml; gợi ý số kế tiếp từ AD); đổi tên + join OU chung; tự mở lại sau khi khởi động lại; gpupdate, nhóm IT vào Administrators; phần mềm theo profile; cấu hình chuẩn (có vi-VN); driver / BIOS của hãng (Dell Command \| Update, Lenovo System Update) + Windows Update; báo cáo HTML trên máy và ổ mang theo. Trang Phần mềm (winget, share MSI/EXE/ISO/portable); danh mục công ty trong `SOFT` |
 | Hai bản mang theo | **USB** (tool + cài qua share) và **SSD** (tool + kho `SOFT` cạnh exe, không cần mạng); `packaging/deploy.py usb/ssd` chép ra ổ |
 | GĐ3 Tối ưu & dọn dẹp | Dọn rác có quét trước (8 loại, có cache trình duyệt); tìm file lớn; khởi động cùng Windows; tắt quảng cáo / theo dõi; power; gỡ app cài sẵn; các mục sửa lỗi P2 (hosts, firewall, Windows Update, WMI, MSI, Teams, RDP, BitLocker, Defender…) |
 | Trang Máy in | Danh sách máy in (kể cả share của người đang đăng nhập), gỡ máy in / driver, in thử; thêm qua IP (driver từ file .inf) và qua share; **sửa share máy in Win11 ↔ Win10** |
@@ -22,12 +22,11 @@ Cập nhật: 13/10/2026. File này được cập nhật trước mỗi commit.
 
 | # | Việc | Ghi chú |
 |---|---|---|
-| 1 | Cập nhật driver Dell (Dell Command \| Update) và Lenovo (System Update) | |
-| 2 | Kiểm kê: lưu thông tin máy lên **ổ mang theo** (không gửi share), có file tổng hợp mở bằng Excel | GĐ4 |
-| 3 | Hướng dẫn triển khai **BitLocker, Windows LAPS, GPO** cho công ty | Bồ muốn tìm hiểu |
-| 4 | Wizard: lưu **mẫu** (ví dụ "Kế toán – Laptop") để lần sau chọn lại | |
-| 5 | Startup: task chạy lúc đăng nhập; P3: hiệu ứng hình ảnh, service Manual, chặn app "đồng hành" driver | |
-| 6 | GĐ4: sao lưu driver, xem event log, sửa HOSTS/PATH, file bị khoá, mật khẩu Wi-Fi, chuyển dữ liệu máy cũ, báo bản mới, ký số exe, hướng dẫn sử dụng, bản 1.0 | |
+| 1 | Kiểm kê: lưu thông tin máy lên **ổ mang theo** (không gửi share), có file tổng hợp mở bằng Excel | GĐ4 |
+| 2 | Hướng dẫn triển khai **BitLocker, Windows LAPS, GPO** cho công ty | Bồ muốn tìm hiểu |
+| 3 | Wizard: lưu **mẫu** (ví dụ "Kế toán – Laptop") để lần sau chọn lại | |
+| 4 | Startup: task chạy lúc đăng nhập; P3: hiệu ứng hình ảnh, service Manual, chặn app "đồng hành" driver | |
+| 5 | GĐ4: sao lưu driver, xem event log, sửa HOSTS/PATH, file bị khoá, mật khẩu Wi-Fi, chuyển dữ liệu máy cũ, báo bản mới, ký số exe, hướng dẫn sử dụng, bản 1.0 | |
 
 ## Bồ cần làm
 

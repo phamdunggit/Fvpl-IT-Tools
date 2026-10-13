@@ -128,6 +128,24 @@ apps:
     source: winget
     winget_id: WiresharkFoundation.Wireshark
 
+  # ---- Công cụ cập nhật driver / BIOS của hãng máy (mục "Cập nhật driver, BIOS của hãng" ở trang Sửa lỗi dùng)
+  - id: dell-command-update
+    name: Dell Command | Update
+    group: Công cụ hãng máy
+    source: winget
+    winget_id: Dell.CommandUpdate.Universal
+    detect: { uninstall_name: 'Dell Command | Update*' }
+    description: >
+      Chỉ cài trên máy Dell. Cập nhật driver, BIOS, firmware từ Dell.
+  - id: lenovo-system-update
+    name: Lenovo System Update
+    group: Công cụ hãng máy
+    source: winget
+    winget_id: Lenovo.SystemUpdate
+    detect: { uninstall_name: 'Lenovo System Update*' }
+    description: >
+      Chỉ cài trên máy Lenovo dòng Think (ThinkPad, ThinkCentre, ThinkStation). Cập nhật driver và phần mềm từ Lenovo.
+
 profiles:
   van-phong:
     name: Văn phòng

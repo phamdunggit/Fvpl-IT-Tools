@@ -1,0 +1,115 @@
+# Driver và BIOS từ hãng máy (Dell, Lenovo). Cách khai báo: xem docs/ACTIONS.md.
+# Dell Command | Update: dcu-cli, bảng mã thoát ở tài liệu "Command Line Interface Error codes" của Dell.
+# Lenovo System Update: tvsu.exe /CM (System Update Suite deployment guide của Lenovo).
+
+- id: drv.vendor_update
+  name: Cập nhật driver, BIOS của hãng (Dell, Lenovo)
+  category: Driver & BIOS
+  risk: caution
+  reboot: true
+  undo: none
+  description: >
+    Tự nhận hãng máy. Máy Dell: Dell Command | Update cài driver, BIOS, firmware loại bảo mật / quan trọng / nên
+    cài, tự tạm dừng BitLocker khi cập nhật BIOS. Máy Lenovo dòng Think: Lenovo System Update cài bản cập nhật
+    quan trọng và nên cài (không gồm gói tự khởi động lại máy như BIOS). Chưa có công cụ của hãng thì cài bằng
+    winget (nhóm Công cụ hãng máy ở trang Phần mềm). Cần Internet, có thể mất 10–30 phút; không tự khởi động
+    lại, tool hỏi sau khi xong. Hãng khác thì dùng Windows Update.
+  apply:
+    - powershell: |
+        $cs = Get-CimInstance Win32_ComputerSystem
+        $product = Get-CimInstance Win32_ComputerSystemProduct
+        $bios = Get-CimInstance Win32_BIOS
+        $vendor = [string]$cs.Manufacturer
+        $model = [string]$cs.Model
+        if ($product.Version -and $product.Version -ne $model -and $product.Version -notmatch '^(None|To be filled|System)') {
+            $model = '{0} ({1})' -f $product.Version, $cs.Model
+        }
+        Write-Line ('Máy {0} {1}, serial {2}, BIOS {3}' -f $vendor, $model, $bios.SerialNumber, $bios.SMBIOSBIOSVersion)
+
+        function Find-Tool([string[]]$Paths) {
+            foreach ($path in $Paths) { if (Test-Path -LiteralPath $path) { return $path } }
+            return $null
+        }
+        function Install-Tool([string]$Id, [string]$Name) {
+            $winget = Get-Command winget.exe -ErrorAction SilentlyContinue
+            if (-not $winget) {
+                Write-Bad ('Chưa có {0}, tài khoản chạy tool cũng không có winget. Cài {0} ở trang Phần mềm (nhóm Công cụ hãng máy) hoặc chạy mục Sửa / cài lại winget.' -f $Name)
+                return
+            }
+            Write-Line ('Chưa có {0}, cài bằng winget…' -f $Name)
+            # Dòng của winget in qua Write-Line để không thành giá trị trả về của hàm.
+            & $winget.Source install --id $Id --exact --source winget --silent --accept-package-agreements --accept-source-agreements --disable-interactivity |
+                ForEach-Object { if ("$_".Trim()) { Write-Line "$_" } }
+            if ($LASTEXITCODE -ne 0 -and $LASTEXITCODE -ne -1978335189) {
+                Write-Bad ('winget không cài được {0} (mã {1}).' -f $Name, $LASTEXITCODE)
+            }
+        }
+        function Test-RebootPending {
+            $cbs = Test-Path -LiteralPath 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\RebootPending'
+            $rename = (Get-ItemProperty -LiteralPath 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager' -ErrorAction SilentlyContinue).PendingFileRenameOperations
+            return [bool]($cbs -or $rename)
+        }
+
+        if ($vendor -match 'Dell') {
+            $paths = @("$env:ProgramFiles\Dell\CommandUpdate\dcu-cli.exe", "${env:ProgramFiles(x86)}\Dell\CommandUpdate\dcu-cli.exe")
+            $cli = Find-Tool $paths
+            if (-not $cli) { Install-Tool 'Dell.CommandUpdate.Universal' 'Dell Command | Update'; $cli = Find-Tool $paths }
+            if (-not $cli) { exit 20 }
+            $log = Join-Path $LogDir ('dcu-{0}.log' -f (Get-Date -Format 'yyyyMMdd-HHmmss'))
+            Write-Line ('Dell Command | Update tìm và cài bản cập nhật, log: {0}' -f $log)
+            # Đặt trong ngoặc: dấu phẩy không ngoặc PowerShell hiểu là mảng, tách thành nhiều tham số.
+            & $cli /applyUpdates -reboot=disable -autoSuspendBitLocker=enable '-updateSeverity=security,critical,recommended' "-outputLog=$log"
+            $code = $LASTEXITCODE
+            if ($code -eq 0) { Write-Ok 'Đã cài xong các bản cập nhật của Dell.'; exit 0 }
+            if ($code -eq 500) { Write-Ok 'Máy đã có đủ driver, BIOS mới nhất của Dell.'; exit 0 }
+            if ($code -eq 1) { Write-Ok 'Đã cài bản cập nhật của Dell, cần khởi động lại máy để xong.'; exit 10 }
+            $meaning = @{
+                2 = 'lỗi không rõ, xem log'; 3 = 'máy không phải Dell'; 4 = 'cần quyền admin'
+                5 = 'máy đang chờ khởi động lại từ lần cập nhật trước: khởi động lại rồi chạy lại'
+                6 = 'Dell Command | Update đang mở (giao diện hoặc lệnh khác): đóng lại rồi chạy lại'
+                7 = 'không hỗ trợ model này'; 501 = 'lỗi khi tìm bản cập nhật'; 503 = 'lỗi tải file khi tìm bản cập nhật'
+                1000 = 'không đọc được kết quả cài'; 1002 = 'lỗi tải file khi cài, kiểm tra Internet'
+                3000 = 'dịch vụ Dell Client Management Service không chạy'
+                3001 = 'chưa cài dịch vụ Dell Client Management Service'
+                3002 = 'dịch vụ Dell Client Management Service bị tắt'
+                3003 = 'dịch vụ Dell Client Management Service đang bận, chờ vài phút rồi chạy lại'
+                3004 = 'Dell Command | Update đang tự cập nhật, chờ vài phút rồi chạy lại'
+                3005 = 'dịch vụ đang cài bản cập nhật chờ sẵn, chờ vài phút rồi chạy lại'
+            }
+            $text = $meaning[[int]$code]
+            if (-not $text) { $text = 'xem log ở trên' }
+            Write-Bad ('Dell Command | Update báo mã {0}: {1}.' -f $code, $text)
+            exit 21
+        }
+        elseif ($vendor -match 'Lenovo') {
+            if ([string]$product.Version -notmatch '^Think') {
+                Write-Warn ('{0} không phải dòng Think: Lenovo System Update có thể không hỗ trợ (IdeaPad, Legion dùng Lenovo Vantage).' -f $product.Version)
+            }
+            $paths = @("${env:ProgramFiles(x86)}\Lenovo\System Update\tvsu.exe", "$env:ProgramFiles\Lenovo\System Update\tvsu.exe")
+            $tvsu = Find-Tool $paths
+            if (-not $tvsu) { Install-Tool 'Lenovo.SystemUpdate' 'Lenovo System Update'; $tvsu = Find-Tool $paths }
+            if (-not $tvsu) { exit 20 }
+            Write-Line 'Lenovo System Update tìm và cài bản cập nhật quan trọng và nên cài, không tự khởi động lại máy…'
+            $process = Start-Process -FilePath $tvsu -ArgumentList '/CM -search R -action INSTALL -includerebootpackages 3 -nolicense -noreboot -noicon' -PassThru
+            $null = $process.Handle
+            $process.WaitForExit()
+            # tvsu.exe giao việc cho tvsukernel.exe; chờ tiến trình đó xong (tối đa 2 giờ, theo timeout của bước).
+            while (Get-Process -Name tvsukernel -ErrorAction SilentlyContinue) { Start-Sleep -Seconds 5 }
+            $code = $process.ExitCode
+            if ($code -ne 0) {
+                Write-Bad ('Lenovo System Update báo mã {0}. Log ở C:\ProgramData\Lenovo\SystemUpdate\logs.' -f $code)
+                exit 22
+            }
+            if (Test-RebootPending) { Write-Ok 'Lenovo System Update chạy xong, máy cần khởi động lại để xong.'; exit 10 }
+            Write-Ok 'Lenovo System Update chạy xong.'
+            exit 0
+        }
+        Write-Line ('Hãng {0}: tool chưa có công cụ cập nhật riêng. Dùng mục Quét và cài bản cập nhật (Windows Update) hoặc công cụ của hãng, ví dụ HP Image Assistant.' -f $vendor)
+        exit 3
+      timeout: 7200
+      reboot_codes: [10]
+      messages:
+        3: Tool mới hỗ trợ máy Dell và Lenovo
+        20: Chưa có công cụ cập nhật của hãng, xem dòng ✖ ở trên
+        21: Dell Command | Update báo lỗi, xem dòng ✖ ở trên
+        22: Lenovo System Update báo lỗi, xem log của System Update
