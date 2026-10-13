@@ -234,6 +234,69 @@ def test_newpc_update_step_skips_vendor_tool_on_other_brands(window, monkeypatch
         assert [action.id for action in page.update_actions()] == expected
 
 
+def test_newpc_templates(window, qt_app, monkeypatch, tmp_path):
+    from fvpl_ittools.core import config
+    from fvpl_ittools.newpc import templates
+    from fvpl_ittools.ui.pages import newpc as newpc_module
+    page = window.newpc
+    site_file = tmp_path / "site.yaml"
+    site_file.write_text("domain: corp.example\ndepartments:\n  KT: Kế toán\n  NS: Nhân sự\n", encoding="utf-8")
+    page.app.site = config.load_site_config([site_file])
+    page._fill_departments()
+    page.catalog_apps = [("7zip", "7-Zip", "Tiện ích"), ("vlc", "VLC media player", "Tiện ích")]
+    page._worker_done("catalog", ([("van-phong", "Văn phòng"), ("ke-toan", "Kế toán")], page.catalog_apps))
+
+    # Chọn phần mềm thêm, lưu thành mẫu.
+    class FakePicker:
+        def __init__(self, apps, selected, parent):
+            pass
+
+        def exec(self):
+            return QtWidgets.QDialog.DialogCode.Accepted
+
+        def selected(self):
+            return ["vlc"]
+    monkeypatch.setattr(newpc_module, "AppPickerDialog", FakePicker)
+    page.pick_extra_apps()
+    assert page.extra_label.text() == "VLC media player"
+    page.department.setCurrentIndex(page.department.findData("KT"))
+    page.profile.setCurrentIndex(page.profile.findData("ke-toan"))
+    monkeypatch.setattr(newpc_module.QInputDialog, "getText", lambda *args, **kw: ("Kế toán – Laptop", True))
+    page.save_template()
+    saved = templates.load(tmp_path / "wizard-templates.json")
+    assert saved == [templates.Template("Kế toán – Laptop", "KT", "ke-toan", ["vlc"])]
+
+    # Đổi hết rồi chọn lại mẫu: phòng, profile, phần mềm thêm quay về như mẫu.
+    page.department.setCurrentIndex(page.department.findData("NS"))
+    page.profile.setCurrentIndex(0)
+    page.extra_apps = []
+    page.template.setCurrentIndex(page.template.findData("Kế toán – Laptop"))
+    page.apply_template()
+    assert page.selected_department() == "KT" and page.profile.currentData() == "ke-toan"
+    assert page.extra_apps == ["vlc"]
+
+    page.computer_name.setText("FVPL-KT05")
+    page.save_info()
+    assert page.state.template == "Kế toán – Laptop" and page.state.extra_apps == ["vlc"]
+
+    monkeypatch.setattr(newpc_module.QMessageBox, "question", lambda *args: newpc_module.QMessageBox.StandardButton.Yes)
+    page.delete_template()
+    assert templates.load(tmp_path / "wizard-templates.json") == [] and page.template.count() == 1
+
+
+def test_software_page_preselects_extra_apps(window, qt_app):
+    page = window.software
+    window.select_page("Phần mềm")
+    deadline = time.monotonic() + 10
+    while (page.loading or page.state is None) and time.monotonic() < deadline:
+        qt_app.processEvents()
+        time.sleep(0.01)
+    page.preselect_profile("", ["7zip", "chrome", "khong-co"])
+    checked = [app.id for app in page.checked_apps()]
+    assert checked == ["7zip"]  # Chrome đã cài sẵn (dữ liệu giả của fixture), mục không có thì bỏ qua
+    assert "khong-co" in window.log_panel.plain_text()
+
+
 def _finish_batch(window, actions, status):
     from fvpl_ittools.core.executor import ActionResult, BatchResult
     window.controller.finished.emit(BatchResult(results=[ActionResult(action, status) for action in actions]))
@@ -314,10 +377,11 @@ def test_newpc_wizard_flow(window, qt_app, monkeypatch, tmp_path):
 
     # Bước 4: mở trang Phần mềm; ghi kết quả khi có lượt cài phần mềm kết thúc.
     picked = []
-    monkeypatch.setattr(window.software, "preselect_profile", picked.append)
+    monkeypatch.setattr(window.software, "preselect_profile", lambda profile, extra: picked.append((profile, extra)))
     page.state.profile = "van-phong"
+    page.state.extra_apps = ["7zip"]
     page.go_software()
-    assert window.stack.currentWidget() is window.software and picked == ["van-phong"]
+    assert window.stack.currentWidget() is window.software and picked == [("van-phong", ["7zip"])]
     _finish_batch(window, [page._actions["dom.gpupdate"]], Status.OK)  # việc khác: chưa tính
     assert page.state.status("software") == ""
     from fvpl_ittools.software import catalog, install

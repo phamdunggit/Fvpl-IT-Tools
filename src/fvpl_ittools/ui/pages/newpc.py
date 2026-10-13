@@ -22,6 +22,7 @@ from PySide6.QtWidgets import (
     QFrame,
     QGridLayout,
     QHBoxLayout,
+    QInputDialog,
     QHeaderView,
     QLabel,
     QLineEdit,
@@ -41,6 +42,7 @@ from ...app import AppContext
 from ...core import assets, config, inventory, paths, sysinfo
 from ...core.executor import BatchResult, Level, RunContext, Status
 from ...newpc import naming, precheck, report, state as wizard_state, steps
+from ...newpc import templates as templates_module
 from ...software import catalog as catalog_module
 from ..controller import RunController
 from ..credential_dialog import ask_credential
@@ -242,6 +244,36 @@ class DepartmentDialog(QDialog):
         self.buttons.button(QDialogButtonBox.StandardButton.Ok).setEnabled(ok)
 
 
+class AppPickerDialog(QDialog):
+    """Chọn phần mềm thêm ngoài profile (ví dụ bản Office của người dùng)."""
+
+    def __init__(self, apps: list[tuple[str, str, str]], selected: list[str], parent: QWidget | None = None):
+        super().__init__(parent)
+        self.setWindowTitle("Phần mềm thêm")
+        self.setMinimumSize(460, 520)
+        layout = QVBoxLayout(self)
+        layout.addWidget(_note("Tick phần mềm cài thêm ngoài profile. Sang bước 4, trang Phần mềm sẽ tick sẵn các mục "
+                               "này (bỏ qua mục máy đã có)."))
+        self.list = QListWidget()
+        for app_id, name, group in apps:
+            item = QListWidgetItem(f"{group} · {name}")
+            item.setData(Qt.ItemDataRole.UserRole, app_id)
+            item.setFlags(item.flags() | Qt.ItemFlag.ItemIsUserCheckable)
+            item.setCheckState(Qt.CheckState.Checked if app_id in selected else Qt.CheckState.Unchecked)
+            self.list.addItem(item)
+        layout.addWidget(self.list, 1)
+        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+        buttons.button(QDialogButtonBox.StandardButton.Ok).setText("Chọn")
+        buttons.button(QDialogButtonBox.StandardButton.Cancel).setText("Huỷ")
+        buttons.accepted.connect(self.accept)
+        buttons.rejected.connect(self.reject)
+        layout.addWidget(buttons)
+
+    def selected(self) -> list[str]:
+        return [self.list.item(row).data(Qt.ItemDataRole.UserRole) for row in range(self.list.count())
+                if self.list.item(row).checkState() == Qt.CheckState.Checked]
+
+
 @dataclass
 class ReportResult:
     files: list[Path]
@@ -251,7 +283,7 @@ class ReportResult:
 
 
 class NewPcPage(QWidget):
-    open_software = Signal(str)  # profile cần chọn sẵn ở trang Phần mềm
+    open_software = Signal(str, object)  # profile và danh sách ứng dụng thêm cần tick sẵn ở trang Phần mềm
 
     def __init__(self, app: AppContext, controller: RunController):
         super().__init__()
@@ -265,6 +297,10 @@ class NewPcPage(QWidget):
         self._packs = {pack.id: pack for pack in app.packs}
         self.state = wizard_state.active()
         self.profiles: list[tuple[str, str]] = []
+        self.catalog_apps: list[tuple[str, str, str]] = []  # (id, tên, nhóm) trong danh mục phần mềm
+        self._wanted_profile: str | None = None  # profile của mẫu, chọn khi danh mục đọc xong
+        self.extra_apps: list[str] = list(self.state.extra_apps) if self.state else []
+        self.templates: list[templates_module.Template] = templates_module.load(templates_module.templates_path(app.site))
         self.worker = Worker(self)
         self.worker.done.connect(self._worker_done)
 
@@ -355,9 +391,22 @@ class NewPcPage(QWidget):
         layout.addWidget(_note("Tên máy theo quy ước <b>&lt;tiền tố&gt;&lt;mã phòng&gt;&lt;2 số&gt;</b>, ví dụ "
                                "FVPL-KT05. Bấm <b>Gợi ý tên</b> để tool hỏi AD các tên đã dùng và lấy số kế tiếp "
                                "(máy chưa vào domain thì hỏi tài khoản join)."))
+        self.template = QComboBox()
+        self.template.setMinimumWidth(220)
+        self.template.setToolTip("Chọn mẫu để điền sẵn phòng ban, profile và phần mềm thêm")
+        self.save_template_button = QPushButton("Lưu thành mẫu…")
+        self.save_template_button.setToolTip("Lưu phòng ban, profile, phần mềm thêm đang chọn thành mẫu để lần sau chọn lại")
+        self.delete_template_button = QPushButton("Xoá mẫu")
+        template_buttons = QHBoxLayout()
+        template_buttons.setSpacing(6)
+        template_buttons.addWidget(self.save_template_button)
+        template_buttons.addWidget(self.delete_template_button)
         form = QGridLayout()
         form.setHorizontalSpacing(10)
         form.setVerticalSpacing(10)
+        form.addWidget(QLabel("Mẫu"), 0, 0)
+        form.addWidget(self.template, 0, 1)
+        form.addLayout(template_buttons, 0, 2)
         self.department = QComboBox()
         self.department.setMinimumWidth(220)
         self.add_department_button = QPushButton("Thêm mã phòng…")
@@ -370,17 +419,23 @@ class NewPcPage(QWidget):
         self.primary_user.setPlaceholderText("Người dùng chính của máy (ghi vào báo cáo), ví dụ Nguyễn Văn A")
         self.profile = QComboBox()
         self.profile.setMinimumWidth(220)
-        form.addWidget(QLabel("Phòng ban"), 0, 0)
-        form.addWidget(self.department, 0, 1)
-        form.addWidget(self.add_department_button, 0, 2)
-        form.addWidget(QLabel("Tên máy"), 1, 0)
-        form.addWidget(self.computer_name, 1, 1)
-        form.addWidget(self.suggest_button, 1, 2)
-        form.addWidget(self.name_status, 2, 1, 1, 2)
-        form.addWidget(QLabel("Người dùng"), 3, 0)
-        form.addWidget(self.primary_user, 3, 1, 1, 2)
-        form.addWidget(QLabel("Profile phần mềm"), 4, 0)
-        form.addWidget(self.profile, 4, 1)
+        form.addWidget(QLabel("Phòng ban"), 1, 0)
+        form.addWidget(self.department, 1, 1)
+        form.addWidget(self.add_department_button, 1, 2)
+        form.addWidget(QLabel("Tên máy"), 2, 0)
+        form.addWidget(self.computer_name, 2, 1)
+        form.addWidget(self.suggest_button, 2, 2)
+        form.addWidget(self.name_status, 3, 1, 1, 2)
+        form.addWidget(QLabel("Người dùng"), 4, 0)
+        form.addWidget(self.primary_user, 4, 1, 1, 2)
+        form.addWidget(QLabel("Profile phần mềm"), 5, 0)
+        form.addWidget(self.profile, 5, 1)
+        self.extra_label = QLabel()
+        self.extra_label.setWordWrap(True)
+        self.extra_button = QPushButton("Chọn phần mềm thêm…")
+        form.addWidget(QLabel("Phần mềm thêm"), 6, 0)
+        form.addWidget(self.extra_label, 6, 1)
+        form.addWidget(self.extra_button, 6, 2)
         form.setColumnStretch(1, 1)
         layout.addLayout(form)
         self.save_info_button = QPushButton("Lưu và sang bước tiếp")
@@ -388,6 +443,12 @@ class NewPcPage(QWidget):
         self._buttons(layout, self.save_info_button)
         layout.addStretch(1)
         self._fill_departments()
+        self._fill_templates()
+        self._show_extra_apps()
+        self.template.activated.connect(lambda _index: self.apply_template())
+        self.save_template_button.clicked.connect(self.save_template)
+        self.delete_template_button.clicked.connect(self.delete_template)
+        self.extra_button.clicked.connect(self.pick_extra_apps)
         self.add_department_button.clicked.connect(self.add_department)
         self.suggest_button.clicked.connect(self.suggest_name)
         self.save_info_button.clicked.connect(self.save_info)
@@ -557,6 +618,9 @@ class NewPcPage(QWidget):
             index = self.department.findData(state.department)
             if index >= 0:
                 self.department.setCurrentIndex(index)
+        self.extra_apps = list(state.extra_apps) if state else []
+        self._show_extra_apps()
+        self.template.setCurrentIndex(max(self.template.findData(state.template), 0) if state else 0)
 
     # ------------------------------------------------------------ bước 1
 
@@ -586,6 +650,93 @@ class NewPcPage(QWidget):
 
     def selected_department(self) -> str:
         return self.department.currentData() or ""
+
+    # mẫu và phần mềm thêm
+
+    def _fill_templates(self, select: str = "") -> None:
+        self.template.clear()
+        self.template.addItem("— Không dùng mẫu —", "")
+        for item in self.templates:
+            self.template.addItem(item.name, item.name)
+        if select:
+            self.template.setCurrentIndex(max(self.template.findData(select), 0))
+        self.delete_template_button.setEnabled(bool(self.templates))
+
+    def _template(self, name: str) -> templates_module.Template | None:
+        return next((item for item in self.templates if item.name == name), None)
+
+    def apply_template(self) -> None:
+        """Điền phòng ban, profile, phần mềm thêm theo mẫu đang chọn. Tên máy, người dùng không đổi."""
+        item = self._template(self.template.currentData() or "")
+        if item is None:
+            return
+        notes = []
+        if item.department:
+            index = self.department.findData(item.department)
+            if index >= 0:
+                self.department.setCurrentIndex(index)
+            else:
+                notes.append(f"mã phòng {item.department} không còn trong site.yaml")
+        if item.profile:
+            index = self.profile.findData(item.profile)
+            if index >= 0:
+                self.profile.setCurrentIndex(index)
+            elif self.profiles:
+                notes.append(f"profile {item.profile} không có trong danh mục phần mềm")
+            else:
+                self._wanted_profile = item.profile  # danh mục chưa đọc xong: chọn khi đọc xong
+        self.extra_apps = list(item.apps)
+        self._show_extra_apps()
+        message = f"Đã điền theo mẫu {item.name}."
+        if notes:
+            message += " Lưu ý: " + "; ".join(notes) + "."
+        self.controller.say(Level.WARN if notes else Level.INFO, message)
+
+    def save_template(self) -> None:
+        current = self.template.currentData() or ""
+        name, ok = QInputDialog.getText(self, "Lưu thành mẫu", "Tên mẫu (ví dụ Kế toán – Laptop):", text=current)
+        if not ok:
+            return
+        item = templates_module.Template(name=name, department=self.selected_department(),
+                                         profile=self.profile.currentData() or "", apps=list(self.extra_apps))
+        try:
+            self.templates = templates_module.save(templates_module.templates_path(self.app.site), item)
+        except (ValueError, OSError) as exc:
+            QMessageBox.warning(self, "Chưa lưu được mẫu", str(exc))
+            return
+        self._fill_templates(select=item.name)
+        self.controller.say(Level.OK, f"Đã lưu mẫu {item.name} vào {templates_module.templates_path(self.app.site)}.")
+
+    def delete_template(self) -> None:
+        name = self.template.currentData() or ""
+        if not name:
+            QMessageBox.information(self, "Xoá mẫu", "Chọn mẫu cần xoá trong ô Mẫu trước.")
+            return
+        if QMessageBox.question(self, "Xoá mẫu", f"Xoá mẫu {name}?") != QMessageBox.StandardButton.Yes:
+            return
+        try:
+            self.templates = templates_module.delete(templates_module.templates_path(self.app.site), name)
+        except OSError as exc:
+            QMessageBox.warning(self, "Chưa xoá được mẫu", str(exc))
+            return
+        self._fill_templates()
+        self.controller.say(Level.INFO, f"Đã xoá mẫu {name}.")
+
+    def app_names(self, app_ids: list[str]) -> list[str]:
+        names = {app_id: name for app_id, name, _group in self.catalog_apps}
+        return [names.get(app_id, app_id) for app_id in app_ids]
+
+    def _show_extra_apps(self) -> None:
+        self.extra_label.setText(", ".join(self.app_names(self.extra_apps)) or "Không có")
+
+    def pick_extra_apps(self) -> None:
+        if not self.catalog_apps:
+            QMessageBox.information(self, "Phần mềm thêm", "Chưa đọc xong danh mục phần mềm, chờ vài giây rồi bấm lại.")
+            return
+        dialog = AppPickerDialog(self.catalog_apps, self.extra_apps, self)
+        if dialog.exec() == QDialog.DialogCode.Accepted:
+            self.extra_apps = dialog.selected()
+            self._show_extra_apps()
 
     def suggest_name(self) -> None:
         department = self.selected_department()
@@ -624,15 +775,18 @@ class NewPcPage(QWidget):
                 self.name_status.setText(f"AD có {len(existing)} máy tên {prefix}…, gợi ý {suggestion}.")
                 self.name_status.setProperty("state", "ok")
             _restyle(self.name_status)
-        elif name == "profiles":
-            self.profiles = [] if isinstance(result, Exception) else result
-            current = self.state.profile if self.state else self.profile.currentData()
+        elif name == "catalog":
+            self.profiles, self.catalog_apps = ([], []) if isinstance(result, Exception) else result
+            current = self._wanted_profile or (self.state.profile if self.state else self.profile.currentData())
+            self._wanted_profile = None
             self.profile.clear()
             self.profile.addItem("— Không cài theo profile —", "")
             for profile_id, profile_name in self.profiles:
                 self.profile.addItem(profile_name, profile_id)
             if current:
                 self.profile.setCurrentIndex(max(self.profile.findData(current), 0))
+            self._show_extra_apps()
+            self._refresh_software()
 
     def _name_changed(self) -> None:
         name = self.computer_name.text().strip().upper()
@@ -665,6 +819,8 @@ class NewPcPage(QWidget):
         self.state.computer_name = name
         self.state.primary_user = " ".join(self.primary_user.text().split())
         self.state.profile = self.profile.currentData() or ""
+        self.state.extra_apps = list(self.extra_apps)
+        self.state.template = self.template.currentData() or ""
         self.computer_name.setText(name)
         self.record("info", "ok", f"Tên {name}", advance=True)
 
@@ -743,17 +899,19 @@ class NewPcPage(QWidget):
 
     def _refresh_software(self) -> None:
         profile = self.state.profile if self.state else ""
+        extra = self.app_names(self.state.extra_apps) if self.state else []
         name = dict(self.profiles).get(profile, profile)
         source = self.app.software.label
         text = (f"Profile đã chọn: <b>{name}</b>. " if profile else "Chưa chọn profile ở bước 1. ")
-        text += (f"Kho bộ cài: {source}.<br>Bấm nút dưới để sang trang Phần mềm với các ứng dụng của profile đã được "
-                 "tick sẵn, chọn thêm bản Office theo người dùng nếu cần, rồi bấm Cài. Cài xong tool tự ghi kết quả "
-                 "vào bước này.")
+        text += f"Phần mềm thêm: <b>{', '.join(extra)}</b>. " if extra else ""
+        text += (f"Kho bộ cài: {source}.<br>Bấm nút dưới để sang trang Phần mềm với các ứng dụng trên đã được "
+                 "tick sẵn, kiểm tra lại rồi bấm Cài. Cài xong tool tự ghi kết quả vào bước này.")
         self.software_info.setText(text)
 
     def go_software(self) -> None:
         self._pending = "software"
-        self.open_software.emit(self.state.profile if self.state else "")
+        state = self.state
+        self.open_software.emit(state.profile if state else "", list(state.extra_apps) if state else [])
 
     def run_config(self) -> None:
         pack = self._packs.get("pack.standard_config")
@@ -916,9 +1074,11 @@ class NewPcPage(QWidget):
             self._started = True
             self.check.recheck()
             root = self.app.software.root
-            self.worker.run("profiles", lambda: [
-                (profile.id, profile.name)
-                for profile in catalog_module.load_catalog(root if root and os.path.isdir(root) else "").profiles])
+            def read_catalog() -> tuple[list[tuple[str, str]], list[tuple[str, str, str]]]:
+                loaded = catalog_module.load_catalog(root if root and os.path.isdir(root) else "")
+                return ([(profile.id, profile.name) for profile in loaded.profiles],
+                        [(item.id, item.name, item.group) for item in loaded.apps])
+            self.worker.run("catalog", read_catalog)
         super().showEvent(event)
 
     @property

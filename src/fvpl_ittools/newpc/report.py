@@ -79,7 +79,8 @@ def to_html(report: ReportData) -> str:
     started = StepRecord("", state.started).time_label
     for label, value in (("Tên máy", basics.computer_name), ("Domain", report.domain or basics.domain_label),
                          ("Phòng ban", state.department), ("Người dùng chính", state.primary_user),
-                         ("Profile phần mềm", state.profile), ("Bắt đầu cài", started)):
+                         ("Mẫu", state.template), ("Profile phần mềm", state.profile),
+                         ("Phần mềm thêm", ", ".join(state.extra_apps)), ("Bắt đầu cài", started)):
         parts.append(f"<tr><td class='k'>{esc(label)}</td><td>{esc(value or '—')}</td></tr>")
     parts.append("</table></section><section><h2>Các bước</h2><table>"
                  "<tr><th>Bước</th><th>Kết quả</th><th>Lúc</th><th>Ghi chú</th></tr>")

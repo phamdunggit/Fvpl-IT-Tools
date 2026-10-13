@@ -11,6 +11,7 @@
   - Bước 4–6: mở trang Phần mềm với profile tick sẵn, gói Cấu hình chuẩn, driver của hãng + Windows Update; kết quả tự ghi vào bước.
   - Bước 7: báo cáo HTML (các bước, hệ điều hành, phần cứng + serial, phần mềm như Programs and Features), lưu trên máy và `Reports\` cạnh tool trên ổ mang theo; Kết thúc thì bỏ hẹn mở lại.
   - Sau khởi động lại, trang Phần mềm vẫn dùng được kho SOFT trên SSD nếu ổ còn cắm đúng chỗ.
+  - **Mẫu**: lưu phòng ban, profile và phần mềm thêm ngoài profile (ví dụ Office 2016) thành mẫu như "Kế toán – Laptop" (`wizard-templates.json` cạnh site.yaml); chọn mẫu là điền sẵn bước 1, bước 4 tick sẵn cả phần mềm thêm. Báo cáo ghi mẫu và phần mềm thêm đã dùng.
 - Trang Tiện ích, tab **LAPS & BitLocker**: gõ tên máy để xem mật khẩu Windows LAPS (giải mã được mật khẩu đã mã hoá), bắt đổi mật khẩu, xem khoá khôi phục BitLocker trong AD (đọc LDAP, không cần RSAT). Có thể dùng tài khoản khác. Kết quả không vào khung log / file log, tự xoá sau 2 phút, clipboard tự xoá sau 60 giây; log chỉ ghi ai tra máy nào.
 - Mục **Kiểm tra Windows LAPS** (chính sách, chạy xử lý ngay, đọc nhật ký LAPS), **Bật BitLocker ổ hệ thống** (chỉ khi TPM sẵn sàng và đã có GPO lưu khoá lên AD; sao lưu khoá trước khi bật; hoàn tác là giải mã), **Tạm dừng BitLocker cho một lần khởi động lại**.
 - Tài liệu [docs/BITLOCKER-LAPS-GPO.md](docs/BITLOCKER-LAPS-GPO.md): triển khai GPO (Central Store, thử trên nhóm máy), Windows LAPS (schema, quyền, GPO, tra mật khẩu), BitLocker (GPO lưu khoá lên AD, bật từng máy, tra khoá), các GPO nên có và lộ trình.

@@ -55,6 +55,56 @@ def test_state_round_trip_and_next_step(state_dir):
     assert state.load() is not None and state.active() is None
 
 
+def test_state_keeps_extra_apps(state_dir):
+    wizard = state.WizardState(computer_name="FVPL-KT05", extra_apps=["office2016", "unikey"], template="Kế toán")
+    state.save(wizard)
+    loaded = state.load()
+    assert loaded.extra_apps == ["office2016", "unikey"] and loaded.template == "Kế toán"
+    state.state_path().write_text('{"computer_name": "X", "extra_apps": "sai kiểu"}', encoding="utf-8")
+    assert state.load().extra_apps == []
+
+
+# ---------------------------------------------------------------- mẫu
+
+
+def test_templates_save_overwrite_delete(tmp_path):
+    from fvpl_ittools.newpc import templates
+    file = tmp_path / "wizard-templates.json"
+    assert templates.load(file) == []
+    templates.save(file, templates.Template("Kế toán – Laptop", "KT", "ke-toan", ["office2016"]))
+    saved = templates.save(file, templates.Template("  Nhân sự  ", "NS", "van-phong"))
+    assert [item.name for item in saved] == ["Kế toán – Laptop", "Nhân sự"]
+    # Cùng tên (khác hoa thường) thì ghi đè.
+    saved = templates.save(file, templates.Template("kế toán – laptop", "KT", "ke-toan", ["office2013"]))
+    assert len(saved) == 2 and saved[0].apps == ["office2013"]
+    assert [item.name for item in templates.delete(file, "Nhân sự")] == ["kế toán – laptop"]
+    with pytest.raises(ValueError):
+        templates.save(file, templates.Template("   "))
+    with pytest.raises(ValueError):
+        templates.save(file, templates.Template("x" * 61))
+
+
+def test_templates_ignore_broken_entries(tmp_path):
+    from fvpl_ittools.newpc import templates
+    file = tmp_path / "wizard-templates.json"
+    file.write_text('{"templates": [{"name": "A", "department": "kt", "apps": "sai"}, {"name": ""}, 5]}',
+                    encoding="utf-8")
+    assert templates.load(file) == [templates.Template("A", "KT", "", [])]
+    file.write_text("{hỏng", encoding="utf-8")
+    assert templates.load(file) == []
+
+
+def test_templates_live_next_to_site_yaml(tmp_path, monkeypatch):
+    from fvpl_ittools.newpc import templates
+    site = config.load_site_config([tmp_path / "khong-co.yaml"])
+    monkeypatch.setattr(paths, "app_root", lambda: tmp_path / "usb")
+    assert templates.templates_path(site) == tmp_path / "usb" / "wizard-templates.json"
+    file = tmp_path / "cfg" / "site.yaml"
+    file.parent.mkdir()
+    file.write_text("domain: corp.example\n", encoding="utf-8")
+    assert templates.templates_path(config.load_site_config([file])) == tmp_path / "cfg" / "wizard-templates.json"
+
+
 def test_state_ignores_broken_file(state_dir):
     state.state_path().write_text("{không phải json", encoding="utf-8")
     assert state.load() is None

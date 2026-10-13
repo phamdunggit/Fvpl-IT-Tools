@@ -180,10 +180,10 @@ class MainWindow(QMainWindow):
             if resume:
                 self.select_page("Cài máy mới")
 
-    def _open_software(self, profile_id: str) -> None:
+    def _open_software(self, profile_id: str, extra_apps: object) -> None:
         self.select_page("Phần mềm")
-        if profile_id:
-            self.software.preselect_profile(profile_id)
+        if profile_id or extra_apps:
+            self.software.preselect_profile(profile_id, list(extra_apps or []))
 
     def select_page(self, name: str) -> None:
         for row in range(self.sidebar.count()):

@@ -64,6 +64,8 @@ class WizardState:
     computer_name: str = ""
     primary_user: str = ""       # người dùng chính của máy, đưa vào báo cáo
     profile: str = ""            # profile phần mềm
+    extra_apps: list[str] = field(default_factory=list)  # phần mềm thêm ngoài profile (ví dụ bản Office)
+    template: str = ""           # mẫu đã dùng, nếu có
     origin: str = ""             # thư mục tool lúc bắt đầu (USB / SSD)
     started: str = field(default_factory=_now)
     finished: str = ""
@@ -89,8 +91,10 @@ class WizardState:
     @classmethod
     def from_dict(cls, data: dict) -> WizardState:
         known = {name for name in cls.__dataclass_fields__}
-        values = {key: value for key, value in data.items() if key in known and key != "steps"}
+        values = {key: value for key, value in data.items() if key in known and key not in ("steps", "extra_apps")}
         state = cls(**{key: str(value) for key, value in values.items()})
+        apps = data.get("extra_apps")
+        state.extra_apps = [str(app) for app in apps] if isinstance(apps, list) else []
         for key, record in (data.get("steps") or {}).items():
             if isinstance(record, dict) and record.get("status"):
                 state.steps[str(key)] = StepRecord(str(record["status"]), str(record.get("time", "")),

@@ -64,7 +64,7 @@ class SoftwarePage(QWidget):
         self.loading = False
         self._items: dict[str, QTreeWidgetItem] = {}
         self._started = False
-        self._wanted_profile: str | None = None
+        self._wanted_profile: tuple[str, tuple[str, ...]] | None = None  # (profile, ứng dụng thêm) chờ quét xong
         self.loader = ScanLoader(app, self)
         self.loader.done.connect(self._scanned)
 
@@ -161,20 +161,40 @@ class SoftwarePage(QWidget):
         self.info.setText(self._info_text())
         self._update_buttons()
         if self._wanted_profile is not None:
-            self.preselect_profile(self._wanted_profile)
+            self.preselect_profile(*self._wanted_profile)
 
-    def preselect_profile(self, profile_id: str) -> None:
-        """Chọn profile và tick sẵn ứng dụng của nó (wizard Cài máy mới gọi). Chưa quét xong thì làm sau khi quét."""
+    def preselect_profile(self, profile_id: str, extra_apps: list[str] | tuple[str, ...] = ()) -> None:
+        """Chọn profile, tick sẵn ứng dụng của nó và các ứng dụng thêm (wizard Cài máy mới gọi).
+
+        Chưa quét xong thì làm sau khi quét."""
         if self.state is None or self.loading:
-            self._wanted_profile = profile_id
+            self._wanted_profile = (profile_id, tuple(extra_apps))
             return
         self._wanted_profile = None
-        index = self.profile.findData(profile_id)
-        if index < 0:
-            self.controller.say(Level.WARN, f"Danh mục phần mềm không có profile {profile_id!r}, chọn tay nhé.")
-            return
-        self.profile.setCurrentIndex(index)
-        self.pick_profile()
+        if profile_id:
+            index = self.profile.findData(profile_id)
+            if index < 0:
+                self.controller.say(Level.WARN, f"Danh mục phần mềm không có profile {profile_id!r}, chọn tay nhé.")
+            else:
+                self.profile.setCurrentIndex(index)
+                self.pick_profile()
+        picked, skipped = [], []
+        for app_id in extra_apps:
+            app = self.state.catalog.app(app_id)
+            item = self._items.get(app_id)
+            if app is None or item is None:
+                skipped.append(app_id)
+                continue
+            if self.state.detections[app_id].installed or blocked_reason(app, self.state.senv) is not None:
+                skipped.append(app.name)
+                continue
+            item.setCheckState(0, Qt.CheckState.Checked)
+            picked.append(app.name)
+        if picked:
+            self.controller.say(Level.INFO, f"Chọn thêm: {', '.join(picked)}.")
+        if skipped:
+            self.controller.say(Level.INFO, f"Không chọn thêm (đã cài, không cài được hoặc không có trong danh mục): "
+                                            f"{', '.join(skipped)}.")
 
     def _info_text(self) -> str:
         state = self.state
