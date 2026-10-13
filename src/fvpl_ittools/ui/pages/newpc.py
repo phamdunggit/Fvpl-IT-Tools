@@ -38,7 +38,7 @@ from PySide6.QtWidgets import (
 
 from ... import __version__
 from ...app import AppContext
-from ...core import config, inventory, paths, sysinfo
+from ...core import assets, config, inventory, paths, sysinfo
 from ...core.executor import BatchResult, Level, RunContext, Status
 from ...newpc import naming, precheck, report, state as wizard_state, steps
 from ...software import catalog as catalog_module
@@ -488,7 +488,8 @@ class NewPcPage(QWidget):
         panel, layout = self._panel("7. Báo cáo")
         layout.addWidget(_note("Báo cáo HTML gồm kết quả từng bước, hệ điều hành, phần cứng (serial) và phần mềm đã "
                                "cài. Lưu trong thư mục reports của tool và trong thư mục Reports cạnh tool trên ổ "
-                               "mang theo (nếu còn cắm). Không gửi lên đâu."))
+                               "mang theo (nếu còn cắm). Đồng thời lưu kiểm kê máy này vào Inventory cạnh tool và "
+                               "cập nhật file tổng hợp KiemKe.xlsx. Không gửi lên đâu."))
         self.report_status = QLabel()
         self.report_status.setWordWrap(True)
         layout.addWidget(self.report_status)
@@ -839,6 +840,14 @@ class NewPcPage(QWidget):
                 ctx.say(Level.OK, f"✔ Đã lưu báo cáo: {file}")
             if not files:
                 ctx.say(Level.ERROR, "✖ Không lưu được báo cáo, xem file log.")
+            try:
+                item = assets.record(data.raw or {}, basics, __version__, state.department, state.primary_user)
+                saved = assets.save(item, state.origin)
+                ctx.say(Level.OK, f"✔ Đã lưu kiểm kê vào {saved.folder} ({saved.count} máy trong {assets.WORKBOOK})"
+                        if saved.workbook else f"⚠ Đã lưu kiểm kê vào {saved.folder}, {saved.error}")
+            except OSError as exc:
+                log.exception("Không lưu được kiểm kê")
+                ctx.say(Level.WARN, f"⚠ Không lưu được kiểm kê: {exc}")
             return ReportResult(files)
 
         self._pending = "report"

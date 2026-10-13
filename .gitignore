@@ -16,8 +16,9 @@ site.yaml
 # Bộ cài phần mềm (Office, phần mềm diệt virus...): có bản quyền, rất nặng, không bao giờ commit.
 /SOFT/
 
-# Báo cáo cài máy (wizard ghi vào Reports cạnh tool): có tên máy, serial, người dùng thật.
+# Báo cáo cài máy và kiểm kê (ghi vào Reports, Inventory cạnh tool): có tên máy, serial, người dùng thật.
 /Reports/
+/Inventory/
 *.iso
 *.ISO
 

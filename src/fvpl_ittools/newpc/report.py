@@ -33,26 +33,28 @@ class ReportData:
     domain: str
     it_account: str
     tool_version: str
+    raw: dict | None = None     # dữ liệu thô của 4 phần, để lưu kiểm kê
 
 
 def collect(state: WizardState, basics: inventory.Basics, domain: str, it_account: str, tool_version: str,
             user_sid: str | None, cancel: threading.Event | None = None) -> ReportData:
-    """Đọc hệ điều hành, phần cứng (phần system + storage của trang Tổng quan) và phần mềm đã cài."""
+    """Đọc thông tin máy (cả 4 phần của trang Tổng quan, để lưu kiểm kê luôn) và phần mềm đã cài.
+
+    Báo cáo chỉ in phần hệ điều hành và phần cứng."""
     data: dict = {}
     failed: dict[str, str] = {}
-    for part in ("system", "storage"):
+    for part in inventory.PARTS:
         try:
             data.update(inventory.collect_part(part, cancel))
         except inventory.InventoryError as exc:
             failed[part] = str(exc)
-    failed.update({part: "không đọc trong báo cáo" for part in ("network", "security")})
     sections = [section for section in inventory.build_sections(data, basics, failed)
                 if section.key in ("system", "hardware")]
     # Giống Programs and Features: bỏ thành phần hệ thống và bản cập nhật của phần mềm khác.
     visible = [entry for entry in installed_programs(user_sid) if not entry.hidden]
     programs = sorted({(entry.name, entry.version): entry for entry in visible}.values(),
                       key=lambda entry: entry.name.lower())
-    return ReportData(state, basics, sections, programs, domain, it_account, tool_version)
+    return ReportData(state, basics, sections, programs, domain, it_account, tool_version, data)
 
 
 def to_html(report: ReportData) -> str:

@@ -9,11 +9,11 @@ Cập nhật lần cuối: 13/10/2026, sau khi xong wizard Cài máy mới (GĐ2
 | Giai đoạn | **GĐ1, GĐ2 (wizard Cài máy mới), phần lớn GĐ3 xong phần code.** Còn chạy thử các mục đổi hệ thống bằng quyền admin trên VM (danh sách bên dưới) rồi mới coi là xong |
 | Nhánh | Code mới làm trên `featured`. Chỉ merge về `main` khi được duyệt |
 | Phiên bản | 0.2.0, xem [CHANGELOG.md](../CHANGELOG.md) (trang Phần mềm nằm ở mục "Chưa phát hành") |
-| Test | 267 test pytest, tất cả đều qua (khoảng 40 giây) |
+| Test | 276 test pytest, tất cả đều qua (khoảng 35 giây) |
 | Bản exe | `python packaging\build.py`: thư mục 64MB, zip 27MB. `--test` chạy selftest trên exe, gồm cả đọc thông tin máy |
 
 Đã có:
-- Trang **Tổng quan**: hệ điều hành, kích hoạt, phần cứng, mạng (DNS có trỏ về DC không), bảo mật; copy chữ, xuất HTML.
+- Trang **Tổng quan**: hệ điều hành, kích hoạt, phần cứng, mạng (DNS có trỏ về DC không), bảo mật; copy chữ, xuất HTML; **Lưu kiểm kê** (`core/assets.py`): `Inventory\<máy>.json` cạnh tool trên USB / SSD và file tổng hợp `KiemKe.xlsx` (tool tự ghi file .xlsx, không cần thư viện).
 - Trang **Sửa lỗi**: các mục mạng, domain, Windows Update, hệ thống, Office và 4 gói sửa nhanh.
 - Trang **Máy in**: danh sách máy in (kể cả share của người đang đăng nhập), gỡ máy in / driver, in thử; thêm máy in qua IP (driver từ file .inf) và máy in share; tab Sửa lỗi có các mục share máy in Win11 ↔ Win10 (`printers/`, `30-printers.yaml`).
 - Trang **Cấu hình**: 1 mục mẫu (Hiện đuôi file). Trang **Tiện ích**: mở nhanh 29 công cụ quản trị, công cụ mạng.
@@ -146,6 +146,10 @@ Trang Máy in. Danh sách máy in và mục "Kiểm tra share máy in" đã ch�
 - [ ] **Thêm máy in qua IP:** driver có sẵn (Microsoft IPP Class Driver), và driver từ file .inf của hãng (`pnputil /add-driver` rồi `Add-PrinterDriver -Name` đúng tên model); mã thoát của pnputil khi driver đã có sẵn.
 - [ ] **Gỡ máy in:** máy in IP (cổng TCP/IP bị xoá khi không còn dùng), gỡ cả driver (`-RemoveFromDriverStore` trên Win10 có không); máy in share của cả máy (`printui /gd`); máy in share của người dùng khi tool chạy bằng tài khoản IT (tác vụ chạy dưới tên họ, người đó phải đang đăng nhập).
 - [ ] **In trang thử** và **Mở hàng đợi** với máy in thật.
+
+Kiểm kê. Đã dựng `KiemKe.xlsx` từ dữ liệu thật của máy dev và mở bằng Excel (ẩn, chỉ đọc): đủ 25 cột, số là số, có lọc, cố định dòng tiêu đề, ô chữ bắt đầu bằng `=` không thành công thức. Còn:
+- [ ] Lưu từ bản exe chạy trên USB: thư mục `Inventory\` nằm trên USB; chạy từ bản chép trong ProgramData (sau khi wizard khởi động lại) thì lưu sang ổ lúc bắt đầu nếu còn cắm, không thì vào thư mục dữ liệu trên máy.
+- [ ] Đang mở `KiemKe.xlsx` trong Excel rồi bấm Lưu kiểm kê: JSON vẫn lưu, tool báo đóng file rồi lưu lại.
 
 Hai bản USB / SSD:
 - [ ] `deploy.py ssd` ra SSD thật, chạy tool từ SSD trên máy chưa vào domain: trang Phần mềm ghi "kho trên ổ mang theo", cài Office từ ISO trên SSD (mount ISO từ ổ USB/SSD).

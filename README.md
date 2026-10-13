@@ -113,4 +113,4 @@ packaging/             spec PyInstaller + build.py
 tests/                 pytest
 ```
 
-Dữ liệu khi chạy: `%ProgramData%\FVPL-ITTools\logs\` (log từng phiên, giữ 90 ngày), `undo\journal.json` (nhật ký hoàn tác), `reports\` (thông tin máy xuất HTML, báo cáo gpresult, báo cáo cài máy), `newpc-wizard.json` (tiến độ wizard Cài máy mới) và `app\` (bản chép của tool để tự mở lại sau khi khởi động lại). Báo cáo cài máy có thêm một bản trong `Reports\` cạnh tool trên USB / SSD.
+Dữ liệu khi chạy: `%ProgramData%\FVPL-ITTools\logs\` (log từng phiên, giữ 90 ngày), `undo\journal.json` (nhật ký hoàn tác), `reports\` (thông tin máy xuất HTML, báo cáo gpresult, báo cáo cài máy), `newpc-wizard.json` (tiến độ wizard Cài máy mới) và `app\` (bản chép của tool để tự mở lại sau khi khởi động lại). Báo cáo cài máy có thêm một bản trong `Reports\` cạnh tool trên USB / SSD. Kiểm kê lưu trong `Inventory\` cạnh tool (mỗi máy một file JSON và file tổng hợp `KiemKe.xlsx`).

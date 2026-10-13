@@ -11,6 +11,7 @@
   - Bước 4–6: mở trang Phần mềm với profile tick sẵn, gói Cấu hình chuẩn, driver của hãng + Windows Update; kết quả tự ghi vào bước.
   - Bước 7: báo cáo HTML (các bước, hệ điều hành, phần cứng + serial, phần mềm như Programs and Features), lưu trên máy và `Reports\` cạnh tool trên ổ mang theo; Kết thúc thì bỏ hẹn mở lại.
   - Sau khởi động lại, trang Phần mềm vẫn dùng được kho SOFT trên SSD nếu ổ còn cắm đúng chỗ.
+- **Kiểm kê ra ổ mang theo**: nút "Lưu kiểm kê" ở trang Tổng quan (và bước 7 của wizard) lưu thông tin máy vào `Inventory\<tên máy>.json` cạnh tool trên USB / SSD, rồi dựng lại `KiemKe.xlsx` (một dòng một máy, 25 cột: hãng, model, serial, CPU, RAM, ổ đĩa, Windows, kích hoạt, Office, IP, MAC, diệt virus, BitLocker, TPM, cập nhật gần nhất…; có lọc, cố định dòng tiêu đề). Máy đổi tên mà cùng serial thì thay bản cũ. Ghi .xlsx trực tiếp, không cần Excel; chữ không bao giờ bị hiểu là công thức.
 - Mục **Cập nhật driver, BIOS của hãng** (trang Sửa lỗi, nhóm Driver & BIOS; bước 6 của wizard): tự nhận Dell / Lenovo, chạy Dell Command | Update (tạm dừng BitLocker khi cập nhật BIOS) hoặc Lenovo System Update, chưa có công cụ thì cài bằng winget; giải thích mã lỗi của Dell bằng tiếng Việt. Danh mục phần mềm thêm nhóm "Công cụ hãng máy".
 - Mục **Định dạng vùng Việt Nam (vi-VN)** (trang Cấu hình, có trong gói Cấu hình chuẩn): tài khoản đang chạy tool, màn hình đăng nhập và tài khoản mới.
 - site.yaml thêm `computer_ou`, `it_admins_group`, `departments`.

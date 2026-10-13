@@ -17,8 +17,9 @@ from PySide6.QtWidgets import QHBoxLayout, QLabel, QPushButton, QTextBrowser, QV
 
 from ... import __version__
 from ...app import AppContext
-from ...core import inventory, paths
+from ...core import assets, inventory, paths
 from ...core.executor import Level
+from ...newpc import state as wizard_state
 from ..controller import RunController
 from ..widgets import open_as_user, page_header
 
@@ -128,9 +129,12 @@ class OverviewPage(QWidget):
         self.copy_button.setToolTip("Copy dạng chữ để dán vào ticket, Zalo, email")
         self.export_button = QPushButton("Xuất HTML")
         self.export_button.setToolTip("Lưu thành file HTML trong thư mục reports rồi mở lên")
+        self.asset_button = QPushButton("Lưu kiểm kê")
+        self.asset_button.setToolTip("Lưu thông tin máy này vào thư mục Inventory cạnh tool trên USB / SSD và cập nhật "
+                                     "file tổng hợp KiemKe.xlsx (một dòng một máy)")
         self.status = QLabel()
         self.status.setObjectName("PageSubtitle")
-        for button in (self.refresh_button, self.copy_button, self.export_button):
+        for button in (self.refresh_button, self.copy_button, self.export_button, self.asset_button):
             toolbar.addWidget(button)
         toolbar.addSpacing(8)
         toolbar.addWidget(self.status, 1)
@@ -144,6 +148,8 @@ class OverviewPage(QWidget):
         self.refresh_button.clicked.connect(self.refresh)
         self.copy_button.clicked.connect(self.copy_text)
         self.export_button.clicked.connect(self.export_html)
+        self.asset_button.clicked.connect(self.save_assets)
+        self.asset_button.setEnabled(False)
         self._render()
 
     # ------------------------------------------------------------ dữ liệu
@@ -190,6 +196,7 @@ class OverviewPage(QWidget):
         self.pending = set(inventory.PARTS)
         self.loader.start()
         self.refresh_button.setEnabled(False)
+        self.asset_button.setEnabled(False)
         self._render()
 
     def stop(self) -> None:
@@ -210,6 +217,7 @@ class OverviewPage(QWidget):
         if not self.pending:
             self.loaded_at = datetime.now()
             self.refresh_button.setEnabled(True)
+            self.asset_button.setEnabled(True)
             for name, message in self.failed.items():
                 self.controller.say(Level.WARN, f"Tổng quan: không đọc được phần {name}: {message}")
         self._render()
@@ -239,3 +247,29 @@ class OverviewPage(QWidget):
         file.write_text(inventory.to_html(self.sections(), basics, __version__), encoding="utf-8")
         self.controller.say(Level.OK, f"Đã xuất thông tin máy: {file}")
         open_as_user(file)
+
+    def save_assets(self) -> None:
+        if self.pending:
+            self.controller.say(Level.WARN, "Chờ đọc xong thông tin máy rồi lưu kiểm kê.")
+            return
+        # Máy đang cài bằng wizard: lấy phòng ban, người dùng chính đã nhập ở bước 1.
+        wizard = wizard_state.active()
+        department = primary_user = origin = ""
+        if wizard is not None:
+            origin = wizard.origin
+            if wizard.computer_name.upper() == self.app.machine.computer_name.upper():
+                department, primary_user = wizard.department, wizard.primary_user
+        item = assets.record(self.data, self.basics(), __version__, department, primary_user)
+        try:
+            result = assets.save(item, origin)
+        except OSError as exc:
+            log.exception("Không lưu được kiểm kê")
+            self.controller.say(Level.ERROR, f"Không lưu được kiểm kê: {exc}")
+            return
+        self.controller.say(Level.OK, f"Đã lưu kiểm kê máy {item['computer']}: {result.record_file}")
+        if result.workbook is not None:
+            self.controller.say(Level.OK, f"File tổng hợp {result.workbook} có {result.count} máy.")
+        else:
+            self.controller.say(Level.WARN, f"Chưa cập nhật file tổng hợp: {result.error}.")
+        if self.failed:
+            self.controller.say(Level.WARN, f"Thiếu phần {', '.join(self.failed)} vì đọc lỗi, các cột đó để trống.")

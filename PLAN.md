@@ -86,7 +86,7 @@ Nguyên tắc chung cho mọi tính năng:
 | Bảo mật | Defender (có bật không, ngày cập nhật chữ ký), Firewall, BitLocker, TPM, Secure Boot, lần cập nhật Windows gần nhất | P1 |
 | Sức khoẻ | Báo cáo pin laptop (`powercfg /batteryreport`), màn hình xanh gần đây (Event 1001, thư mục Minidump), tắt máy đột ngột (Kernel-Power 41, Event 6008) | P2 |
 | Lên Win11 được không | Dành cho máy Win10: kiểm tra TPM 2.0, Secure Boot, CPU, RAM, ổ đĩa | P2 |
-| Xuất thông tin | Copy để dán vào ticket hoặc Zalo; xuất HTML/CSV; gửi lên share kiểm kê | P1 / P2 |
+| Xuất thông tin | Copy để dán vào ticket hoặc Zalo; xuất HTML. **Lưu kiểm kê ✔**: mỗi máy một file JSON trong `Inventory\` cạnh tool trên USB / SSD (máy đổi tên cùng serial thì thay bản cũ), tự dựng `KiemKe.xlsx` một dòng một máy; không gửi lên share (mục 11, câu 12). Wizard bước 7 cũng lưu | P1 / P2 |
 
 ### 5.2 Cài máy mới (wizard)
 
@@ -508,7 +508,7 @@ Repo để public nên **tên domain, tên server, đường dẫn share, OU, ti
 | **1. Tổng quan + Sửa lỗi** ◐ code xong 13/10/2026 | Trang Tổng quan (copy và xuất thông tin); toàn bộ fix P1 (mạng, domain, máy in, Windows Update, hệ thống, Office); gói sửa nhanh (làm 5 gói: thêm "Reset mạng toàn bộ"); mở nhanh panel; công cụ mạng | IT dùng hằng ngày thay cho gõ lệnh tay; mục nào cũng có ⓘ và copy lệnh |
 | **2. Cài máy mới** ◐ code xong 13/10/2026 (còn mẫu wizard) | Wizard 7 bước; đổi tên + join + chạy tiếp sau restart; danh mục phần mềm (winget + share) và profile; sửa winget; Office từ ISO; cấu hình chuẩn; báo cáo | Từ một VM Windows sạch: vào được domain, cài đủ phần mềm theo profile, có báo cáo trên máy và trên ổ mang theo. IT chỉ phải chọn phòng ban và nhập mật khẩu join |
 | **3. Tối ưu & dọn dẹp** ◑ đã có dọn rác, startup, debloat, power | Dọn rác có quét trước; quản lý startup; debloat và quyền riêng tư; power; các fix P2 | Thấy được dung lượng trước khi xoá; mọi tweak hoàn tác được |
-| **4. Tiện ích & hoàn thiện** | Các tiện ích; gửi kiểm kê lên share; báo bản mới; ký số; hướng dẫn sử dụng; các mục P3 | Bản 1.0 có trên share |
+| **4. Tiện ích & hoàn thiện** | Các tiện ích; kiểm kê ra ổ mang theo (đã làm); báo bản mới; ký số; hướng dẫn sử dụng; các mục P3 | Bản 1.0 có trên share |
 | **Để sau** | Điều khiển nhiều máy từ xa, bản rút gọn cho nhân viên tự sửa lỗi, giao diện tối | |
 
 GĐ0 và GĐ1 đã chạy được trên máy dev (Win11 25H2, không có quyền admin): các mục chỉ đọc (Chẩn đoán mạng, Liệt kê máy in, trang Tổng quan) đã chạy thật. Các mục đổi hệ thống của GĐ1 mới được soát cú pháp và test giả lập, **chưa chạy thật bằng quyền admin**. Việc đó cùng với chạy trên máy ảo Win10/Win11 sạch là việc đầu tiên trước khi coi GĐ1 xong, danh sách cụ thể ở [docs/HANDOFF.md](docs/HANDOFF.md).

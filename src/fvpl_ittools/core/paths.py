@@ -72,6 +72,25 @@ def reports_dir() -> Path:
     return folder
 
 
+def app_copy_dir() -> Path:
+    """Bản chép của tool trong máy (wizard Cài máy mới chép vào để tự mở lại sau khi khởi động lại)."""
+    return Path(os.environ.get("ProgramData", r"C:\ProgramData")) / APP_DIR_NAME / "app"
+
+
+def portable_root() -> Path | None:
+    """Thư mục tool trên ổ mang theo (USB / SSD, hoặc thư mục repo khi chạy từ mã nguồn).
+
+    None khi tool đang chạy từ bản chép trong ProgramData: chỗ đó không phải ổ mang theo.
+    """
+    root = app_root()
+    try:
+        if root.resolve() == app_copy_dir().resolve():
+            return None
+    except OSError:
+        pass
+    return root
+
+
 def undo_journal_path() -> Path:
     folder = state_dir() / "undo"
     folder.mkdir(parents=True, exist_ok=True)

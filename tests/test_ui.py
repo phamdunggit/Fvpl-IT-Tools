@@ -153,6 +153,22 @@ def test_software_page_profiles_and_install(window, qt_app, monkeypatch):
     assert page._items["putty"].text(2).startswith("✖ Lỗi")
 
 
+def test_overview_saves_asset_record(window, qt_app, monkeypatch, tmp_path):
+    from fvpl_ittools.core import paths
+    page = window.overview
+    deadline = time.monotonic() + 10
+    while page.loading and time.monotonic() < deadline:
+        qt_app.processEvents()
+        time.sleep(0.01)
+    assert page.asset_button.isEnabled()
+    monkeypatch.setattr(paths, "portable_root", lambda: tmp_path)
+    page.save_assets()
+    name = window.app.machine.computer_name
+    assert (tmp_path / "Inventory" / "KiemKe.xlsx").is_file()
+    assert any(file.stem.upper() == name.upper() for file in (tmp_path / "Inventory").glob("*.json"))
+    assert "có 1 máy" in window.log_panel.plain_text()
+
+
 def test_newpc_page_shows_checks_and_time_fix(window, qt_app, monkeypatch):
     window.select_page("Cài máy mới")
     page = window.newpc.check

@@ -23,7 +23,6 @@ log = logging.getLogger(__name__)
 
 STATE_FILE = "newpc-wizard.json"
 RESUME_TASK = "FVPL-ITTools-TiepTucCaiMay"
-APP_COPY_DIR = "app"
 EXE_NAME = "FVPL-ITTools.exe"
 
 # (khoá, tên hiện ở danh sách bước)
@@ -138,7 +137,7 @@ def active() -> WizardState | None:
 
 
 def app_copy_dir() -> Path:
-    return Path(os.environ.get("ProgramData", r"C:\ProgramData")) / paths.APP_DIR_NAME / APP_COPY_DIR
+    return paths.app_copy_dir()
 
 
 def resume_command() -> tuple[str, str]:
