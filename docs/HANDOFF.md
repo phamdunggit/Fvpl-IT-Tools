@@ -9,7 +9,7 @@ Cập nhật lần cuối: 13/10/2026, sau khi xong wizard Cài máy mới (GĐ2
 | Giai đoạn | **GĐ1, GĐ2 (wizard Cài máy mới), phần lớn GĐ3 xong phần code.** Còn chạy thử các mục đổi hệ thống bằng quyền admin trên VM (danh sách bên dưới) rồi mới coi là xong |
 | Nhánh | Code mới làm trên `featured`. Chỉ merge về `main` khi được duyệt |
 | Phiên bản | 0.2.0, xem [CHANGELOG.md](../CHANGELOG.md) (trang Phần mềm nằm ở mục "Chưa phát hành") |
-| Test | 276 test pytest, tất cả đều qua (khoảng 35 giây) |
+| Test | 287 test pytest, tất cả đều qua (khoảng 35 giây) |
 | Bản exe | `python packaging\build.py`: thư mục 64MB, zip 27MB. `--test` chạy selftest trên exe, gồm cả đọc thông tin máy |
 
 Đã có:
@@ -151,6 +151,12 @@ Kiểm kê. Đã dựng `KiemKe.xlsx` từ dữ liệu thật của máy dev và
 - [ ] Lưu từ bản exe chạy trên USB: thư mục `Inventory\` nằm trên USB; chạy từ bản chép trong ProgramData (sau khi wizard khởi động lại) thì lưu sang ổ lúc bắt đầu nếu còn cắm, không thì vào thư mục dữ liệu trên máy.
 - [ ] Đang mở `KiemKe.xlsx` trong Excel rồi bấm Lưu kiểm kê: JSON vẫn lưu, tool báo đóng file rồi lưu lại.
 
+LAPS và BitLocker (cần làm GPO theo [BITLOCKER-LAPS-GPO.md](BITLOCKER-LAPS-GPO.md) trên domain test trước). Tra cứu đã chạy thật trên máy dev (chỉ đọc): máy chưa có LAPS → báo chưa có mật khẩu; chưa có khoá BitLocker → danh sách trống:
+- [ ] **Tab LAPS & BitLocker:** tra mật khẩu LAPS bằng Domain Admins và bằng tài khoản thuộc nhóm giải mã (mật khẩu mã hoá); tài khoản không quyền → báo không được giải mã; "Dùng tài khoản khác" khi máy IT chưa vào domain. Bắt đổi mật khẩu rồi chạy Kiểm tra Windows LAPS trên máy đó → mật khẩu mới. Khoá BitLocker: tài khoản thường thấy Key ID nhưng không thấy khoá.
+- [ ] **Kiểm tra Windows LAPS:** máy chưa nhận GPO (✖), máy đã nhận (thấy sự kiện 10018), độ dài mật khẩu thấp hơn chính sách cục bộ (10027).
+- [ ] **Bật BitLocker:** máy chưa có GPO lưu khoá → từ chối, không đổi gì; có GPO → khoá lên AD (tra được ở tab), khởi động lại không bị hỏi khoá, ổ mã hoá ở nền; Hoàn tác giải mã được. Máy không có TPM / TPM tắt trong BIOS → báo rõ.
+- [ ] **Tạm dừng BitLocker** rồi đổi thiết lập BIOS: không bị hỏi khoá lần khởi động đó.
+
 Hai bản USB / SSD:
 - [ ] `deploy.py ssd` ra SSD thật, chạy tool từ SSD trên máy chưa vào domain: trang Phần mềm ghi "kho trên ổ mang theo", cài Office từ ISO trên SSD (mount ISO từ ổ USB/SSD).
 - [ ] Bản USB: kho là share; máy chưa join thì báo không vào được kho, không treo.
@@ -187,6 +193,7 @@ GĐ2:
 - **`Win32_Printer.Shared` của máy in share (`\\máy\tên`) là True:** đó là trạng thái bên máy chia sẻ. Muốn biết máy này có share máy in nào thì bỏ các máy in có tên bắt đầu bằng `\\`.
 - **Tác vụ chạy bằng quyền admin phải trỏ vào thư mục người dùng thường không ghi được.** Thư mục con của ProgramData mặc định cho Users tạo file (thả DLL cạnh exe là chạy bằng quyền admin), nên bước join `icacls` lại `%ProgramData%\FVPL-ITTools`. Kho SOFT trên ổ mang theo (`origin`) vẫn là chỗ tin tưởng ổ cắm vào: trang Phần mềm luôn ghi rõ đang dùng kho nào.
 - **Programs and Features ẩn các mục `SystemComponent = 1` và có `ParentKeyName`** (bản cập nhật). Máy dev có 321 mục trong registry nhưng chỉ 142 mục hiện; báo cáo bỏ mục ẩn, còn phát hiện "đã cài" vẫn đọc tất cả.
+- **Mật khẩu / khoá không được đi qua executor:** mọi dòng output của mục chạy qua executor vào khung log và file log. Tra mật khẩu LAPS, khoá BitLocker (`core/adsecrets.py`) chạy PowerShell riêng ở thread nền, trả kết quả thẳng cho giao diện. `Add-BitLockerKeyProtector` in khoá khôi phục trong cảnh báo: luôn `-WarningAction SilentlyContinue | Out-Null`.
 - **Heredoc của Bash nuốt bớt dấu `\`** (`\\` thành `\`), cả khi dùng `<<'EOF'` để chạy Python sửa file. Nội dung có `\` thì sửa bằng công cụ Edit/Write, rồi grep lại.
 - **Bộ cài là chương trình giao diện:** gọi thẳng `& setup.exe` trong PowerShell thì không chờ. `Start-Process -Wait` lại chờ cả tiến trình con (nhiều bộ cài mở luôn ứng dụng sau khi cài), nên dùng `Start-Process -PassThru` rồi `WaitForExit()`; phải đọc `$process.Handle` ngay sau khi chạy, không thì `ExitCode` có lúc rỗng.
 - **Programs and Features có thể có hai dòng trùng tên** (.NET Desktop Runtime: một dòng mang số phiên bản nội bộ MSI). Phát hiện đã cài ưu tiên dòng có phiên bản khớp với số trong tên.

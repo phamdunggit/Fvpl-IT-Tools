@@ -4,13 +4,13 @@ Cập nhật: 13/10/2026. File này được cập nhật trước mỗi commit.
 
 ## Đang làm
 
-- Không có việc dở. Việc tiếp theo: số 1 ở bảng "Còn lại" (xem mật khẩu LAPS, bật BitLocker trong tool).
+- Không có việc dở. Việc tiếp theo: số 1 ở bảng "Còn lại" (mẫu cho wizard).
 
 ## Đã xong (code xong, **chưa chạy thử bằng quyền admin trên máy ảo**)
 
 | Giai đoạn | Đã có |
 |---|---|
-| Tài liệu | [Hướng dẫn GPO, Windows LAPS, BitLocker](BITLOCKER-LAPS-GPO.md): từng bước, GPO nên tạo, lộ trình 4 tuần |
+| LAPS, BitLocker | [Hướng dẫn GPO, Windows LAPS, BitLocker](BITLOCKER-LAPS-GPO.md) (từng bước, lộ trình 4 tuần). Trong tool: tab **LAPS & BitLocker** ở trang Tiện ích (tra mật khẩu LAPS, bắt đổi, tra khoá BitLocker của máy khác; không ghi vào log); mục Kiểm tra Windows LAPS, Bật BitLocker (chỉ khi đủ điều kiện an toàn), Tạm dừng BitLocker |
 | Kiểm kê | Nút "Lưu kiểm kê" (trang Tổng quan, wizard bước 7): `Inventory\` cạnh tool trên USB / SSD, file tổng hợp `KiemKe.xlsx` một dòng một máy (đã thử mở bằng Excel) |
 | GĐ0 Nền móng | Khung app, chạy lệnh nền, YAML, log, hoàn tác, restore point, đóng gói exe |
 | GĐ1 Tổng quan + Sửa lỗi | Trang Tổng quan (copy, xuất HTML); các mục sửa lỗi P1; gói sửa nhanh; Tiện ích (mở nhanh 29 công cụ, ping/tracert/nslookup/cổng) |
@@ -24,10 +24,9 @@ Cập nhật: 13/10/2026. File này được cập nhật trước mỗi commit.
 
 | # | Việc | Ghi chú |
 |---|---|---|
-| 1 | Tool hỗ trợ LAPS và BitLocker: **xem mật khẩu LAPS** của một máy (cho IT đang đứng ở máy khác), **bật BitLocker** ổ hệ thống có kiểm tra TPM và khoá đã lên AD | Sau khi bồ làm GPO theo hướng dẫn |
-| 2 | Wizard: lưu **mẫu** (ví dụ "Kế toán – Laptop") để lần sau chọn lại | |
-| 3 | Startup: task chạy lúc đăng nhập; P3: hiệu ứng hình ảnh, service Manual, chặn app "đồng hành" driver | |
-| 4 | GĐ4: sao lưu driver, xem event log, sửa HOSTS/PATH, file bị khoá, mật khẩu Wi-Fi, chuyển dữ liệu máy cũ, báo bản mới, ký số exe, hướng dẫn sử dụng, bản 1.0 | |
+| 1 | Wizard: lưu **mẫu** (ví dụ "Kế toán – Laptop") để lần sau chọn lại | |
+| 2 | Startup: task chạy lúc đăng nhập; P3: hiệu ứng hình ảnh, service Manual, chặn app "đồng hành" driver | |
+| 3 | GĐ4: sao lưu driver, xem event log, sửa HOSTS/PATH, file bị khoá, mật khẩu Wi-Fi, chuyển dữ liệu máy cũ, báo bản mới, ký số exe, hướng dẫn sử dụng, bản 1.0 | |
 
 ## Bồ cần làm
 

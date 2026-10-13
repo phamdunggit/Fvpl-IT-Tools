@@ -2,17 +2,22 @@
 
 from __future__ import annotations
 
+import logging
 import os
 import re
 import subprocess
 from dataclasses import dataclass
 
+from PySide6.QtCore import QTimer
+from PySide6.QtGui import QGuiApplication
 from PySide6.QtWidgets import (
+    QCheckBox,
     QFrame,
     QGridLayout,
     QHBoxLayout,
     QLabel,
     QLineEdit,
+    QPlainTextEdit,
     QPushButton,
     QScrollArea,
     QSpinBox,
@@ -24,10 +29,13 @@ from PySide6.QtWidgets import (
 from ...actions.loader import parse_action
 from ...actions.model import Action
 from ...app import AppContext
-from ...core import shell
+from ...core import adsecrets, shell
 from ...core.executor import Level
 from ..controller import RunController
-from ..widgets import page_header
+from ..credential_dialog import ask_credential
+from ..widgets import Worker, page_header
+
+log = logging.getLogger(__name__)
 from .actions_page import ActionsPage
 
 
@@ -262,6 +270,172 @@ class NetworkToolsPanel(QWidget):
             button.setEnabled(not busy)
 
 
+class SecretsPanel(QWidget):
+    """Tra mật khẩu LAPS, khoá khôi phục BitLocker của một máy trong AD. Kết quả không vào khung log / file log."""
+
+    CLEAR_AFTER_MS = 120_000
+    CLIPBOARD_CLEAR_MS = 60_000
+
+    def __init__(self, app: AppContext, controller: RunController):
+        super().__init__()
+        self.app = app
+        self.controller = controller
+        self.secret = ""          # mật khẩu / khoá đang hiện, cho nút Copy
+        self.busy = False
+        self.worker = Worker(self)
+        self.worker.done.connect(self._done)
+        self.clear_timer = QTimer(self)
+        self.clear_timer.setSingleShot(True)
+        self.clear_timer.timeout.connect(self.clear)
+
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 12, 0, 0)
+        layout.setSpacing(10)
+        note = QLabel("Tra mật khẩu admin cục bộ (Windows LAPS) và khoá khôi phục BitLocker của một máy, lưu trong AD. "
+                      "Kết quả chỉ hiện ở đây (không ghi vào log) và tự xoá sau 2 phút. Cần tài khoản có quyền đọc: "
+                      "Domain Admins, hoặc nhóm đã được cấp quyền theo docs/BITLOCKER-LAPS-GPO.md.")
+        note.setObjectName("PageSubtitle")
+        note.setWordWrap(True)
+        layout.addWidget(note)
+
+        card = QFrame()
+        card.setObjectName("Card")
+        form = QGridLayout(card)
+        form.setContentsMargins(16, 14, 16, 14)
+        form.setHorizontalSpacing(10)
+        form.setVerticalSpacing(10)
+        self.computer = QLineEdit()
+        self.computer.setMaxLength(15)
+        self.computer.setPlaceholderText("Tên máy, ví dụ FVPL-KT05")
+        self.other_account = QCheckBox("Dùng tài khoản khác")
+        self.other_account.setToolTip("Hỏi tài khoản domain có quyền đọc, khi tài khoản đang chạy tool không có quyền "
+                                      "(mật khẩu chỉ dùng cho lần tra đó)")
+        self.laps_button = QPushButton("Mật khẩu LAPS")
+        self.laps_button.setObjectName("Primary")
+        self.expire_button = QPushButton("Bắt đổi mật khẩu LAPS")
+        self.expire_button.setToolTip("Đánh dấu mật khẩu hết hạn: máy đổi mật khẩu mới ở lần xử lý LAPS tiếp theo "
+                                      "(trong vòng một giờ, hoặc chạy Kiểm tra Windows LAPS trên máy đó)")
+        self.bitlocker_button = QPushButton("Khoá BitLocker")
+        form.addWidget(QLabel("Máy"), 0, 0)
+        form.addWidget(self.computer, 0, 1)
+        form.addWidget(self.other_account, 0, 2)
+        buttons = QHBoxLayout()
+        for button in (self.laps_button, self.expire_button, self.bitlocker_button):
+            buttons.addWidget(button)
+        buttons.addStretch(1)
+        form.addLayout(buttons, 1, 1, 1, 2)
+        form.setColumnStretch(1, 1)
+        layout.addWidget(card)
+
+        self.result = QPlainTextEdit()
+        self.result.setObjectName("CodeView")
+        self.result.setReadOnly(True)
+        self.result.setPlaceholderText("Kết quả hiện ở đây.")
+        layout.addWidget(self.result, 1)
+        actions = QHBoxLayout()
+        self.copy_button = QPushButton("Copy mật khẩu / khoá")
+        self.clear_button = QPushButton("Xoá")
+        actions.addStretch(1)
+        actions.addWidget(self.copy_button)
+        actions.addWidget(self.clear_button)
+        layout.addLayout(actions)
+
+        self.laps_button.clicked.connect(lambda: self.lookup("laps"))
+        self.expire_button.clicked.connect(lambda: self.lookup("expire"))
+        self.bitlocker_button.clicked.connect(lambda: self.lookup("bitlocker"))
+        self.computer.returnPressed.connect(lambda: self.lookup("laps"))
+        self.copy_button.clicked.connect(self.copy_secret)
+        self.clear_button.clicked.connect(self.clear)
+        self._update_buttons()
+
+    def domain(self) -> str:
+        machine = self.app.machine
+        return (machine.dns_domain or machine.join_name) if machine.joined_domain else self.app.site.domain
+
+    def lookup(self, kind: str) -> None:
+        try:
+            computer = adsecrets.check_computer(self.computer.text())
+        except adsecrets.SecretLookupError as exc:
+            self.result.setPlainText(str(exc))
+            return
+        credential = None
+        if self.other_account.isChecked() or not self.app.machine.joined_domain:
+            netbios = self.app.site.netbios_domain or self.domain().split(".")[0].upper()
+            titles = {"laps": "Đọc mật khẩu LAPS", "expire": "Bắt đổi mật khẩu LAPS", "bitlocker": "Đọc khoá BitLocker"}
+            credential = ask_credential([f"{titles[kind]} của {computer}"], netbios, self)
+            if credential is None:
+                return
+        domain = self.domain()
+        functions = {"laps": adsecrets.laps_password, "expire": adsecrets.expire_laps_password,
+                     "bitlocker": adsecrets.bitlocker_keys}
+        self.clear()
+        self.busy = True
+        self._update_buttons()
+        self.result.setPlainText(f"Đang hỏi AD về {computer}…")
+        self.worker.run(kind, lambda: (computer, functions[kind](computer, domain, credential)))
+
+    def _done(self, kind: str, result: object) -> None:
+        self.busy = False
+        self._update_buttons()
+        if isinstance(result, Exception):
+            self.result.setPlainText(f"Không tra được: {result}")
+            return
+        computer, value = result
+        account = self.app.env.process_user.name
+        if kind == "laps":
+            self.secret = value.password
+            lines = [f"Máy: {value.computer}", f"Tài khoản: .\\{value.account}", f"Mật khẩu: {value.password}",
+                     f"Đổi lúc: {value.updated}", f"Hết hạn: {value.expires}",
+                     "Mật khẩu được mã hoá trong AD" if value.encrypted else "Mật khẩu lưu dạng chữ thường trong AD "
+                     "(domain chưa bật mã hoá LAPS)"]
+            self._audit(f"{account} đã xem mật khẩu LAPS của {computer} (mật khẩu không ghi vào log).")
+        elif kind == "expire":
+            lines = [f"Đã đánh dấu mật khẩu LAPS của {computer} hết hạn.",
+                     "Máy đó đổi mật khẩu mới ở lần xử lý LAPS tiếp theo (trong vòng một giờ)."]
+            self._audit(f"{account} đã bắt đổi mật khẩu LAPS của {computer}.")
+        else:
+            if not value:
+                lines = [f"Không thấy khoá BitLocker nào của {computer} trong AD: máy chưa bật BitLocker, khoá chưa sao lưu "
+                         "lên AD (chạy mục Sao lưu khoá BitLocker lên AD trên máy đó), hoặc tài khoản không có quyền xem."]
+            else:
+                lines = [f"Máy {computer}: {len(value)} khoá, mới nhất ở trên. Trên màn hình xanh, so 8 ký tự đầu của "
+                         "Recovery key ID."]
+                for key in value:
+                    password = key.password or "(tài khoản này không có quyền đọc khoá)"
+                    lines += ["", f"Key ID: {key.key_id}", f"Khoá: {password}", f"Lưu lúc: {key.created}"]
+                self.secret = next((key.password for key in value if key.password), "")
+            self._audit(f"{account} đã xem khoá BitLocker của {computer} (khoá không ghi vào log).")
+        self.result.setPlainText("\n".join(lines))
+        self.clear_timer.start(self.CLEAR_AFTER_MS)
+        self._update_buttons()
+
+    def _audit(self, text: str) -> None:
+        """Ghi ai tra máy nào vào khung log và file log (không bao giờ kèm mật khẩu, khoá)."""
+        log.info("%s", text)
+        self.controller.say(Level.INFO, text)
+
+    def copy_secret(self) -> None:
+        if not self.secret:
+            return
+        clipboard = QGuiApplication.clipboard()
+        clipboard.setText(self.secret)
+        copied = self.secret
+        # Xoá clipboard sau 60 giây nếu trong đó vẫn là mật khẩu vừa copy.
+        QTimer.singleShot(self.CLIPBOARD_CLEAR_MS,
+                          lambda: clipboard.clear() if clipboard.text() == copied else None)
+
+    def clear(self) -> None:
+        self.secret = ""
+        self.result.clear()
+        self.clear_timer.stop()
+        self._update_buttons()
+
+    def _update_buttons(self) -> None:
+        for button in (self.laps_button, self.expire_button, self.bitlocker_button):
+            button.setEnabled(not self.busy)
+        self.copy_button.setEnabled(bool(self.secret))
+
+
 class UtilitiesPage(QWidget):
     def __init__(self, app: AppContext, controller: RunController):
         super().__init__()
@@ -276,8 +450,10 @@ class UtilitiesPage(QWidget):
         scroll.setWidgetResizable(True)
         scroll.setFrameShape(QFrame.Shape.NoFrame)
         scroll.setWidget(self.shortcuts)
+        self.secrets = SecretsPanel(app, controller)
         self.tabs.addTab(scroll, "Mở nhanh")
         self.tabs.addTab(self.network, "Công cụ mạng")
+        self.tabs.addTab(self.secrets, "LAPS && BitLocker")  # "&&": Qt hiểu "&" là phím tắt
         if any(action.page == "utilities" for action in app.actions):
             self.tabs.addTab(ActionsPage("utilities", "", "", "", app, controller, show_header=False), "Mục khác")
         root.addWidget(self.tabs, 1)

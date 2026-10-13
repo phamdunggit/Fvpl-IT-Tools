@@ -154,7 +154,12 @@ Công ty còn máy Win10 nên chưa dùng: máy cũ không hiểu thì quay về
 
 ### 2.4 Kiểm tra và dùng
 
-Trên máy thử: chạy **Cập nhật Group Policy** trong tool, rồi trong PowerShell admin:
+Bằng FVPL IT Toolkit: trên máy thử chạy **Cập nhật Group Policy** rồi **Kiểm tra Windows LAPS** (trang Sửa lỗi, nhóm
+Bảo mật và truy cập): mục này cho biết máy đã nhận chính sách chưa, chạy xử lý LAPS ngay và đọc nhật ký LAPS. Tra
+mật khẩu từ máy IT: trang **Tiện ích → tab LAPS & BitLocker**, gõ tên máy, bấm **Mật khẩu LAPS** (kết quả không ghi
+vào log, tự xoá sau 2 phút); **Bắt đổi mật khẩu LAPS** sau khi đã dùng xong.
+
+Làm tay: trên máy thử chạy **Cập nhật Group Policy** trong tool, rồi trong PowerShell admin:
 
 ```powershell
 Invoke-LapsPolicyProcessing     # xử lý ngay, không chờ chu kỳ 1 giờ
@@ -204,7 +209,11 @@ từng máy.
 
 ### 3.3 Bật BitLocker trên một máy
 
-PowerShell **admin** trên máy cần mã hoá:
+Bằng FVPL IT Toolkit: mục **Bật BitLocker ổ hệ thống (khoá lưu lên AD)** (trang Sửa lỗi, nhóm Bảo mật và truy cập).
+Mục này chỉ bật khi TPM sẵn sàng **và** máy đã nhận GPO ở mục 3.2, sao lưu khoá lên AD trước rồi mới bật, rồi hỏi
+khởi động lại. Không đủ điều kiện thì báo lý do và không đổi gì.
+
+Làm tay: PowerShell **admin** trên máy cần mã hoá:
 
 ```powershell
 manage-bde -status C:                                   # xem đã mã hoá chưa
@@ -225,6 +234,8 @@ mật) sau khi GPO đã áp.
 
 ### 3.4 Tra khoá khôi phục khi máy hỏi
 
+- FVPL IT Toolkit trên máy IT: **Tiện ích → tab LAPS & BitLocker**, gõ tên máy, bấm **Khoá BitLocker** (đọc thẳng từ
+  AD, không cần cài RSAT; mới nhất ở trên).
 - Active Directory Users and Computers → computer object → tab **BitLocker Recovery** (cài
   `Rsat.BitLocker.Recovery.Tools` ở mục 1.2). Màn hình xanh trên máy có **Recovery key ID** (8 ký tự đầu): khớp với
   dòng trong tab.
@@ -238,7 +249,8 @@ mật) sau khi GPO đã áp.
 
 ### 3.5 Những lúc hay bị hỏi khoá
 
-- **Cập nhật BIOS / firmware**: phải tạm dừng BitLocker trước (`Suspend-BitLocker -MountPoint C: -RebootCount 1`).
+- **Cập nhật BIOS / firmware**: phải tạm dừng BitLocker trước (mục **Tạm dừng BitLocker cho một lần khởi động
+  lại** của tool, hoặc `Suspend-BitLocker -MountPoint C: -RebootCount 1`).
   Mục "Cập nhật driver, BIOS của hãng" của tool với máy Dell đã tự tạm dừng (`-autoSuspendBitLocker`); cập nhật BIOS
   bằng tay thì nhớ tạm dừng.
 - Đổi thiết lập trong BIOS (Secure Boot, TPM, thứ tự boot), thay mainboard, chuyển ổ sang máy khác.

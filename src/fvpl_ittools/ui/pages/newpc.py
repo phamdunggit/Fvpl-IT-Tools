@@ -44,7 +44,7 @@ from ...newpc import naming, precheck, report, state as wizard_state, steps
 from ...software import catalog as catalog_module
 from ..controller import RunController
 from ..credential_dialog import ask_credential
-from ..widgets import open_as_user, open_path, page_header
+from ..widgets import Worker, open_as_user, open_path, page_header
 
 log = logging.getLogger(__name__)
 
@@ -240,22 +240,6 @@ class DepartmentDialog(QDialog):
     def _update(self) -> None:
         ok = bool(config.DEPARTMENT_CODE.match(self.code.text().strip())) and bool(self.name.text().strip())
         self.buttons.button(QDialogButtonBox.StandardButton.Ok).setEnabled(ok)
-
-
-class Worker(QObject):
-    """Chạy một hàm ở thread nền, trả kết quả (hoặc lỗi dạng chuỗi) qua signal."""
-    done = Signal(str, object)  # tên việc, kết quả hoặc Exception
-
-    def run(self, name: str, fn) -> None:
-        def work() -> None:
-            try:
-                result = fn()
-            except Exception as exc:
-                if not isinstance(exc, (naming.NamingError, OSError)):
-                    log.exception("Lỗi khi chạy %s", name)
-                result = exc
-            self.done.emit(name, result)
-        threading.Thread(target=work, name=f"newpc-{name}", daemon=True).start()
 
 
 @dataclass

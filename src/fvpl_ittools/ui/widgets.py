@@ -2,14 +2,37 @@
 
 from __future__ import annotations
 
+import logging
 import os
 import subprocess
+import threading
 from pathlib import Path
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import QObject, Qt, Signal
 from PySide6.QtWidgets import QHBoxLayout, QLabel, QLayout, QWidget
 
 from ..core import shell
+
+log = logging.getLogger(__name__)
+
+
+class Worker(QObject):
+    """Chạy một hàm ở thread nền, trả kết quả (hoặc Exception) qua signal `done`.
+
+    Lỗi RuntimeError / OSError là lỗi dự kiến (có lời báo tiếng Việt), không ghi traceback vào log.
+    """
+    done = Signal(str, object)  # tên việc, kết quả hoặc Exception
+
+    def run(self, name: str, fn) -> None:
+        def work() -> None:
+            try:
+                result = fn()
+            except Exception as exc:
+                if not isinstance(exc, (RuntimeError, OSError)):
+                    log.exception("Lỗi khi chạy %s", name)
+                result = exc
+            self.done.emit(name, result)
+        threading.Thread(target=work, name=f"worker-{name}", daemon=True).start()
 
 
 def page_header(layout: QLayout, title: str, subtitle: str) -> None:

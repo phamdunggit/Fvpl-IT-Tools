@@ -169,6 +169,43 @@ def test_overview_saves_asset_record(window, qt_app, monkeypatch, tmp_path):
     assert "có 1 máy" in window.log_panel.plain_text()
 
 
+def test_secrets_panel_shows_password_but_never_logs_it(window, qt_app, monkeypatch):
+    from dataclasses import replace
+
+    from fvpl_ittools.core import adsecrets
+    from fvpl_ittools.ui.pages import utilities as utilities_module
+    panel = window.findChild(utilities_module.UtilitiesPage).secrets
+    panel.app.machine = replace(panel.app.machine, joined_domain=True, dns_domain="corp.example")
+    secret = "Xy7!kQ2#mP9vL4zR"
+    monkeypatch.setattr(adsecrets, "laps_password", lambda computer, domain, credential=None: adsecrets.LapsPassword(
+        computer, "Administrator", secret, "01/10/2026 08:00", "31/10/2026 08:00", True, "Success"))
+    asked = []
+    monkeypatch.setattr(utilities_module, "ask_credential", lambda names, domain, parent: asked.append(names) or None)
+
+    panel.computer.setText("fvpl-kt05")
+    panel.lookup("laps")
+    deadline = time.monotonic() + 5
+    while panel.busy and time.monotonic() < deadline:
+        qt_app.processEvents()
+        time.sleep(0.01)
+    assert secret in panel.result.toPlainText() and "FVPL-KT05" in panel.result.toPlainText()
+    log_text = window.log_panel.plain_text()
+    assert "đã xem mật khẩu LAPS của FVPL-KT05" in log_text and secret not in log_text
+    assert asked == []  # máy đã vào domain: dùng luôn tài khoản đang chạy tool
+    panel.copy_secret()
+    assert QtWidgets.QApplication.clipboard().text() == secret
+    panel.clear()
+    assert panel.result.toPlainText() == "" and not panel.copy_button.isEnabled()
+
+    # Dùng tài khoản khác mà bấm Huỷ ở hộp thoại thì không tra.
+    panel.other_account.setChecked(True)
+    panel.lookup("bitlocker")
+    assert len(asked) == 1 and not panel.busy
+    panel.computer.setText("sai tên!")
+    panel.lookup("laps")
+    assert "Tên máy" in panel.result.toPlainText()
+
+
 def test_newpc_page_shows_checks_and_time_fix(window, qt_app, monkeypatch):
     window.select_page("Cài máy mới")
     page = window.newpc.check

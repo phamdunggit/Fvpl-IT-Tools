@@ -554,7 +554,7 @@ Làm Sửa lỗi (GĐ1) trước Cài máy mới (GĐ2) vì hai lý do. Thứ nh
 | 5 | Diệt virus | **Symantec Endpoint Protection, managed qua SEPM** | Cần `SyLink.xml` xuất từ SEPM |
 | 5 | Phần mềm khác | Gõ tiếng Việt **UniKey**; hỗ trợ từ xa chỉ **UltraViewer**; chữ ký số **Viettel-CA, VNPT-CA, FPT-CA**; phần mềm kế toán: chưa cần | Bộ cài UniKey, driver token đặt vào kho bộ cài |
 | 6 | WSUS | Không, cập nhật **thẳng từ Microsoft** | .NET 3.5, DISM tải trực tiếp được |
-| 6–7 | GPO, BitLocker, LAPS | **Chưa dùng**; muốn tìm hiểu | Đã viết [docs/BITLOCKER-LAPS-GPO.md](docs/BITLOCKER-LAPS-GPO.md); tool sẽ thêm xem mật khẩu LAPS, bật BitLocker |
+| 6–7 | GPO, BitLocker, LAPS | **Chưa dùng**; muốn tìm hiểu | Đã viết [docs/BITLOCKER-LAPS-GPO.md](docs/BITLOCKER-LAPS-GPO.md); tool có tab LAPS & BitLocker (tra mật khẩu, khoá), mục Kiểm tra LAPS, Bật / Tạm dừng BitLocker |
 | 8 | Máy in | **Lẫn nhiều kiểu**: IP, print server, share từ PC | Ưu tiên sửa lỗi share máy in Win11 → Win10 |
 | 9 | Hãng máy | Chủ yếu **Dell và Lenovo**, đôi khi hãng khác | Dell Command \| Update, Lenovo System Update |
 | 10 | Định dạng vùng | **vi-VN** | Thêm vào Cấu hình chuẩn |

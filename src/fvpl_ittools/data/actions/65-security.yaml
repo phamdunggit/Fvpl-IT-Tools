@@ -41,6 +41,123 @@
       messages:
         3: Ổ hệ thống chưa bật BitLocker hoặc chưa có khoá khôi phục dạng 48 chữ số
 
+# BitLocker và LAPS sau khi đã làm GPO theo docs/BITLOCKER-LAPS-GPO.md. Không in mật khẩu / khoá ra log:
+# Add-BitLockerKeyProtector in khoá trong cảnh báo, nên tắt cảnh báo và bỏ kết quả trả về.
+
+- id: sec.bitlocker_enable
+  name: Bật BitLocker ổ hệ thống (khoá lưu lên AD)
+  category: Bảo mật và truy cập
+  risk: caution
+  requires_domain: true
+  description: >
+    Chỉ bật khi đủ điều kiện an toàn: máy có TPM sẵn sàng, đã nhận GPO bắt lưu khoá BitLocker lên AD (docs/BITLOCKER-
+    LAPS-GPO.md mục 3.2), và khoá khôi phục 48 chữ số đã lên AD thành công. Mã hoá XTS-AES 128, chỉ phần ổ đã dùng,
+    mở khoá bằng TPM (người dùng không phải gõ gì khi bật máy). Khởi động lại một lần để BitLocker kiểm tra phần cứng
+    rồi mã hoá ở nền, máy vẫn dùng bình thường. Hoàn tác là giải mã lại ổ.
+  apply:
+    - powershell: |
+        $drive = $env:SystemDrive
+        $volume = Get-BitLockerVolume -MountPoint $drive
+        if ("$($volume.VolumeStatus)" -ne 'FullyDecrypted') {
+            Write-Ok ('BitLocker đã bật trên ổ {0} ({1}, {2}%). Chạy mục Sao lưu khoá BitLocker lên AD để chắc có khoá trong AD.' -f $drive, $volume.VolumeStatus, $volume.EncryptionPercentage)
+            exit 0
+        }
+        $tpm = Get-Tpm
+        if (-not $tpm.TpmPresent -or -not $tpm.TpmReady) {
+            Write-Bad 'TPM chưa có hoặc chưa sẵn sàng: bật TPM (Security Chip / PTT) trong BIOS rồi chạy lại.'
+            exit 3
+        }
+        $fve = Get-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\Policies\Microsoft\FVE' -ErrorAction SilentlyContinue
+        if (-not $fve -or $fve.OSActiveDirectoryBackup -ne 1 -or $fve.OSRequireActiveDirectoryBackup -ne 1) {
+            Write-Bad 'Máy chưa nhận GPO bắt lưu khoá BitLocker lên AD. Làm GPO theo docs/BITLOCKER-LAPS-GPO.md mục 3.2, chạy Cập nhật Group Policy rồi chạy lại.'
+            exit 4
+        }
+        Write-Ok 'TPM sẵn sàng, đã có GPO lưu khoá lên AD.'
+        $recovery = @($volume.KeyProtector | Where-Object { "$($_.KeyProtectorType)" -eq 'RecoveryPassword' })
+        if (-not $recovery) {
+            Add-BitLockerKeyProtector -MountPoint $drive -RecoveryPasswordProtector -WarningAction SilentlyContinue | Out-Null
+            $recovery = @((Get-BitLockerVolume -MountPoint $drive).KeyProtector | Where-Object { "$($_.KeyProtectorType)" -eq 'RecoveryPassword' })
+        }
+        foreach ($protector in $recovery) {
+            Backup-BitLockerKeyProtector -MountPoint $drive -KeyProtectorId $protector.KeyProtectorId | Out-Null
+            Write-Ok ('Khoá khôi phục {0} đã lưu lên AD.' -f $protector.KeyProtectorId)
+        }
+        Enable-BitLocker -MountPoint $drive -TpmProtector -EncryptionMethod XtsAes128 -UsedSpaceOnly -WarningAction SilentlyContinue | Out-Null
+        Write-Ok 'Đã bật BitLocker. Khởi động lại máy để BitLocker kiểm tra phần cứng rồi bắt đầu mã hoá ở nền.'
+        exit 10
+      timeout: 300
+      reboot_codes: [10]
+      messages:
+        3: TPM chưa sẵn sàng
+        4: Chưa có GPO lưu khoá BitLocker lên AD, không bật để tránh mất khoá
+  undo:
+    - powershell: |
+        Disable-BitLocker -MountPoint $env:SystemDrive | Out-Null
+        Write-Output 'Đang giải mã ổ hệ thống ở nền, xem tiến độ bằng: manage-bde -status'
+
+- id: sec.bitlocker_suspend
+  name: Tạm dừng BitLocker cho một lần khởi động lại
+  category: Bảo mật và truy cập
+  risk: safe
+  description: >
+    Dùng trước khi cập nhật BIOS / firmware bằng tay, đổi thiết lập BIOS hoặc Secure Boot: lần khởi động lại tiếp theo
+    máy không hỏi khoá khôi phục, sau đó BitLocker tự bảo vệ lại. Mục Cập nhật driver, BIOS của hãng (máy Dell) đã tự
+    làm việc này.
+  apply:
+    - powershell: |
+        $volume = Get-BitLockerVolume -MountPoint $env:SystemDrive
+        if ("$($volume.VolumeStatus)" -eq 'FullyDecrypted') { Write-Output 'Ổ hệ thống chưa bật BitLocker, không cần tạm dừng.'; exit 0 }
+        Suspend-BitLocker -MountPoint $env:SystemDrive -RebootCount 1 | Out-Null
+        Write-Output 'Đã tạm dừng BitLocker cho một lần khởi động lại.'
+      timeout: 120
+
+- id: sec.laps_check
+  name: Kiểm tra Windows LAPS trên máy này
+  category: Bảo mật và truy cập
+  risk: safe
+  description: >
+    Máy đã nhận chính sách LAPS chưa (GPO WS - LAPS), lưu mật khẩu vào đâu, rồi chạy xử lý LAPS ngay (không chờ chu
+    kỳ một giờ) và đọc nhật ký LAPS: đã lưu mật khẩu lên AD chưa, lỗi gì. Không hiện mật khẩu; tra mật khẩu ở trang
+    Tiện ích, tab LAPS & BitLocker.
+  apply:
+    - powershell: |
+        $roots = @('HKLM:\Software\Microsoft\Policies\LAPS', 'HKLM:\Software\Microsoft\Windows\CurrentVersion\Policies\LAPS', 'HKLM:\Software\Policies\Microsoft Services\AdmPwd')
+        $policy = $roots | Where-Object { Test-Path -LiteralPath $_ } | Select-Object -First 1
+        if (-not $policy) {
+            Write-Bad 'Máy chưa nhận chính sách LAPS: chưa có GPO WS - LAPS cho máy này, hoặc máy chưa cập nhật Group Policy.'
+        }
+        elseif ($policy -like '*AdmPwd') {
+            Write-Warn 'Máy đang theo chính sách của Microsoft LAPS bản cũ (đã khai tử): nên chuyển sang GPO Windows LAPS.'
+        }
+        else {
+            $values = Get-ItemProperty -LiteralPath $policy
+            $where = @{ 0 = 'không lưu (đang tắt)'; 1 = 'Microsoft Entra ID'; 2 = 'Active Directory' }[[int]$values.BackupDirectory]
+            Write-Line ('Chính sách LAPS: lưu mật khẩu vào {0}, đổi sau {1} ngày, dài {2} ký tự.' -f $where, $values.PasswordAgeDays, $values.PasswordLength)
+            if ([int]$values.BackupDirectory -ne 2) { Write-Bad 'Configure password backup directory chưa đặt là Active Directory.' }
+        }
+        if (-not (Get-Command Invoke-LapsPolicyProcessing -ErrorAction SilentlyContinue)) {
+            Write-Bad 'Windows trên máy này chưa có LAPS: cần bản cập nhật Windows từ 04/2023 trở đi.'
+            Exit-Checks
+        }
+        $since = Get-Date
+        Invoke-LapsPolicyProcessing
+        Start-Sleep -Seconds 3
+        $events = @(Get-WinEvent -LogName 'Microsoft-Windows-LAPS/Operational' -MaxEvents 30 -ErrorAction SilentlyContinue |
+            Where-Object { $_.TimeCreated -ge $since.AddSeconds(-5) } | Sort-Object TimeCreated)
+        foreach ($event in $events) {
+            $line = ('{0:HH:mm:ss} sự kiện {1}: {2}' -f $event.TimeCreated, $event.Id, ([string]$event.Message -split "`n")[0].Trim())
+            if ($event.Level -le 2) { Write-Bad $line } elseif ($event.Level -eq 3) { Write-Warn $line } else { Write-Line $line }
+        }
+        $saved = Get-WinEvent -FilterHashtable @{ LogName = 'Microsoft-Windows-LAPS/Operational'; Id = 10018 } -MaxEvents 1 -ErrorAction SilentlyContinue
+        if ($saved) { Write-Ok ('Lần gần nhất lưu mật khẩu lên AD: {0:dd\/MM\/yyyy HH:mm} (sự kiện 10018).' -f $saved.TimeCreated) }
+        elseif ($policy) { Write-Warn 'Chưa thấy lần nào lưu mật khẩu lên AD (sự kiện 10018).' }
+        if ($events.Id -contains 10024) { Write-Bad 'LAPS báo chính sách đang tắt (sự kiện 10024).' }
+        if ($events.Id -contains 10027) { Write-Bad 'Mật khẩu LAPS không hợp chính sách mật khẩu của máy (sự kiện 10027): tăng độ dài / độ phức tạp trong GPO.' }
+        Exit-Checks
+      timeout: 120
+      messages:
+        2: LAPS chưa chạy đúng, xem các dòng ✖ ở trên
+
 - id: sec.defender_scan
   name: Cập nhật và quét nhanh bằng Microsoft Defender
   category: Bảo mật và truy cập
