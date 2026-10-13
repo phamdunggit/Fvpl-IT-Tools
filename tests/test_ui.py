@@ -42,6 +42,11 @@ def window(qt_app, monkeypatch):
         return scan.SoftwareState(loaded, senv, entries, {item.id: detect.detect(item, entries) for item in loaded.apps})
 
     monkeypatch.setattr(scan, "scan", fake_scan)
+    # Trang Cài máy mới: dữ kiện mẫu, giờ lệch nhiều để có nút Đồng bộ giờ.
+    from fvpl_ittools.newpc import precheck
+
+    from .test_precheck import facts, network
+    monkeypatch.setattr(precheck, "collect", lambda app, cancel=None: facts(network=network(offset=400)))
     win = MainWindow(build_context())
     win.show()
     yield win
@@ -136,6 +141,25 @@ def test_software_page_profiles_and_install(window, qt_app, monkeypatch):
     assert [app.id for app in page.failed_apps()] == ["putty"]
     page.refresh_states()
     assert page._items["putty"].text(2).startswith("✖ Lỗi")
+
+
+def test_newpc_page_shows_checks_and_time_fix(window, qt_app, monkeypatch):
+    window.select_page("Cài máy mới")
+    page = window.newpc
+    deadline = time.monotonic() + 10
+    while (page.loading or not page.checks) and time.monotonic() < deadline:
+        qt_app.processEvents()
+        time.sleep(0.01)
+    assert page.checks
+    assert page.summary.property("state") == "bad"
+    assert page.tree.topLevelItemCount() == len(page.checks)
+    assert page.time_button.isEnabled()
+    runs = []
+    monkeypatch.setattr(window.controller, "run", lambda actions, **kw: runs.append([a.id for a in actions]))
+    page.sync_time()
+    assert runs == [["dom.time_sync"]]
+    page.copy_text()
+    assert QtWidgets.QApplication.clipboard().text().startswith("Kiểm tra trước khi cài máy")
 
 
 def test_every_page_renders(window, qt_app):

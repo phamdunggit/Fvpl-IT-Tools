@@ -9,7 +9,17 @@
   - Đánh dấu phần mềm đã cài kèm phiên bản (đọc Programs and Features, không cần winget).
   - Chọn theo profile, tìm không dấu, xem trước lệnh, cài lần lượt, thử lại mục lỗi. Ứng dụng không cài được thì ghi rõ lý do.
   - MSI ghi log riêng và tự thử lại khi gặp mã 1618; mã lỗi winget được giải thích bằng tiếng Việt.
+- Trang **Cài máy mới**, bước 0 "Kiểm tra trước" (chỉ đọc):
+  - Quyền admin, bản Windows, máy đang chờ khởi động lại, mạng (cảnh báo khi dùng Wi-Fi), Internet.
+  - Từng DNS server có tìm được DC không, DC trả lời LDAP, giờ lệch so với DC (nút Đồng bộ giờ khi lệch).
+  - Share, winget, dung lượng ổ hệ thống, laptop có cắm sạc.
+  - Mỗi dòng kèm cách xử lý; dòng tóm tắt "sẵn sàng / nên xem / cần xử lý"; Copy kết quả.
+  - Domain lấy từ máy (nếu đã join) hoặc `domain` trong site.yaml.
 - `--selftest` chờ trang Phần mềm quét xong và báo lỗi danh mục.
+
+### Bỏ
+
+- Trang giới thiệu tạm (PlaceholderPage): không còn trang nào dùng.
 
 ## 0.2.0 (13/10/2026): GĐ1, Tổng quan + Sửa lỗi
 

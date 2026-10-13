@@ -59,6 +59,10 @@ QLabel[state="bad"] { color: #b91c1c; font-weight: 600; }
 QLabel[state="muted"] { color: #7b8794; }
 #InfoView { background: #f4f6f8; border: none; }
 #ShortcutsPanel { background: #ffffff; }
+#SummaryLine { font-weight: 600; padding: 8px 12px; border-radius: 6px; background: #eef1f4; color: #52606d; }
+#SummaryLine[state="ok"] { background: #dcfce7; color: #166534; }
+#SummaryLine[state="warn"] { background: #fef3c7; color: #92400e; }
+#SummaryLine[state="bad"] { background: #fee2e2; color: #991b1b; }
 #ShortcutsPanel QPushButton { min-height: 22px; }
 
 QPushButton { padding: 6px 14px; border: 1px solid #c5cfda; border-radius: 6px; background: #ffffff; }

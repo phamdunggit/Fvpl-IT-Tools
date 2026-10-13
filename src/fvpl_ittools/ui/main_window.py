@@ -27,8 +27,8 @@ from .controller import RunController
 from .log_panel import LogPanel
 from .pages.actions_page import ActionsPage
 from .pages.history import HistoryPage
+from .pages.newpc import NewPcPage
 from .pages.overview import OverviewPage
-from .pages.placeholder import PlaceholderPage
 from .pages.software import SoftwarePage
 from .pages.utilities import UtilitiesPage
 from .widgets import chip
@@ -74,13 +74,7 @@ class HeaderBar(QFrame):
 def _pages(app: AppContext, controller: RunController) -> list[tuple[str, QWidget]]:
     return [
         ("Tổng quan", OverviewPage(app, controller)),
-        ("Cài máy mới", PlaceholderPage(
-            "Cài máy mới", "Wizard đổi tên, join domain, cài phần mềm và cấu hình chuẩn cho máy mới.", "GĐ2",
-            ["Kiểm tra trước: DNS trỏ về DC, giờ lệch, vào được share, winget",
-             "Đổi tên + join domain trong một lần khởi động lại, tự chạy tiếp sau restart",
-             "Cài phần mềm theo profile phòng ban (winget + share)",
-             "Cấu hình chuẩn và báo cáo lưu lên share"],
-        )),
+        ("Cài máy mới", NewPcPage(app, controller)),
         ("Sửa lỗi", ActionsPage(
             "fixes", "Sửa lỗi",
             "Các lỗi thường gặp: mạng, domain, máy in, Windows Update, hệ thống, Office. "
@@ -137,6 +131,8 @@ class MainWindow(QMainWindow):
                 self.overview = page
             if isinstance(page, SoftwarePage):
                 self.software = page
+            if isinstance(page, NewPcPage):
+                self.newpc = page
         self.overview.alerts_changed.connect(self.header.set_alerts)
 
         self.log_panel = LogPanel()
@@ -202,4 +198,5 @@ class MainWindow(QMainWindow):
             self.controller.cancel()
             self.controller.wait(10)
         self.overview.stop()
+        self.newpc.stop()
         event.accept()

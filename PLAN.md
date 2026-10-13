@@ -333,13 +333,14 @@ IT Tools/
 │   │   ├── paths.py, log.py
 │   │   └── state.py           # (sẽ có, GĐ2) trạng thái wizard để chạy tiếp sau restart
 │   ├── software/              # danh mục + profile (catalog), phát hiện đã cài (detect), lệnh cài (install), quét (scan)
-│   ├── features/              # (sẽ có) domain/wizard, cleanup, startup...
+│   ├── newpc/                 # Cài máy mới: precheck (bước 0); các bước wizard còn lại (sẽ có)
+│   ├── features/              # (sẽ có) cleanup, startup...
 │   ├── ui/
 │   │   ├── main_window.py     # thanh trên cùng + sidebar + vùng trang + khung log
 │   │   ├── controller.py      # chạy executor ở thread nền, đẩy log về giao diện
 │   │   ├── credential_dialog.py  # hỏi tài khoản domain cho mục needs_credential
 │   │   ├── log_panel.py, theme.py, widgets.py, text.py
-│   │   └── pages/             # overview, actions_page (Sửa lỗi/Tối ưu/Cấu hình), software, utilities, history, placeholder
+│   │   └── pages/             # overview, actions_page (Sửa lỗi/Tối ưu/Cấu hình), software, newpc, utilities, history
 │   └── data/
 │       ├── actions/NN-*.yaml  # các fix/tweak; số đầu tên file quyết định thứ tự nhóm trong cây
 │       ├── packs.yaml         # gói sửa nhanh
@@ -494,7 +495,7 @@ Repo để public nên **tên domain, tên server, đường dẫn share, OU, ti
 |---|---|---|
 | **0. Nền móng** ✔ 08/10/2026 | Khung PySide6 (sidebar, khung log, thanh trạng thái); kiểm tra quyền admin; runner chạy nền có nút huỷ; nạp và kiểm tra YAML; log ra file; restore point và nhật ký hoàn tác; build exe | Exe chạy được trên VM Win10 và Win11 sạch (không có Python), chạy được 3 mục mẫu, có log, hoàn tác được 1 tweak registry |
 | **1. Tổng quan + Sửa lỗi** ◐ code xong 13/10/2026 | Trang Tổng quan (copy và xuất thông tin); toàn bộ fix P1 (mạng, domain, máy in, Windows Update, hệ thống, Office); gói sửa nhanh (làm 5 gói: thêm "Reset mạng toàn bộ"); mở nhanh panel; công cụ mạng | IT dùng hằng ngày thay cho gõ lệnh tay; mục nào cũng có ⓘ và copy lệnh |
-| **2. Cài máy mới** ◔ đã có trang Phần mềm | Wizard 7 bước; đổi tên + join + chạy tiếp sau restart; danh mục phần mềm (winget + share) và profile; sửa winget; Office ODT; cấu hình chuẩn; báo cáo | Từ một VM Windows sạch: vào được domain, cài đủ phần mềm theo profile, có báo cáo trên share. IT chỉ phải chọn phòng ban và nhập mật khẩu join |
+| **2. Cài máy mới** ◔ đã có trang Phần mềm và bước 0 Kiểm tra trước | Wizard 7 bước; đổi tên + join + chạy tiếp sau restart; danh mục phần mềm (winget + share) và profile; sửa winget; Office ODT; cấu hình chuẩn; báo cáo | Từ một VM Windows sạch: vào được domain, cài đủ phần mềm theo profile, có báo cáo trên share. IT chỉ phải chọn phòng ban và nhập mật khẩu join |
 | **3. Tối ưu & dọn dẹp** | Dọn rác có quét trước; quản lý startup; debloat và quyền riêng tư; power; các fix P2 | Thấy được dung lượng trước khi xoá; mọi tweak hoàn tác được |
 | **4. Tiện ích & hoàn thiện** | Các tiện ích; gửi kiểm kê lên share; báo bản mới; ký số; hướng dẫn sử dụng; các mục P3 | Bản 1.0 có trên share |
 | **Để sau** | Điều khiển nhiều máy từ xa, bản rút gọn cho nhân viên tự sửa lỗi, giao diện tối | |

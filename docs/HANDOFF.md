@@ -9,7 +9,7 @@ Cập nhật lần cuối: 13/10/2026, sau khi xong trang Phần mềm (phần �
 | Giai đoạn | **GĐ1 (Tổng quan + Sửa lỗi) xong phần code.** Còn chạy thử các mục đổi hệ thống bằng quyền admin (danh sách bên dưới) rồi mới coi là xong. **GĐ2 đang làm:** đã có trang Phần mềm; wizard Cài máy mới chưa làm |
 | Nhánh | Code mới làm trên `featured`. Chỉ merge về `main` khi được duyệt |
 | Phiên bản | 0.2.0, xem [CHANGELOG.md](../CHANGELOG.md) (trang Phần mềm nằm ở mục "Chưa phát hành") |
-| Test | 159 test pytest, tất cả đều qua (khoảng 25 giây) |
+| Test | 170 test pytest, tất cả đều qua (khoảng 25 giây) |
 | Bản exe | `python packaging\build.py`: thư mục 64MB, zip 27MB. `--test` chạy selftest trên exe, gồm cả đọc thông tin máy |
 
 Đã có:
@@ -17,7 +17,8 @@ Cập nhật lần cuối: 13/10/2026, sau khi xong trang Phần mềm (phần �
 - Trang **Sửa lỗi**: 24 mục (mạng, domain, máy in, Windows Update, hệ thống, Office) và 5 gói sửa nhanh.
 - Trang **Cấu hình**: 1 mục mẫu (Hiện đuôi file). Trang **Tiện ích**: mở nhanh 29 công cụ quản trị, công cụ mạng.
 - Trang **Phần mềm**: danh mục `apps.yaml` (share hoặc bản đóng gói), profile phòng ban, đánh dấu đã cài, cài lần lượt qua winget / MSI / EXE / portable. Cách khai báo: [SOFTWARE.md](SOFTWARE.md).
-- Trang **Nhật ký**: hoàn tác thay đổi registry. Trang Cài máy mới, Tối ưu: chưa làm (GĐ2, GĐ3).
+- Trang **Cài máy mới**: mới có bước 0 "Kiểm tra trước" (`newpc/precheck.py`); các bước 1–7 của wizard chưa làm.
+- Trang **Nhật ký**: hoàn tác thay đổi registry. Trang Tối ưu: chưa làm (GĐ3).
 
 ## Bắt đầu
 
@@ -98,6 +99,12 @@ Trang Phần mềm (GĐ2). Danh mục và phát hiện đã cài đã chạy th�
 - [ ] **Office bằng ODT:** cần file `setup.exe` và `config.xml` thật trên share; xem có bị timeout 3600 giây không.
 - [ ] **Run as different user:** ứng dụng `scope: user` (Zalo) bị khoá; phần mềm cài riêng cho người dùng (HKU\<SID>\…\Uninstall) vẫn được nhận là đã cài.
 - [ ] **Máy chưa vào domain:** trang báo "Không vào được share", danh mục quay về bản đóng gói; không bị treo lâu khi share không trả lời (quét chạy ở thread nền, nhưng `os.path.isdir` trên UNC có thể chờ 20–60 giây).
+
+Trang Cài máy mới, bước Kiểm tra trước. Đã chạy thật trên máy dev (máy đã join, đang ở Wi-Fi ngoài nên DNS không trỏ về DC):
+- [ ] VM **chưa join**, có `site.yaml` khai báo `domain`, cắm mạng công ty: DNS tìm được DC, DC trả lời LDAP, đo được giờ lệch.
+- [ ] Chỉnh giờ VM lệch 10 phút: dòng giờ báo ✖, nút Đồng bộ giờ chạy rồi tự kiểm tra lại.
+- [ ] Laptop rút sạc: dòng Nguồn điện báo ⚠ (đọc bằng `GetSystemPowerStatus`).
+- [ ] Máy vừa cài cập nhật chưa khởi động lại: dòng "Chờ khởi động lại" báo ⚠.
 
 ## Việc tiếp theo
 

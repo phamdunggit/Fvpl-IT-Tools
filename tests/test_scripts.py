@@ -11,6 +11,7 @@ import json
 from fvpl_ittools.actions import loader
 from fvpl_ittools.actions.model import PowerShellStep
 from fvpl_ittools.core import executor, inventory, pslib, safety, shell
+from fvpl_ittools.newpc import precheck
 
 _PARSE = """\
 $items = Get-Content -LiteralPath $ScriptsFile -Raw -Encoding UTF8 | ConvertFrom-Json
@@ -51,6 +52,7 @@ def _internal_scripts() -> list[dict]:
         {"name": "start_explorer_as_user", "script": executor._START_EXPLORER_AS_USER},
         {"name": "restore_point", "script": safety._RESTORE_POINT_SCRIPT.replace("__DESC__", "'x'")},
         {"name": "check_helpers", "script": pslib.CHECK_HELPERS},
+        {"name": "precheck", "script": pslib.with_helpers(precheck._NETWORK_SCRIPT)},
     ] + [{"name": f"inventory {part}", "script": inventory.part_script(part)} for part in inventory.PARTS]
 
 
