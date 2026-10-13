@@ -73,6 +73,12 @@ CATEGORIES: tuple[Category, ...] = (
         "của người dùng. Nếu đang điều tra màn hình xanh thì lấy file trong C:\\Windows\\Minidump ra trước.",
     ),
     Category(
+        "browser_cache", "Cache trình duyệt (Chrome, Edge)",
+        "Cache của Chrome và Edge của người đang đăng nhập (ảnh, script tạm của trang web). Không đụng mật khẩu, "
+        "bookmark, lịch sử, cookie. Nên đóng trình duyệt trước; file đang dùng sẽ được bỏ qua.",
+        admin=False, checked=False,
+    ),
+    Category(
         "recycle_bin", "Thùng rác của người dùng",
         "Thùng rác của người đang đăng nhập trên mọi ổ cứng. Xoá rồi không lấy lại được, hỏi người dùng trước.",
         risk="caution", admin=False, checked=False, keep=("desktop.ini",),
@@ -100,6 +106,22 @@ def fixed_drives() -> list[Path]:
     return drives
 
 
+def browser_cache_paths(local: Path) -> list[Path]:
+    """Thư mục cache của từng profile Chrome / Edge. Chỉ cache: không có Login Data, Bookmarks, History, Cookies."""
+    paths: list[Path] = []
+    for user_data in (local / "Google" / "Chrome" / "User Data", local / "Microsoft" / "Edge" / "User Data"):
+        try:
+            profiles = [item for item in user_data.iterdir()
+                        if item.is_dir() and (item.name == "Default" or item.name.startswith("Profile "))]
+        except OSError:
+            continue
+        paths += [user_data / "ShaderCache", user_data / "GrShaderCache"]
+        for profile in sorted(profiles):
+            paths += [profile / "Cache", profile / "Code Cache", profile / "GPUCache",
+                      profile / "Service Worker" / "CacheStorage"]
+    return paths
+
+
 def locations(category: Category, env: Env) -> list[Path]:
     """Thư mục (xoá nội dung bên trong) hoặc file (xoá chính nó) của một loại rác."""
     windows = Path(os.environ.get("SystemRoot", r"C:\Windows"))
@@ -124,6 +146,8 @@ def locations(category: Category, env: Env) -> list[Path]:
             paths += [local / "CrashDumps", local / "Microsoft" / "Windows" / "WER" / "ReportArchive",
                       local / "Microsoft" / "Windows" / "WER" / "ReportQueue"]
         return paths
+    if category.id == "browser_cache":
+        return browser_cache_paths(local) if local else []
     if category.id == "recycle_bin":
         return [drive / "$Recycle.Bin" / env.target_user.sid for drive in fixed_drives()]
     if category.id == "windows_old":

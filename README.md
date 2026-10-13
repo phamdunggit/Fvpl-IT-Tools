@@ -7,6 +7,7 @@ Viết bằng Python 3.13 + PySide6, đóng gói thành exe chạy portable từ
 
 | Tài liệu | Nội dung |
 |---|---|
+| [docs/TIEN-DO.md](docs/TIEN-DO.md) | **Xem nhanh:** đã làm tới đâu, còn lại gì |
 | [docs/HANDOFF.md](docs/HANDOFF.md) | **Đọc đầu tiên:** trạng thái, quy tắc, luồng chạy, việc chưa kiểm, việc tiếp theo |
 | [PLAN.md](PLAN.md) | Kế hoạch tổng: chức năng, kiến trúc, lộ trình, câu hỏi còn mở |
 | [docs/ACTIONS.md](docs/ACTIONS.md) | Tham chiếu khai báo mục sửa lỗi / tweak bằng YAML |

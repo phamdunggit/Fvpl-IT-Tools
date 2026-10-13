@@ -3,7 +3,10 @@
 from __future__ import annotations
 
 import logging
+import os
+import subprocess
 import threading
+import time
 
 from PySide6.QtCore import QObject, Qt, Signal
 from PySide6.QtGui import QBrush, QColor
@@ -11,8 +14,10 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QHeaderView,
     QLabel,
+    QLineEdit,
     QMessageBox,
     QPushButton,
+    QSpinBox,
     QTabWidget,
     QTreeWidget,
     QTreeWidgetItem,
@@ -21,7 +26,8 @@ from PySide6.QtWidgets import (
 )
 
 from ...app import AppContext
-from ...cleanup import junk, startup
+from ...cleanup import bigfiles, junk, startup
+from ...core import shell
 from ...core.executor import BatchResult, Level
 from ..controller import RunController
 from ..widgets import page_header
@@ -289,6 +295,154 @@ class StartupPanel(QWidget):
         self.enable_button.setEnabled(not busy and any(not entry.enabled for entry in chosen))
 
 
+class BigFilesPanel(QWidget):
+    """Tìm file lớn và thư mục chiếm nhiều chỗ (chỉ đọc)."""
+
+    progress = Signal(int, int)       # lượt, số file đã xem
+    done = Signal(int, object)        # lượt, bigfiles.SearchResult
+
+    def __init__(self, controller: RunController):
+        super().__init__()
+        self.controller = controller
+        self.result: bigfiles.SearchResult | None = None
+        self.searching = False
+        self.generation = 0
+        self._cancel = threading.Event()
+
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 12, 0, 0)
+        layout.setSpacing(10)
+        note = QLabel("Tìm xem file và thư mục nào đang chiếm chỗ. Chỉ xem, tool không xoá file của người dùng: "
+                      "chọn một file rồi bấm Mở thư mục chứa để xử lý tay. Quét cả ổ C có thể mất 1–2 phút.")
+        note.setObjectName("PageSubtitle")
+        note.setWordWrap(True)
+        layout.addWidget(note)
+
+        row = QHBoxLayout()
+        row.addWidget(QLabel("Tìm trong"))
+        self.root = QLineEdit(os.environ.get("SystemDrive", "C:") + "\\")
+        row.addWidget(self.root, 1)
+        row.addWidget(QLabel("File từ"))
+        self.min_mb = QSpinBox()
+        self.min_mb.setRange(10, 100000)
+        self.min_mb.setValue(500)
+        self.min_mb.setSuffix(" MB")
+        row.addWidget(self.min_mb)
+        self.search_button = QPushButton("Tìm")
+        self.search_button.setObjectName("Primary")
+        self.stop_button = QPushButton("Dừng")
+        row.addWidget(self.search_button)
+        row.addWidget(self.stop_button)
+        layout.addLayout(row)
+
+        self.status = QLabel()
+        self.status.setObjectName("SectionLabel")
+        layout.addWidget(self.status)
+
+        self.files = QTreeWidget()
+        self.files.setHeaderLabels(["Dung lượng", "Sửa lần cuối", "File"])
+        self.folders = QTreeWidget()
+        self.folders.setHeaderLabels(["Dung lượng", "Thư mục cấp đầu"])
+        for tree in (self.files, self.folders):
+            tree.setRootIsDecorated(False)
+            tree.setUniformRowHeights(True)
+            header = tree.header()
+            for column in range(tree.columnCount() - 1):
+                header.setSectionResizeMode(column, QHeaderView.ResizeMode.ResizeToContents)
+            header.setSectionResizeMode(tree.columnCount() - 1, QHeaderView.ResizeMode.Stretch)
+        layout.addWidget(self.files, 3)
+        layout.addWidget(self.folders, 2)
+
+        buttons = QHBoxLayout()
+        self.open_button = QPushButton("Mở thư mục chứa")
+        buttons.addStretch(1)
+        buttons.addWidget(self.open_button)
+        layout.addLayout(buttons)
+
+        self.search_button.clicked.connect(self.search)
+        self.stop_button.clicked.connect(self.stop)
+        self.open_button.clicked.connect(self.open_selected)
+        self.progress.connect(self._progress)
+        self.done.connect(self._done)
+        self._selected: str | None = None
+        self.files.itemSelectionChanged.connect(lambda: self._picked(self.files))
+        self.folders.itemSelectionChanged.connect(lambda: self._picked(self.folders))
+        self._update_buttons()
+
+    def search(self) -> None:
+        root = self.root.text().strip()
+        if not os.path.isdir(root):
+            self.status.setText(f"Không thấy thư mục {root}")
+            return
+        self._cancel.set()
+        self._cancel = threading.Event()
+        self.generation += 1
+        generation, cancel, min_size = self.generation, self._cancel, self.min_mb.value() * 1024**2
+        self.searching = True
+        self.status.setText(f"Đang tìm trong {root}…")
+        self._update_buttons()
+
+        def work() -> None:
+            try:
+                result = bigfiles.find(root, min_size, cancel, lambda count: self.progress.emit(generation, count))
+            except Exception:
+                log.exception("Lỗi khi tìm file lớn")
+                result = bigfiles.SearchResult(root=root, cancelled=True)
+            self.done.emit(generation, result)
+
+        threading.Thread(target=work, name="big-files", daemon=True).start()
+
+    def stop(self) -> None:
+        self._cancel.set()
+
+    def _progress(self, generation: int, count: int) -> None:
+        if generation == self.generation and self.searching:
+            self.status.setText(f"Đang tìm… đã xem {count:,} file".replace(",", "."))
+
+    def _done(self, generation: int, result: object) -> None:
+        if generation != self.generation:
+            return
+        self.searching = False
+        self.result = result
+        self.files.clear()
+        self.folders.clear()
+        self._selected = None
+        for item in result.files:
+            when = time.strftime("%d/%m/%Y", time.localtime(item.modified)) if item.modified else ""
+            row = QTreeWidgetItem(self.files, [junk.size_text(item.size), when, item.path])
+            row.setData(0, ENTRY_ROLE, item.path)
+            row.setTextAlignment(0, Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+        for size, path in result.folders:
+            row = QTreeWidgetItem(self.folders, [junk.size_text(size), path])
+            row.setData(0, ENTRY_ROLE, path)
+            row.setTextAlignment(0, Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+        state = "Đã dừng" if result.cancelled else "Xong"
+        unreadable = f", {result.unreadable:,} chỗ không đọc được (thiếu quyền)".replace(",", ".") if result.unreadable else ""
+        self.status.setText(f"{state}: đã xem {result.scanned:,} file".replace(",", ".")
+                            + f", {len(result.files)} file từ {self.min_mb.value()} MB trở lên{unreadable}.")
+        self._update_buttons()
+
+    def _picked(self, tree: QTreeWidget) -> None:
+        items = tree.selectedItems()
+        self._selected = items[0].data(0, ENTRY_ROLE) if items else None
+        self._update_buttons()
+
+    def selected_path(self) -> str | None:
+        """Dòng chọn gần nhất, ở bảng file hoặc bảng thư mục."""
+        return self._selected
+
+    def open_selected(self) -> None:
+        path = self.selected_path()
+        if path:
+            # explorer /select mở thư mục chứa và chọn sẵn file.
+            subprocess.Popen(f'explorer.exe /select,"{path}"', creationflags=shell.CREATE_NO_WINDOW)
+
+    def _update_buttons(self) -> None:
+        self.search_button.setEnabled(not self.searching)
+        self.stop_button.setEnabled(self.searching)
+        self.open_button.setEnabled(self.selected_path() is not None)
+
+
 class OptimizePage(QWidget):
     def __init__(self, app: AppContext, controller: RunController):
         super().__init__()
@@ -305,7 +459,9 @@ class OptimizePage(QWidget):
             "Chưa có mục tối ưu nào.", app, controller, packs=app.packs, show_header=False,
         )
         self.startup = StartupPanel(app, controller)
+        self.bigfiles = BigFilesPanel(controller)
         self.tabs.addTab(self.cleanup, "Dọn rác")
+        self.tabs.addTab(self.bigfiles, "File lớn")
         self.tabs.addTab(self.startup, "Khởi động cùng Windows")
         self.tabs.addTab(self.tweaks, "Tối ưu && quyền riêng tư")  # "&&": Qt hiểu "&" là phím tắt
         root.addWidget(self.tabs, 1)
@@ -323,3 +479,4 @@ class OptimizePage(QWidget):
 
     def stop(self) -> None:
         self.cleanup.stop()
+        self.bigfiles.stop()

@@ -208,6 +208,24 @@ def test_startup_tab_toggles_selected(window, qt_app, monkeypatch):
     assert runs == [["Tắt khởi động cùng Windows: Spotify"]]  # Zalo đã tắt sẵn thì bỏ qua
 
 
+def test_big_files_tab_searches_in_background(window, qt_app, tmp_path):
+    (tmp_path / "Data").mkdir()
+    (tmp_path / "Data" / "backup.zip").write_bytes(b"x" * (11 * 1024**2))
+    panel = window.optimize.bigfiles
+    panel.root.setText(str(tmp_path))
+    panel.min_mb.setValue(10)
+    panel.search()
+    deadline = time.monotonic() + 10
+    while panel.searching and time.monotonic() < deadline:
+        qt_app.processEvents()
+        time.sleep(0.01)
+    assert panel.files.topLevelItemCount() == 1
+    assert panel.files.topLevelItem(0).text(0) == "11,0 MB"
+    assert panel.status.text().startswith("Xong")
+    panel.files.setCurrentItem(panel.files.topLevelItem(0))
+    assert panel.selected_path().endswith("backup.zip") and panel.open_button.isEnabled()
+
+
 def test_every_page_renders(window, qt_app):
     for row in range(window.sidebar.count()):
         window.sidebar.setCurrentRow(row)

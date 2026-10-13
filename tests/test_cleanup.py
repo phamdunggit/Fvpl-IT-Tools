@@ -144,6 +144,19 @@ def test_one_failing_category_does_not_stop_others(ctx, tmp_path, monkeypatch):
     assert result.freed == 60
 
 
+def test_browser_cache_paths_only_cache_folders(tmp_path):
+    chrome = tmp_path / "Google" / "Chrome" / "User Data"
+    for profile in ("Default", "Profile 1", "System Profile", "Crashpad"):
+        (chrome / profile).mkdir(parents=True)
+    (chrome / "Default" / "Login Data").write_text("mật khẩu", encoding="utf-8")
+    paths = junk.browser_cache_paths(tmp_path)
+    names = {str(path.relative_to(chrome)) for path in paths}
+    assert "Default\\Cache" in names and "Profile 1\\GPUCache" in names and "ShaderCache" in names
+    assert not any(name.startswith(("System Profile", "Crashpad")) for name in names)
+    assert not any("Login Data" in name or "Bookmarks" in name or "Cookies" in name for name in names)
+    assert junk.browser_cache_paths(tmp_path / "khong-co") == []
+
+
 @pytest.mark.parametrize("size, text", [(0, "0 B"), (900, "900 B"), (2048, "2 KB"), (5 * 1024**2, "5,0 MB"),
                                         (int(3.46 * 1024**3), "3,5 GB")])
 def test_size_text(size, text):
