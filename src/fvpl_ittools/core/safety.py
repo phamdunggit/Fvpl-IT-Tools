@@ -22,7 +22,7 @@ Checkpoint-Computer -Description $desc -RestorePointType MODIFY_SETTINGS -Warnin
 $after = Get-LastRestorePoint
 $created = [bool]($after -and (-not $before -or $after.SequenceNumber -ne $before.SequenceNumber))
 $last = $null
-if ($after) { $last = $after.ConvertToDateTime($after.CreationTime).ToString('dd/MM/yyyy HH:mm') }
+if ($after) { $last = $after.ConvertToDateTime($after.CreationTime).ToString('dd\\/MM\\/yyyy HH:mm') }
 [pscustomobject]@{ created = $created; last_time = $last } | ConvertTo-Json -Compress
 """
 

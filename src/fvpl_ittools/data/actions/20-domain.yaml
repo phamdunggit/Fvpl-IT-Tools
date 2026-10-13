@@ -75,10 +75,10 @@
             Start-Service -Name w32time
             Start-Sleep -Seconds 2
         }
-        Write-Output ('Giờ trước khi đồng bộ: {0:dd/MM/yyyy HH:mm:ss}' -f (Get-Date))
+        Write-Output ('Giờ trước khi đồng bộ: {0:dd\/MM\/yyyy HH:mm:ss}' -f (Get-Date))
         w32tm /resync /rediscover
         $code = $LASTEXITCODE
-        Write-Output ('Giờ sau khi đồng bộ: {0:dd/MM/yyyy HH:mm:ss}' -f (Get-Date))
+        Write-Output ('Giờ sau khi đồng bộ: {0:dd\/MM\/yyyy HH:mm:ss}' -f (Get-Date))
         w32tm /query /source
         exit $code
       timeout: 120
@@ -121,3 +121,16 @@
         # Mở qua explorer.exe để trình duyệt chạy bằng quyền người dùng, không phải quyền admin của tool.
         Start-Process -FilePath (Join-Path $env:SystemRoot 'explorer.exe') -ArgumentList "`"$file`""
       timeout: 300
+
+- id: dom.klist_purge
+  name: Xoá vé Kerberos
+  category: Domain & đăng nhập
+  risk: safe
+  requires_domain: true
+  description: >
+    Xoá vé Kerberos của tài khoản máy và của tài khoản đang chạy tool, để lần truy cập sau xin vé mới. Dùng sau khi
+    vừa thêm máy hoặc người dùng vào nhóm AD mà quyền vào share, máy in chưa có. Với người dùng thường thì nhanh
+    nhất là đăng xuất rồi đăng nhập lại.
+  apply:
+    - cmd: klist purge
+    - cmd: klist -li 0x3e7 purge

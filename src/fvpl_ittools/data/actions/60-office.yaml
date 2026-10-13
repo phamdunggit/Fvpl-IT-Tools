@@ -62,3 +62,63 @@
         3: Máy không có Office bản Click-to-Run. Office cài bằng MSI thì sửa trong Programs and Features, chọn Change rồi Repair
         4: Hãy lưu bài và đóng các ứng dụng Office rồi chạy lại
   undo: none
+
+- id: off.update
+  name: Cập nhật Office
+  category: Office
+  risk: safe
+  description: >
+    Yêu cầu Office Click-to-Run kiểm tra và cài bản cập nhật mới theo kênh đang dùng. Office tải và cài ngầm; ứng
+    dụng Office đang mở thì việc cài chờ tới khi người dùng đóng. Máy cập nhật Office qua WSUS/SCCM thì làm theo
+    nguồn đó.
+  apply:
+    - powershell: |
+        $config = Get-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\Microsoft\Office\ClickToRun\Configuration' -ErrorAction SilentlyContinue
+        if (-not $config) { exit 3 }
+        $folder = $config.ClientFolder
+        if (-not $folder) { $folder = Join-Path $env:CommonProgramFiles 'microsoft shared\ClickToRun' }
+        Write-Output "Office hiện tại: $($config.VersionToReport)"
+        & (Join-Path $folder 'OfficeC2RClient.exe') /update user displaylevel=false forceappshutdown=false
+        if ($LASTEXITCODE) { exit $LASTEXITCODE }
+        Write-Output 'Đã gửi lệnh cập nhật, Office tải và cài ngầm.'
+      timeout: 300
+      messages:
+        3: Máy không có Office bản Click-to-Run
+
+- id: off.teams_cache
+  name: Xoá cache Teams
+  category: Office
+  risk: safe
+  scope: user
+  admin: false
+  description: >
+    Tắt Teams của người đang đăng nhập rồi xoá cache (Teams mới và Teams cũ). Dùng khi Teams trắng màn hình, không
+    đăng nhập được, không hiện tin nhắn mới. Không mất tin nhắn hay file; mở lại Teams sẽ chậm hơn lần đầu.
+  apply:
+    - powershell: |
+        if (-not $TargetUserProfile) { exit 3 }
+        $session = (Get-Process -Id $PID).SessionId
+        Get-Process -Name ms-teams, Teams -ErrorAction SilentlyContinue | Where-Object SessionId -eq $session |
+            Stop-Process -Force
+        Start-Sleep -Seconds 2
+        $folders = @(
+            (Join-Path $TargetUserProfile 'AppData\Local\Packages\MSTeams_8wekyb3d8bbwe\LocalCache\Microsoft\MSTeams'),
+            (Join-Path $TargetUserProfile 'AppData\Roaming\Microsoft\Teams\Cache'),
+            (Join-Path $TargetUserProfile 'AppData\Roaming\Microsoft\Teams\blob_storage'),
+            (Join-Path $TargetUserProfile 'AppData\Roaming\Microsoft\Teams\databases'),
+            (Join-Path $TargetUserProfile 'AppData\Roaming\Microsoft\Teams\GPUCache'),
+            (Join-Path $TargetUserProfile 'AppData\Roaming\Microsoft\Teams\IndexedDB'),
+            (Join-Path $TargetUserProfile 'AppData\Roaming\Microsoft\Teams\Local Storage'),
+            (Join-Path $TargetUserProfile 'AppData\Roaming\Microsoft\Teams\tmp')
+        )
+        $cleaned = 0
+        foreach ($folder in $folders) {
+            if (-not (Test-Path -LiteralPath $folder)) { continue }
+            Get-ChildItem -LiteralPath $folder -Force | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
+            Write-Output "Đã xoá cache: $folder"
+            $cleaned++
+        }
+        if (-not $cleaned) { Write-Output 'Không thấy thư mục cache Teams nào.' }
+      timeout: 300
+      messages:
+        3: Không tìm thấy thư mục profile của người dùng

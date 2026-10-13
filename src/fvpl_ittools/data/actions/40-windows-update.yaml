@@ -1,5 +1,95 @@
 # Windows Update. Cách khai báo: xem docs/ACTIONS.md.
 
+- id: wu.history
+  name: Lịch sử cập nhật và mã lỗi
+  category: Windows Update
+  risk: safe
+  admin: false
+  description: >
+    Chỉ xem: 30 lần cài cập nhật gần nhất, kết quả và mã lỗi, kèm gợi ý cho các mã hay gặp. Đọc qua Windows
+    Update API nên thấy cả bản cài qua WSUS.
+  apply:
+    - powershell: |
+        $searcher = (New-Object -ComObject Microsoft.Update.Session).CreateUpdateSearcher()
+        $count = $searcher.GetTotalHistoryCount()
+        if (-not $count) { Write-Line 'Chưa có lịch sử cập nhật.'; exit 0 }
+        $results = @{ 0 = 'chưa bắt đầu'; 1 = 'đang chạy'; 2 = 'thành công'; 3 = 'xong nhưng có lỗi'; 4 = 'lỗi'; 5 = 'đã huỷ' }
+        $hints = @{
+            '80070002' = 'thiếu file tải về: chạy Reset Windows Update'
+            '80073712' = 'kho thành phần hỏng: chạy DISM + SFC'
+            '800F081F' = 'không tìm thấy file nguồn: chạy DISM + SFC'
+            '800F0922' = 'thiếu chỗ trống ở phân vùng hệ thống hoặc lỗi .NET'
+            '80070643' = 'bộ cài lỗi (hay gặp với bản vá WinRE hoặc .NET)'
+            '8024402C' = 'không kết nối được máy chủ cập nhật: kiểm tra proxy, DNS'
+            '80240034' = 'tải bản cập nhật lỗi: chạy Reset Windows Update'
+            '80070005' = 'thiếu quyền: kiểm tra phần mềm diệt virus'
+        }
+        foreach ($entry in @($searcher.QueryHistory(0, [Math]::Min($count, 30)))) {
+            if (-not $entry.Title) { continue }
+            # \/ : dấu "/" giữ nguyên, không bị đổi theo dấu phân cách ngày của vùng máy.
+            $line = '{0:dd\/MM\/yyyy HH:mm} | {1} | {2}' -f $entry.Date.ToLocalTime(), $results[[int]$entry.ResultCode], $entry.Title
+            if ([int]$entry.ResultCode -le 2) { Write-Ok $line; continue }
+            # HResult là Int32 âm; định dạng X8 cho ra đúng 8 chữ số hex (0xFFFFFFFF trong PowerShell là -1, không dùng được để -band).
+            $code = '{0:X8}' -f [int]$entry.HResult
+            $hint = if ($hints.ContainsKey($code)) { ': ' + $hints[$code] } else { '' }
+            Write-Bad "$line | mã 0x$code$hint"
+        }
+      timeout: 120
+
+- id: wu.scan_install
+  name: Quét và cài bản cập nhật Windows
+  category: Windows Update
+  risk: safe
+  description: >
+    Tìm và cài các bản cập nhật phần mềm còn thiếu (không gồm driver) qua Windows Update API, theo nguồn máy đang
+    dùng (Windows Update hoặc WSUS). Có thể mất từ vài phút tới hơn một giờ; máy vẫn dùng được. Cần khởi động lại
+    thì tool hỏi khi xong.
+  apply:
+    - powershell: |
+        $session = New-Object -ComObject Microsoft.Update.Session
+        Write-Line 'Đang tìm bản cập nhật (có thể mất vài phút)…'
+        $found = $session.CreateUpdateSearcher().Search("IsInstalled=0 and IsHidden=0 and Type='Software'")
+        $updates = New-Object -ComObject Microsoft.Update.UpdateColl
+        foreach ($update in @($found.Updates)) {
+            if (-not $update.EulaAccepted) { $update.AcceptEula() }
+            Write-Line "• $($update.Title)"
+            [void]$updates.Add($update)
+        }
+        if ($updates.Count -eq 0) { Write-Ok 'Máy đã có đủ bản cập nhật.'; exit 0 }
+        Write-Line "Tải $($updates.Count) bản cập nhật…"
+        $downloader = $session.CreateUpdateDownloader()
+        $downloader.Updates = $updates
+        [void]$downloader.Download()
+        Write-Line 'Cài đặt…'
+        $installer = $session.CreateUpdateInstaller()
+        $installer.Updates = $updates
+        $result = $installer.Install()
+        $failed = 0
+        for ($i = 0; $i -lt $updates.Count; $i++) {
+            $item = $result.GetUpdateResult($i)
+            if ([int]$item.ResultCode -eq 2) { Write-Ok $updates.Item($i).Title }
+            else {
+                $failed++
+                Write-Bad ('{0} (mã 0x{1:X8})' -f $updates.Item($i).Title, [int]$item.HResult)
+            }
+        }
+        if ($failed) { exit 2 }
+        if ($result.RebootRequired) { exit 3010 }
+      timeout: 10800
+      messages:
+        2: Có bản cập nhật cài lỗi, xem các dòng ✖ ở trên và mục Lịch sử cập nhật và mã lỗi
+
+- id: wu.component_cleanup
+  name: Dọn kho thành phần (WinSxS)
+  category: Windows Update
+  risk: safe
+  description: >
+    Xoá các bản thành phần Windows cũ đã được bản cập nhật mới thay thế (DISM /StartComponentCleanup), thường giải
+    phóng vài GB. Mất 5–30 phút. Bản thành phần cũ đã bị thay thế thì không còn để quay lại được nữa.
+  apply:
+    - cmd: DISM /Online /Cleanup-Image /StartComponentCleanup
+      timeout: 3600
+
 - id: wu.reset
   name: Reset Windows Update
   category: Windows Update

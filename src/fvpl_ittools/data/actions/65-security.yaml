@@ -1,0 +1,62 @@
+# Bảo mật và truy cập (trang Sửa lỗi). Cách khai báo: xem docs/ACTIONS.md.
+
+- id: sec.enable_rdp
+  name: Bật Remote Desktop
+  category: Bảo mật và truy cập
+  risk: caution
+  description: >
+    Cho phép kết nối Remote Desktop vào máy này (bắt buộc xác thực NLA) và mở luật firewall nhóm Remote Desktop
+    (chọn theo mã nhóm nên đúng cả trên Windows tiếng Việt). Chỉ thành viên Administrators và Remote Desktop Users
+    vào được. Bản Windows Home không có Remote Desktop. Hoàn tác tắt lại và đóng luật firewall.
+  gpo:
+    - { key: 'HKLM\SOFTWARE\Policies\Microsoft\Windows NT\Terminal Services', name: fDenyTSConnections }
+  check:
+    registry: { key: 'HKLM\SYSTEM\CurrentControlSet\Control\Terminal Server', name: fDenyTSConnections, on_value: 0 }
+  apply:
+    - registry: { key: 'HKLM\SYSTEM\CurrentControlSet\Control\Terminal Server', name: fDenyTSConnections, type: DWORD, value: 0 }
+    - registry: { key: 'HKLM\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp', name: UserAuthentication, type: DWORD, value: 1 }
+    - powershell: Enable-NetFirewallRule -Group '@FirewallAPI.dll,-28752'
+  undo:
+    - registry: { key: 'HKLM\SYSTEM\CurrentControlSet\Control\Terminal Server', name: fDenyTSConnections, type: DWORD, value: 1 }
+    - powershell: Disable-NetFirewallRule -Group '@FirewallAPI.dll,-28752'
+
+- id: sec.bitlocker_backup_ad
+  name: Sao lưu khoá BitLocker lên AD
+  category: Bảo mật và truy cập
+  risk: safe
+  requires_domain: true
+  description: >
+    Gửi khoá khôi phục BitLocker (48 chữ số) của ổ hệ thống lên computer object trong AD, để sau này người dùng quên
+    PIN hoặc thay mainboard thì IT tra được khoá. Cần GPO cho phép lưu khoá BitLocker vào AD.
+  apply:
+    - powershell: |
+        $volume = Get-BitLockerVolume -MountPoint $env:SystemDrive
+        $protectors = @($volume.KeyProtector | Where-Object { "$($_.KeyProtectorType)" -eq 'RecoveryPassword' })
+        if (-not $protectors) { exit 3 }
+        foreach ($protector in $protectors) {
+            Backup-BitLockerKeyProtector -MountPoint $env:SystemDrive -KeyProtectorId $protector.KeyProtectorId | Out-Null
+            Write-Output "✔ Đã sao lưu khoá $($protector.KeyProtectorId) lên AD"
+        }
+      timeout: 120
+      messages:
+        3: Ổ hệ thống chưa bật BitLocker hoặc chưa có khoá khôi phục dạng 48 chữ số
+
+- id: sec.defender_scan
+  name: Cập nhật và quét nhanh bằng Microsoft Defender
+  category: Bảo mật và truy cập
+  risk: safe
+  description: >
+    Tải chữ ký virus mới rồi quét nhanh (vùng hay bị nhiễm: bộ nhớ, khởi động, thư mục hệ thống), khoảng 5–15 phút.
+    Không dùng được nếu máy đang dùng phần mềm diệt virus khác (Defender ở chế độ tắt / thụ động).
+  apply:
+    - powershell: |
+        $mpcmd = Join-Path $env:ProgramFiles 'Windows Defender\MpCmdRun.exe'
+        if (-not (Test-Path -LiteralPath $mpcmd)) { exit 3 }
+        Write-Output 'Cập nhật chữ ký…'
+        & $mpcmd -SignatureUpdate
+        if ($LASTEXITCODE) { Write-Output "⚠ Cập nhật chữ ký trả mã $LASTEXITCODE, vẫn quét bằng chữ ký đang có." }
+        Write-Output 'Quét nhanh…'
+        & $mpcmd -Scan -ScanType 1
+      timeout: 3600
+      messages:
+        3: Không thấy Microsoft Defender trên máy

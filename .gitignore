@@ -13,5 +13,10 @@ packaging/version_info.txt
 # Thông tin nội bộ công ty (domain, server, OU...). Repo public nên KHÔNG commit, xem PLAN.md mục 6.9
 site.yaml
 
+# Bộ cài phần mềm (Office, phần mềm diệt virus...): có bản quyền, rất nặng, không bao giờ commit.
+/SOFT/
+*.iso
+*.ISO
+
 # Log khi chạy thử
 *.log

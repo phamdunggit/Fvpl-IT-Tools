@@ -81,3 +81,107 @@
   apply:
     - service: { name: AudioEndpointBuilder, action: restart }
     - service: { name: Audiosrv, action: start }
+
+- id: sys.device_errors
+  name: Liệt kê thiết bị lỗi
+  category: Hệ thống
+  risk: safe
+  admin: false
+  description: >
+    Chỉ xem: thiết bị có dấu chấm than vàng trong Device Manager, kèm mã lỗi và ý nghĩa (chưa có driver, bị tắt,
+    không khởi động được…). Mã PNPDeviceID dùng để tìm driver đúng trên trang của hãng.
+  apply:
+    - powershell: |
+        $meanings = @{
+            1 = 'cấu hình sai'; 3 = 'driver hỏng hoặc thiếu bộ nhớ'; 10 = 'không khởi động được'; 12 = 'xung đột tài nguyên'
+            14 = 'cần khởi động lại'; 18 = 'cần cài lại driver'; 19 = 'thông tin cấu hình trong registry hỏng'
+            22 = 'đang bị tắt'; 24 = 'thiết bị không có mặt hoặc thiếu driver'; 28 = 'chưa cài driver'
+            31 = 'driver không tải được'; 39 = 'driver hỏng hoặc thiếu'; 43 = 'Windows dừng thiết bị vì báo lỗi'
+            45 = 'thiết bị đang không cắm'; 52 = 'driver không có chữ ký số hợp lệ'
+        }
+        $devices = @(Get-CimInstance Win32_PnPEntity -Filter 'ConfigManagerErrorCode <> 0')
+        if (-not $devices) { Write-Ok 'Không có thiết bị nào báo lỗi.'; exit 0 }
+        foreach ($device in $devices) {
+            $code = [int]$device.ConfigManagerErrorCode
+            $meaning = if ($meanings.ContainsKey($code)) { $meanings[$code] } else { 'xem mã trong Device Manager' }
+            Write-Warn ('{0} | mã {1}: {2} | {3}' -f $device.Name, $code, $meaning, $device.PNPDeviceID)
+        }
+      timeout: 120
+
+- id: sys.scan_devices
+  name: Quét lại phần cứng
+  category: Hệ thống
+  risk: safe
+  os: { min_build: 19041 }
+  description: >
+    Như bấm "Scan for hardware changes" trong Device Manager: Windows dò lại thiết bị và cài driver có sẵn. Dùng sau
+    khi cắm thiết bị mà không nhận, hoặc sau khi chép driver vào máy.
+  apply:
+    - cmd: pnputil /scan-devices
+
+- id: sys.repair_wmi
+  name: Sửa WMI
+  category: Hệ thống
+  risk: caution
+  description: >
+    Kiểm tra kho WMI và tự dựng lại nếu hỏng (winmgmt /salvagerepository). Dùng khi trang Tổng quan, phần mềm quản
+    lý, GPO lọc theo WMI báo lỗi "Invalid class", "Provider load failure". Không xoá dữ liệu của phần mềm khác.
+  apply:
+    - powershell: |
+        winmgmt /verifyrepository
+        Write-Output "(kiểm tra trả mã $LASTEXITCODE)"
+        winmgmt /salvagerepository
+  undo: none
+
+- id: sys.repair_msi
+  name: Sửa Windows Installer
+  category: Hệ thống
+  risk: caution
+  description: >
+    Đăng ký lại dịch vụ Windows Installer (msiexec /unregister rồi /regserver). Dùng khi cài hoặc gỡ phần mềm .msi
+    báo "The Windows Installer service could not be accessed" hoặc lỗi 1601, 1719.
+  apply:
+    - powershell: |
+        Stop-Service -Name msiserver -Force -ErrorAction SilentlyContinue
+        $msiexec = Join-Path $env:SystemRoot 'System32\msiexec.exe'
+        foreach ($argument in '/unregister', '/regserver') {
+            $process = Start-Process -FilePath $msiexec -ArgumentList $argument -PassThru
+            $null = $process.Handle
+            $process.WaitForExit()
+            Write-Output "msiexec $($argument): mã $($process.ExitCode)"
+            if ($process.ExitCode) { exit $process.ExitCode }
+        }
+        Start-Service -Name msiserver
+  undo: none
+
+- id: sys.reregister_shell
+  name: Sửa Start, Search, Settings không mở
+  category: Hệ thống
+  risk: advanced
+  admin: false
+  description: >
+    Đăng ký lại các ứng dụng hệ thống của Start menu, ô tìm kiếm và Settings cho tài khoản bị lỗi. Phải mở tool bằng
+    chính tài khoản đó (đăng ký ứng dụng chỉ áp cho tài khoản đang chạy). Nên chạy "Quét và sửa file hệ thống"
+    trước. Explorer sẽ được khởi động lại.
+  apply:
+    - powershell: |
+        if ([Security.Principal.WindowsIdentity]::GetCurrent().User.Value -ne $TargetUserSid) { exit 4 }
+        $names = 'Microsoft.Windows.ShellExperienceHost', 'Microsoft.Windows.StartMenuExperienceHost',
+            'Microsoft.Windows.Search', 'MicrosoftWindows.Client.CBS', 'windows.immersivecontrolpanel'
+        $failed = 0
+        foreach ($name in $names) {
+            foreach ($package in @(Get-AppxPackage -Name $name)) {
+                Write-Output "Đăng ký lại $($package.Name)…"
+                try {
+                    Add-AppxPackage -DisableDevelopmentMode -Register (Join-Path $package.InstallLocation 'AppxManifest.xml') -ErrorAction Stop
+                }
+                catch { Write-Output "⚠ $($package.Name): $($_.Exception.Message)"; $failed++ }
+            }
+        }
+        if ($failed) { exit 2 }
+      timeout: 600
+      messages:
+        2: Có ứng dụng không đăng ký lại được, xem các dòng ⚠ ở trên
+        4: Tool đang chạy bằng tài khoản khác người đang đăng nhập; mở tool bằng chính tài khoản bị lỗi
+  undo: none
+  after: [restart_explorer]

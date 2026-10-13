@@ -181,3 +181,70 @@
     - cmd: netsh int ip reset
       ok_codes: [0, 1]
   undo: none
+
+- id: net.restore_hosts
+  name: Khôi phục file hosts mặc định
+  category: Mạng & Internet
+  risk: caution
+  description: >
+    Sao lưu file hosts hiện tại (hosts.fvpl-<thời gian>.bak cùng thư mục) rồi đưa về nội dung mặc định của Windows.
+    Dùng khi web bị chuyển hướng lạ, phần mềm bẻ khoá hoặc mã độc chặn trang cập nhật. Các dòng đang có hiệu lực
+    được in ra log trước khi xoá. Hoàn tác trả lại bản sao lưu gần nhất.
+  apply:
+    - powershell: |
+        $hosts = Join-Path $env:SystemRoot 'System32\drivers\etc\hosts'
+        if (Test-Path -LiteralPath $hosts) {
+            $active = @(Get-Content -LiteralPath $hosts | Where-Object { $_.Trim() -and -not $_.Trim().StartsWith('#') })
+            if ($active) { Write-Output 'Các dòng đang có hiệu lực:'; $active | ForEach-Object { Write-Output "    $_" } }
+            else { Write-Output 'File hosts không có dòng nào có hiệu lực.' }
+            $backup = '{0}.fvpl-{1:yyyyMMdd-HHmmss}.bak' -f $hosts, (Get-Date)
+            Copy-Item -LiteralPath $hosts -Destination $backup -Force
+            Write-Output "Đã sao lưu: $backup"
+        }
+        $default = @(
+            '# Copyright (c) 1993-2009 Microsoft Corp.',
+            '#',
+            '# This is a sample HOSTS file used by Microsoft TCP/IP for Windows.',
+            '#',
+            '# localhost name resolution is handled within DNS itself.',
+            '#	127.0.0.1       localhost',
+            '#	::1             localhost'
+        )
+        Set-Content -LiteralPath $hosts -Value $default -Encoding ASCII
+        ipconfig /flushdns | Out-Null
+        Write-Output '✔ Đã đưa file hosts về mặc định và xoá cache DNS.'
+  undo:
+    - powershell: |
+        $hosts = Join-Path $env:SystemRoot 'System32\drivers\etc\hosts'
+        $latest = Get-ChildItem -LiteralPath (Split-Path -Parent $hosts) -Filter 'hosts.fvpl-*.bak' |
+            Sort-Object LastWriteTime -Descending | Select-Object -First 1
+        if (-not $latest) { exit 3 }
+        Copy-Item -LiteralPath $latest.FullName -Destination $hosts -Force
+        ipconfig /flushdns | Out-Null
+        Write-Output "✔ Đã trả lại file hosts từ $($latest.Name)."
+      messages:
+        3: Không thấy bản sao lưu hosts.fvpl-*.bak nào
+
+- id: net.reset_firewall
+  name: Reset Windows Firewall
+  category: Mạng & Internet
+  risk: caution
+  description: >
+    Sao lưu cấu hình firewall ra file .wfw trong thư mục reports của tool, rồi đưa firewall về mặc định (bỏ mọi luật
+    tự thêm). Dùng khi phần mềm thêm luật chặn lung tung. Máy trong domain sẽ nhận lại luật của GPO ở lần gpupdate
+    sau. Hoàn tác nạp lại bản sao lưu gần nhất.
+  apply:
+    - powershell: |
+        $file = Join-Path $ReportDir ('firewall_{0:yyyyMMdd_HHmmss}.wfw' -f (Get-Date))
+        netsh advfirewall export $file
+        if ($LASTEXITCODE) { exit $LASTEXITCODE }
+        Write-Output "Đã sao lưu cấu hình firewall: $file"
+        netsh advfirewall reset
+  undo:
+    - powershell: |
+        $latest = Get-ChildItem -LiteralPath $ReportDir -Filter 'firewall_*.wfw' |
+            Sort-Object LastWriteTime -Descending | Select-Object -First 1
+        if (-not $latest) { exit 3 }
+        netsh advfirewall import $latest.FullName
+      messages:
+        3: Không thấy bản sao lưu firewall_*.wfw nào trong thư mục reports
