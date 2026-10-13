@@ -47,6 +47,11 @@ def window(qt_app, monkeypatch):
 
     from .test_precheck import facts, network
     monkeypatch.setattr(precheck, "collect", lambda app, cancel=None: facts(network=network(offset=400)))
+    # Trang Tối ưu: kết quả quét rác giả, không đọc ổ đĩa.
+    from fvpl_ittools.cleanup import junk
+    sizes = {"user_temp": 3 * 1024**3, "windows_old": 8 * 1024**3, "recycle_bin": 500 * 1024**2}
+    monkeypatch.setattr(junk, "scan_all", lambda env, cancel=None: [
+        junk.Scan(item, sizes.get(item.id, 0), 10 if item.id in sizes else 0) for item in junk.CATEGORIES])
     win = MainWindow(build_context())
     win.show()
     yield win
@@ -160,6 +165,29 @@ def test_newpc_page_shows_checks_and_time_fix(window, qt_app, monkeypatch):
     assert runs == [["dom.time_sync"]]
     page.copy_text()
     assert QtWidgets.QApplication.clipboard().text().startswith("Kiểm tra trước khi cài máy")
+
+
+def test_cleanup_scans_first_then_cleans_selected(window, qt_app, monkeypatch):
+    from fvpl_ittools.ui.pages import optimize as optimize_module
+    window.select_page("Tối ưu & dọn dẹp")
+    panel = window.optimize.cleanup
+    deadline = time.monotonic() + 10
+    while (panel.loading or not panel.scans) and time.monotonic() < deadline:
+        qt_app.processEvents()
+        time.sleep(0.01)
+    assert panel._items["user_temp"].text(1) == "3,0 GB"
+    selected = {scan.category.id for scan in panel.selected()}
+    assert selected == {"user_temp"}  # loại Cẩn thận không tick sẵn; loại 0 B không tick
+    assert "Cẩn thận" in panel._items["windows_old"].text(3)
+    assert "Đã chọn 3,0 GB" in panel.total.text()
+
+    jobs, asked = [], []
+    monkeypatch.setattr(window.controller, "run_job", jobs.append)
+    monkeypatch.setattr(optimize_module.QMessageBox, "question",
+                        lambda parent, title, text: asked.append(text) or optimize_module.QMessageBox.StandardButton.Yes)
+    panel._items["recycle_bin"].setCheckState(0, optimize_module.Qt.CheckState.Checked)
+    panel.clean()
+    assert jobs and "Không lấy lại được: Thùng rác của người dùng" in asked[0]
 
 
 def test_every_page_renders(window, qt_app):

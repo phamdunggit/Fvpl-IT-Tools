@@ -65,6 +65,11 @@ class RunController(QObject):
             ctx.credential = credential
             self._start(lambda: executor.run_batch(actions, ctx, stop_on_error=stop_on_error))
 
+    def run_job(self, job: Callable[[RunContext], object]) -> None:
+        """Chạy một việc viết bằng Python (ví dụ dọn rác) ở thread nền, dùng chung khung log, nút Huỷ, trạng thái bận."""
+        ctx = self._context()
+        self._start(lambda: job(ctx))
+
     def run_undo_steps(self, action: Action) -> None:
         ctx = self._context()
         self._start(lambda: BatchResult(results=[executor.run_undo_steps(action, ctx)]))

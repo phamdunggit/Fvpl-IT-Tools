@@ -28,6 +28,7 @@ from .log_panel import LogPanel
 from .pages.actions_page import ActionsPage
 from .pages.history import HistoryPage
 from .pages.newpc import NewPcPage
+from .pages.optimize import OptimizePage
 from .pages.overview import OverviewPage
 from .pages.software import SoftwarePage
 from .pages.utilities import UtilitiesPage
@@ -81,11 +82,7 @@ def _pages(app: AppContext, controller: RunController) -> list[tuple[str, QWidge
             "Không chắc lỗi ở đâu thì bấm một gói sửa nhanh.",
             "Chưa có mục sửa lỗi nào.", app, controller, packs=app.packs,
         )),
-        ("Tối ưu & dọn dẹp", ActionsPage(
-            "optimize", "Tối ưu & dọn dẹp", "Dọn rác có quét trước, quản lý startup, gỡ app rác, quyền riêng tư.",
-            "Chưa có mục nào. Phần này làm ở GĐ3: dọn rác (quét trước rồi mới xoá), quản lý startup, "
-            "gỡ app cài sẵn, tắt quảng cáo, power plan.", app, controller,
-        )),
+        ("Tối ưu & dọn dẹp", OptimizePage(app, controller)),
         ("Phần mềm", SoftwarePage(app, controller)),
         ("Cấu hình", ActionsPage(
             "config", "Cấu hình",
@@ -135,6 +132,8 @@ class MainWindow(QMainWindow):
                 self.software = page
             if isinstance(page, NewPcPage):
                 self.newpc = page
+            if isinstance(page, OptimizePage):
+                self.optimize = page
         self.overview.alerts_changed.connect(self.header.set_alerts)
 
         self.log_panel = LogPanel()
@@ -201,4 +200,5 @@ class MainWindow(QMainWindow):
             self.controller.wait(10)
         self.overview.stop()
         self.newpc.stop()
+        self.optimize.stop()
         event.accept()
