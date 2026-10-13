@@ -1,6 +1,6 @@
 # FVPL IT Toolkit: kế hoạch
 
-> Tên tạm. Lập ngày 08/10/2026. **Trạng thái: đã duyệt 08/10/2026. GĐ0 xong trên nhánh `featured`.**
+> Tên tạm. Lập ngày 08/10/2026. **Trạng thái: đã duyệt 08/10/2026. GĐ0 xong; GĐ1 xong phần code (13/10/2026), còn chạy thử bằng quyền admin. Nhánh `featured`.**
 > Những điểm chưa rõ nằm ở [mục 11, Câu hỏi còn mở](#11-câu-hỏi-còn-mở).
 
 ---
@@ -256,7 +256,7 @@ Danh sách mặc định gợi ý (**cần bồ chốt**):
 
 | Chức năng | Chi tiết | Ưu tiên |
 |---|---|---|
-| Mở nhanh panel hệ thống | Control Panel, Network Connections, Devices and Printers, Device Manager, Computer Management, Services, Event Viewer, System Properties, Programs and Features, Credential Manager, Firewall, Disk Management, Registry Editor, Task Scheduler, gpedit | P1 |
+| Mở nhanh panel hệ thống | Control Panel, Network Connections, Devices and Printers, Device Manager, Computer Management, Services, Event Viewer, System Properties, Programs and Features, Credential Manager, Firewall, Disk Management, Registry Editor, Task Scheduler, gpedit. *Đã làm ở GĐ1, nằm ở trang Tiện ích, tab "Mở nhanh".* | P1 |
 | Windows Features | .NET 3.5 (nguồn offline), RSAT (máy IT), Telnet Client, OpenSSH. SMB1 chỉ bật khi máy scan đời cũ bắt buộc phải có (Nâng cao) | P2 |
 | Tuỳ chọn hay dùng | Có công tắc bật/tắt hiện trạng thái hiện tại: hiện đuôi file, hiện file ẩn, menu chuột phải kiểu cũ (Win11), Num Lock khi khởi động, End Task trên taskbar (Win11), Long Paths, căn trái taskbar (Win11) | P2 |
 | Vùng / giờ / bàn phím | Múi giờ, định dạng ngày và số, bàn phím | P2 |
@@ -294,14 +294,14 @@ Danh sách mặc định gợi ý (**cần bồ chốt**):
 | Ngôn ngữ | Python 3.13 | Máy chạy tool không cần cài Python vì đã đóng gói sẵn |
 | Giao diện | PySide6 (Qt 6) | Bản chính thức của Qt, giấy phép LGPL, chạy trên Win10 1809 trở lên |
 | Định nghĩa fix/tweak và danh mục phần mềm | YAML (PyYAML) | Dễ đọc, có comment, thêm fix mới không phải sửa code |
-| Thông tin hệ thống | `winreg` + `ctypes` (GĐ0); thêm psutil + PowerShell CIM xuất JSON từ GĐ1 | |
-| Windows API | `winreg`, `ctypes` (không cần pywin32); pywin32 chỉ thêm khi làm Windows Update API (GĐ1) | |
+| Thông tin hệ thống | `winreg` + `ctypes` cho phần đọc nhanh; PowerShell `Get-CimInstance` xuất JSON cho trang Tổng quan (GĐ1, không cần psutil) | |
+| Windows API | `winreg`, `ctypes` (không cần pywin32). Windows Update API gọi qua COM trong PowerShell | |
 | Đóng gói | PyInstaller onedir qua `packaging/build.py` (exe đòi quyền admin) | Nuitka là phương án B nếu diệt virus báo nhầm |
 | Kiểm thử | pytest + `--selftest` (chụp ảnh từng trang) + máy ảo Hyper-V | |
 
 ### 6.2 Cấu trúc thư mục
 
-Cấu trúc hiện tại (sau GĐ0). Mục ghi *(sẽ có)* là phần các giai đoạn sau thêm vào.
+Cấu trúc hiện tại (sau GĐ1). Mục ghi *(sẽ có)* là phần các giai đoạn sau thêm vào.
 
 ```
 IT Tools/
@@ -319,7 +319,9 @@ IT Tools/
 │   │   └── loader.py          # nạp + kiểm tra YAML, báo lỗi tiếng Việt
 │   ├── core/
 │   │   ├── shell.py           # gọi cmd/PowerShell, giải mã output, timeout, huỷ
-│   │   ├── executor.py        # chạy mục theo lượt, restore point, việc làm sau, hoàn tác
+│   │   ├── pslib.py           # hàm PowerShell dựng sẵn cho script chẩn đoán (✔/✖, ping, cổng, DNS, DC, giờ)
+│   │   ├── executor.py        # chạy mục theo lượt, gói sửa nhanh, restore point, việc làm sau, hoàn tác
+│   │   ├── inventory.py       # thông tin máy cho trang Tổng quan, xuất chữ/HTML
 │   │   ├── registry.py        # đọc/ghi view 64-bit, đổi HKCU → HKU\<SID>
 │   │   ├── journal.py         # nhật ký hoàn tác (JSON)
 │   │   ├── safety.py          # restore point
@@ -333,10 +335,13 @@ IT Tools/
 │   ├── ui/
 │   │   ├── main_window.py     # thanh trên cùng + sidebar + vùng trang + khung log
 │   │   ├── controller.py      # chạy executor ở thread nền, đẩy log về giao diện
+│   │   ├── credential_dialog.py  # hỏi tài khoản domain cho mục needs_credential
 │   │   ├── log_panel.py, theme.py, widgets.py, text.py
-│   │   └── pages/             # overview, actions_page (Sửa lỗi/Tối ưu/Cấu hình/Tiện ích), history, placeholder
+│   │   └── pages/             # overview, actions_page (Sửa lỗi/Tối ưu/Cấu hình), utilities, history, placeholder
 │   └── data/
-│       ├── actions/*.yaml     # các fix/tweak
+│       ├── actions/NN-*.yaml  # các fix/tweak; số đầu tên file quyết định thứ tự nhóm trong cây
+│       ├── packs.yaml         # gói sửa nhanh
+│       ├── scripts/inventory/ # script PowerShell đọc thông tin máy (4 phần chạy song song)
 │       └── apps.yaml          # (sẽ có, GĐ2) danh mục mặc định, bản trên share sẽ ghi đè
 ├── tests/                     # pytest
 └── packaging/                 # spec PyInstaller + build.py (không dùng build/ vì PyInstaller ghi file tạm vào đó)
@@ -347,7 +352,7 @@ IT Tools/
 Mỗi mục là một khối dữ liệu, không viết cứng trong code (cùng cách WinUtil dùng file JSON). Thêm fix mới chỉ cần thêm vài dòng.
 
 ```yaml
-# data/actions/network.yaml
+# data/actions/10-network.yaml (ví dụ rút gọn; bản thật xem trong repo)
 - id: net.flush_dns
   name: Xoá cache DNS
   category: Mạng & Internet
@@ -373,7 +378,7 @@ Mỗi mục là một khối dữ liệu, không viết cứng trong code (cùng
   undo: auto              # trả về giá trị đã sao lưu trước khi đổi
   after: restart_explorer
 
-- id: domain.repair_trust
+- id: dom.repair_trust
   name: Sửa lỗi "trust relationship" với domain
   category: Domain & đăng nhập
   risk: caution
@@ -428,7 +433,8 @@ profiles:
 ### 6.5 Chạy lệnh hệ thống
 
 - Mọi lệnh chạy trong một thread nền (mỗi lần chỉ một lượt). Output được đẩy từng dòng về khung log qua Qt signal. Dòng tiến độ kết thúc bằng `\r` (kiểu thanh % của DISM) ghi đè lên dòng trước.
-- **PowerShell:** dùng Windows PowerShell 5.1 có sẵn trên mọi máy, không cần PS7. Script được truyền bằng `-EncodedCommand`. Lý do: nếu GPO đã đặt Execution Policy thì tham số `-ExecutionPolicy Bypass` không có tác dụng với `-File`, còn lệnh truyền thẳng thì không bị policy chặn. Stdin để dành cho tài khoản (xem 6.7). Script dài tối đa khoảng 11.000 ký tự vì giới hạn độ dài dòng lệnh.
+- **PowerShell:** dùng Windows PowerShell 5.1 có sẵn trên mọi máy, không cần PS7. Script được mã hoá base64 rồi truyền qua `-Command` kèm một đoạn mồi tự giải mã. Lý do: nếu GPO đã đặt Execution Policy thì tham số `-ExecutionPolicy Bypass` không có tác dụng với `-File`, còn lệnh truyền thẳng thì không bị policy chặn. Không dùng `-EncodedCommand` vì với cờ đó cảnh báo, `Write-Host`, verbose bị ghi ra dạng CLIXML. Stdin để dành cho tài khoản (xem 6.7). Script dài tối đa khoảng 11.000 ký tự vì giới hạn độ dài dòng lệnh; quá thì tool tự bỏ chú thích và thụt lề.
+- **Không dùng cmdlet phải nạp module chậm** (`Get-NetAdapter`, `Get-NetIPConfiguration`, `Get-PhysicalDisk`, `Get-MpComputerStatus`, `Resolve-DnsName`...): có máy mất 10–30 giây mỗi module. Dùng `Get-CimInstance` thẳng và hàm .NET; các hàm dùng chung nằm trong `core/pslib.py`.
 - **cmd:** chạy `cmd.exe /d /s /c` và đặt `chcp 65001` trước. Lệnh có sẵn của cmd (như `echo`) vẫn ghi theo code page OEM, chữ nào không có trong code page đó sẽ thành `?`. Vì vậy muốn in chữ có dấu thì dùng PowerShell.
 - Dữ liệu trả về dạng JSON (`ConvertTo-Json`), không đọc kết quả bằng cách dò chữ, vì Windows tiếng Việt và tiếng Anh in thông báo khác nhau.
 - **Encoding:** ép đầu ra UTF-8. Riêng `sfc` xuất UTF-16 nên có bộ giải mã riêng.
@@ -470,7 +476,7 @@ Repo để public nên **tên domain, tên server, đường dẫn share, OU, ti
 
 ## 7. Kiểm thử
 
-- **Tự động (pytest, hiện có 80 test):** test chỉ chạy lệnh vô hại. Registry chỉ ghi vào khoá tạm `HKCU\Software\FVPL-ITTools-Test` rồi xoá. Explorer được giả lập trong test.
+- **Tự động (pytest, hiện có 130 test):** test chỉ chạy lệnh vô hại (kể cả đọc thông tin máy thật, không đổi gì). Mọi script PowerShell được soát cú pháp bằng parser của PowerShell mà không chạy. Registry chỉ ghi vào khoá tạm `HKCU\Software\FVPL-ITTools-Test` rồi xoá. Explorer được giả lập trong test.
   - Mọi file YAML đúng schema và không trùng `id`.
   - Mọi mục Cẩn thận hoặc Nâng cao đều có `undo`, hoặc ghi rõ "không hoàn tác được".
   - Giải mã đúng output của `sfc` (UTF-16) và `winget`.
@@ -485,13 +491,13 @@ Repo để public nên **tên domain, tên server, đường dẫn share, OU, ti
 | Giai đoạn | Nội dung | Xong khi |
 |---|---|---|
 | **0. Nền móng** ✔ 08/10/2026 | Khung PySide6 (sidebar, khung log, thanh trạng thái); kiểm tra quyền admin; runner chạy nền có nút huỷ; nạp và kiểm tra YAML; log ra file; restore point và nhật ký hoàn tác; build exe | Exe chạy được trên VM Win10 và Win11 sạch (không có Python), chạy được 3 mục mẫu, có log, hoàn tác được 1 tweak registry |
-| **1. Tổng quan + Sửa lỗi** | Trang Tổng quan (copy và xuất thông tin); toàn bộ fix P1 (mạng, domain, máy in, Windows Update, hệ thống, Office); 4 gói sửa nhanh; mở nhanh panel | IT dùng hằng ngày thay cho gõ lệnh tay; mục nào cũng có ⓘ và copy lệnh |
+| **1. Tổng quan + Sửa lỗi** ◐ code xong 13/10/2026 | Trang Tổng quan (copy và xuất thông tin); toàn bộ fix P1 (mạng, domain, máy in, Windows Update, hệ thống, Office); gói sửa nhanh (làm 5 gói: thêm "Reset mạng toàn bộ"); mở nhanh panel; công cụ mạng | IT dùng hằng ngày thay cho gõ lệnh tay; mục nào cũng có ⓘ và copy lệnh |
 | **2. Cài máy mới** | Wizard 7 bước; đổi tên + join + chạy tiếp sau restart; danh mục phần mềm (winget + share) và profile; sửa winget; Office ODT; cấu hình chuẩn; báo cáo | Từ một VM Windows sạch: vào được domain, cài đủ phần mềm theo profile, có báo cáo trên share. IT chỉ phải chọn phòng ban và nhập mật khẩu join |
 | **3. Tối ưu & dọn dẹp** | Dọn rác có quét trước; quản lý startup; debloat và quyền riêng tư; power; các fix P2 | Thấy được dung lượng trước khi xoá; mọi tweak hoàn tác được |
 | **4. Tiện ích & hoàn thiện** | Các tiện ích; gửi kiểm kê lên share; báo bản mới; ký số; hướng dẫn sử dụng; các mục P3 | Bản 1.0 có trên share |
 | **Để sau** | Điều khiển nhiều máy từ xa, bản rút gọn cho nhân viên tự sửa lỗi, giao diện tối | |
 
-GĐ0 đã chạy được exe trên máy dev (Win11 25H2, không có quyền admin). Còn 2 việc chưa kiểm: chạy trên máy ảo Win10/Win11 sạch, và chạy thật các phần cần quyền admin (restore point, mục `admin: true`). Hai việc này làm khi bắt đầu GĐ1, xem [docs/HANDOFF.md](docs/HANDOFF.md).
+GĐ0 và GĐ1 đã chạy được trên máy dev (Win11 25H2, không có quyền admin): các mục chỉ đọc (Chẩn đoán mạng, Liệt kê máy in, trang Tổng quan) đã chạy thật. Các mục đổi hệ thống của GĐ1 mới được soát cú pháp và test giả lập, **chưa chạy thật bằng quyền admin**. Việc đó cùng với chạy trên máy ảo Win10/Win11 sạch là việc đầu tiên trước khi coi GĐ1 xong, danh sách cụ thể ở [docs/HANDOFF.md](docs/HANDOFF.md).
 
 Làm Sửa lỗi (GĐ1) trước Cài máy mới (GĐ2) vì hai lý do. Thứ nhất, fix ít rủi ro nên dùng để kiểm chứng bộ máy chạy action. Thứ hai, IT dùng được ngay hằng ngày. Wizard cần môi trường test domain nên làm sau. Nếu cần cài máy mới gấp thì đổi thứ tự được.
 
@@ -532,7 +538,7 @@ Làm Sửa lỗi (GĐ1) trước Cài máy mới (GĐ2) vì hai lý do. Thứ nh
 8. **Máy in:** share qua print server hay in thẳng qua IP? Hãng và model chính là gì?
 9. **Máy tính** chủ yếu của hãng nào (Dell / HP / Lenovo / máy lắp ráp)? Để chọn tool cập nhật driver phù hợp.
 10. **Định dạng vùng** chuẩn là vi-VN hay en-US? Lựa chọn này ảnh hưởng dấu thập phân trong Excel và phần mềm kế toán.
-11. **10 lỗi người dùng hay báo nhất** là gì? Để ưu tiên đúng ở GĐ1.
+11. **10 lỗi người dùng hay báo nhất** là gì? GĐ1 đã làm đủ các fix P1 trong mục 5.3; danh sách này giúp chọn fix P2 nào làm trước và bổ sung lỗi riêng của công ty.
 12. Có muốn **gửi thông tin máy lên share** để làm danh sách kiểm kê tài sản không?
 
 ## 12. Nguồn tham khảo

@@ -3,7 +3,7 @@
 Công cụ cho IT: cài máy mới, join domain, sửa lỗi thường gặp, tối ưu Windows.
 Viết bằng Python 3.13 + PySide6, đóng gói thành exe chạy portable từ USB hoặc share.
 
-- Trạng thái: **GĐ0 (nền móng) xong.** Khung app, bộ chạy lệnh, định nghĩa mục bằng YAML, log, hoàn tác, đóng gói exe, 3 mục mẫu.
+- Trạng thái: **GĐ1 (Tổng quan + Sửa lỗi) xong phần code, phiên bản 0.2.0.** Trang Tổng quan, 24 mục sửa lỗi, 5 gói sửa nhanh, trang Tiện ích. Các mục đổi hệ thống chưa chạy thật bằng quyền admin, xem [docs/HANDOFF.md](docs/HANDOFF.md).
 
 | Tài liệu | Nội dung |
 |---|---|
@@ -64,7 +64,7 @@ Thêm một khối YAML vào file trong `src/fvpl_ittools/data/actions/`, không
     - cmd: ipconfig /flushdns
 ```
 
-Các loại bước: `cmd`, `powershell`, `registry` (tự sao lưu để hoàn tác), `service` (start/stop/restart), `builtin` (thao tác viết bằng Python, ví dụ `restart_explorer`).
+Các loại bước: `cmd`, `powershell`, `registry` (tự sao lưu để hoàn tác), `service` (start/stop/restart), `builtin` (thao tác viết bằng Python, ví dụ `restart_explorer`). Script PowerShell có sẵn biến người dùng và bộ hàm kiểm tra (ping, cổng, DNS, DC); gói sửa nhanh khai báo trong `data/packs.yaml`. Chi tiết ở [docs/ACTIONS.md](docs/ACTIONS.md).
 
 ## Thông tin nội bộ
 
@@ -77,11 +77,15 @@ src/fvpl_ittools/
 ├── __main__.py        điểm vào, hỏi quyền admin, --selftest
 ├── app.py             gom thông tin máy, người dùng, danh sách mục
 ├── actions/           mô hình + bộ nạp/kiểm tra YAML
-├── core/              chạy lệnh (shell), registry, executor, nhật ký hoàn tác, restore point, log
-├── ui/                PySide6: cửa sổ chính, các trang, khung log
-└── data/actions/      các mục sửa lỗi / tweak (YAML)
+├── core/              chạy lệnh (shell, pslib), registry, executor, thông tin máy (inventory),
+│                      nhật ký hoàn tác, restore point, log
+├── ui/                PySide6: cửa sổ chính, các trang, khung log, hộp thoại tài khoản
+└── data/
+    ├── actions/       các mục sửa lỗi / tweak (YAML)
+    ├── packs.yaml     gói sửa nhanh
+    └── scripts/       script PowerShell đọc thông tin máy cho trang Tổng quan
 packaging/             spec PyInstaller + build.py
 tests/                 pytest
 ```
 
-Dữ liệu khi chạy: `%ProgramData%\FVPL-ITTools\logs\` (log từng phiên, giữ 90 ngày) và `undo\journal.json` (nhật ký hoàn tác).
+Dữ liệu khi chạy: `%ProgramData%\FVPL-ITTools\logs\` (log từng phiên, giữ 90 ngày), `undo\journal.json` (nhật ký hoàn tác) và `reports\` (thông tin máy xuất HTML, báo cáo gpresult).
