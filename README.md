@@ -3,13 +3,14 @@
 Công cụ cho IT: cài máy mới, join domain, sửa lỗi thường gặp, tối ưu Windows.
 Viết bằng Python 3.13 + PySide6, đóng gói thành exe chạy portable từ USB hoặc share.
 
-- Trạng thái: **GĐ1 (Tổng quan + Sửa lỗi) xong phần code, phiên bản 0.2.0.** Trang Tổng quan, 24 mục sửa lỗi, 5 gói sửa nhanh, trang Tiện ích. Các mục đổi hệ thống chưa chạy thật bằng quyền admin, xem [docs/HANDOFF.md](docs/HANDOFF.md).
+- Trạng thái: **GĐ1 (Tổng quan + Sửa lỗi) xong phần code, phiên bản 0.2.0.** Trang Tổng quan, 24 mục sửa lỗi, 5 gói sửa nhanh, trang Tiện ích. **GĐ2 đang làm:** đã có trang Phần mềm (danh mục, profile, cài qua winget và share). Các mục đổi hệ thống chưa chạy thật bằng quyền admin, xem [docs/HANDOFF.md](docs/HANDOFF.md).
 
 | Tài liệu | Nội dung |
 |---|---|
 | [docs/HANDOFF.md](docs/HANDOFF.md) | **Đọc đầu tiên:** trạng thái, quy tắc, luồng chạy, việc chưa kiểm, việc tiếp theo |
 | [PLAN.md](PLAN.md) | Kế hoạch tổng: chức năng, kiến trúc, lộ trình, câu hỏi còn mở |
 | [docs/ACTIONS.md](docs/ACTIONS.md) | Tham chiếu khai báo mục sửa lỗi / tweak bằng YAML |
+| [docs/SOFTWARE.md](docs/SOFTWARE.md) | Khai báo danh mục phần mềm và profile phòng ban (apps.yaml) |
 | [CHANGELOG.md](CHANGELOG.md) | Thay đổi theo phiên bản |
 
 ## Quy ước nhánh
@@ -79,9 +80,11 @@ src/fvpl_ittools/
 ├── actions/           mô hình + bộ nạp/kiểm tra YAML
 ├── core/              chạy lệnh (shell, pslib), registry, executor, thông tin máy (inventory),
 │                      nhật ký hoàn tác, restore point, log
+├── software/          danh mục phần mềm, phát hiện đã cài, lệnh cài (winget, share)
 ├── ui/                PySide6: cửa sổ chính, các trang, khung log, hộp thoại tài khoản
 └── data/
     ├── actions/       các mục sửa lỗi / tweak (YAML)
+    ├── apps.yaml      danh mục phần mềm mặc định
     ├── packs.yaml     gói sửa nhanh
     └── scripts/       script PowerShell đọc thông tin máy cho trang Tổng quan
 packaging/             spec PyInstaller + build.py

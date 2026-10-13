@@ -234,19 +234,19 @@ Mỗi nhóm có một **gói sửa nhanh** (*Sửa mạng*, *Sửa máy in*, *S�
 
 | Chức năng | Chi tiết | Ưu tiên |
 |---|---|---|
-| Danh mục phần mềm | Đọc từ file trên share, chia nhóm, có ô tìm kiếm và tick chọn | P1 |
-| Phát hiện đã cài | Kiểm tra bằng `winget list` và khoá registry Uninstall; hiện phiên bản | P1 |
-| Cài theo profile phòng ban | Profile có thể kế thừa nhau, ví dụ Kế toán = Văn phòng + phần mềm thuế | P1 |
-| Cài từ winget | `winget install --id … -e --silent --accept-package-agreements --accept-source-agreements` | P1 |
-| Cài từ share | MSI (`/qn /norestart`), EXE kèm tham số cài im lặng, app portable (copy + tạo shortcut). Xử lý mã thoát 0 / 3010 / 1641 / 1618 | P1 |
-| Hàng đợi cài | Chạy tuần tự, ghi log từng app, có nút thử lại khi lỗi | P1 |
+| Danh mục phần mềm | Đọc từ file trên share, chia nhóm, có ô tìm kiếm và tick chọn. *Đã làm (GĐ2), cách khai báo ở [docs/SOFTWARE.md](docs/SOFTWARE.md)* | P1 |
+| Phát hiện đã cài | Khoá registry Uninstall (máy + người đang đăng nhập), so theo mẫu tên hoặc file; hiện phiên bản. Không dùng `winget list` vì chậm và phải đọc bảng chữ. *Đã làm* | P1 |
+| Cài theo profile phòng ban | Profile có thể kế thừa nhau, ví dụ Kế toán = Văn phòng + phần mềm thuế. *Đã làm* | P1 |
+| Cài từ winget | `winget install --id … --exact --source winget --silent --accept-package-agreements --accept-source-agreements --disable-interactivity`. *Đã làm* | P1 |
+| Cài từ share | MSI (`/qn /norestart`), EXE kèm tham số cài im lặng, app portable (copy + tạo shortcut). Xử lý mã thoát 0 / 3010 / 1641 / 1618. *Đã làm* | P1 |
+| Hàng đợi cài | Chạy tuần tự, ghi log từng app, có nút thử lại khi lỗi. *Đã làm* | P1 |
 | Sửa / cài lại winget | Cài lại App Installer và các gói phụ thuộc từ share (giống "WinGet Reinstall" của WinUtil) | P1 |
 | Office | Cài bằng Office Deployment Tool với file `config.xml` trên share, dùng license của công ty | P1 |
 | Cập nhật app | `winget upgrade`, có danh sách loại trừ | P2 |
 | Gỡ cài đặt | | P2 |
 | Driver theo hãng | Dell Command \| Update, Lenovo System Update, HP Support Assistant | P2 |
 
-Danh sách mặc định gợi ý (**cần bồ chốt**):
+Danh sách mặc định gợi ý (**cần bồ chốt**; đã đưa phần có winget vào `data/apps.yaml` đóng gói kèm tool):
 
 - **Văn phòng:** Chrome, 7-Zip, Foxit hoặc Adobe Reader, UniKey/EVKey, Zalo PC, VLC, Notepad++, VC++ Redistributable, .NET Desktop Runtime, font tiếng Việt (VNI, TCVN3) để đọc tài liệu cũ, phần mềm hỗ trợ từ xa theo chính sách công ty (UltraViewer/TeamViewer/AnyDesk).
 - **Kế toán:** thêm HTKK, iTaxViewer, driver token chữ ký số, phần mềm hoá đơn điện tử và kế toán đang dùng.
@@ -308,7 +308,8 @@ IT Tools/
 ├── PLAN.md, README.md, CHANGELOG.md
 ├── docs/
 │   ├── HANDOFF.md             # trạng thái + cách làm tiếp, đọc đầu tiên
-│   └── ACTIONS.md             # tham chiếu khai báo mục bằng YAML
+│   ├── ACTIONS.md             # tham chiếu khai báo mục bằng YAML
+│   └── SOFTWARE.md            # tham chiếu khai báo danh mục phần mềm (apps.yaml)
 ├── pyproject.toml
 ├── site.example.yaml          # mẫu thông tin nội bộ (site.yaml thật không commit)
 ├── src/fvpl_ittools/
@@ -331,18 +332,19 @@ IT Tools/
 │   │   ├── config.py          # đọc site.yaml
 │   │   ├── paths.py, log.py
 │   │   └── state.py           # (sẽ có, GĐ2) trạng thái wizard để chạy tiếp sau restart
-│   ├── features/              # (sẽ có) domain, software (winget/share), cleanup, startup...
+│   ├── software/              # danh mục + profile (catalog), phát hiện đã cài (detect), lệnh cài (install), quét (scan)
+│   ├── features/              # (sẽ có) domain/wizard, cleanup, startup...
 │   ├── ui/
 │   │   ├── main_window.py     # thanh trên cùng + sidebar + vùng trang + khung log
 │   │   ├── controller.py      # chạy executor ở thread nền, đẩy log về giao diện
 │   │   ├── credential_dialog.py  # hỏi tài khoản domain cho mục needs_credential
 │   │   ├── log_panel.py, theme.py, widgets.py, text.py
-│   │   └── pages/             # overview, actions_page (Sửa lỗi/Tối ưu/Cấu hình), utilities, history, placeholder
+│   │   └── pages/             # overview, actions_page (Sửa lỗi/Tối ưu/Cấu hình), software, utilities, history, placeholder
 │   └── data/
 │       ├── actions/NN-*.yaml  # các fix/tweak; số đầu tên file quyết định thứ tự nhóm trong cây
 │       ├── packs.yaml         # gói sửa nhanh
 │       ├── scripts/inventory/ # script PowerShell đọc thông tin máy (4 phần chạy song song)
-│       └── apps.yaml          # (sẽ có, GĐ2) danh mục mặc định, bản trên share sẽ ghi đè
+│       └── apps.yaml          # danh mục phần mềm mặc định, bản trên share được ưu tiên
 ├── tests/                     # pytest
 └── packaging/                 # spec PyInstaller + build.py (không dùng build/ vì PyInstaller ghi file tạm vào đó)
 ```
@@ -492,7 +494,7 @@ Repo để public nên **tên domain, tên server, đường dẫn share, OU, ti
 |---|---|---|
 | **0. Nền móng** ✔ 08/10/2026 | Khung PySide6 (sidebar, khung log, thanh trạng thái); kiểm tra quyền admin; runner chạy nền có nút huỷ; nạp và kiểm tra YAML; log ra file; restore point và nhật ký hoàn tác; build exe | Exe chạy được trên VM Win10 và Win11 sạch (không có Python), chạy được 3 mục mẫu, có log, hoàn tác được 1 tweak registry |
 | **1. Tổng quan + Sửa lỗi** ◐ code xong 13/10/2026 | Trang Tổng quan (copy và xuất thông tin); toàn bộ fix P1 (mạng, domain, máy in, Windows Update, hệ thống, Office); gói sửa nhanh (làm 5 gói: thêm "Reset mạng toàn bộ"); mở nhanh panel; công cụ mạng | IT dùng hằng ngày thay cho gõ lệnh tay; mục nào cũng có ⓘ và copy lệnh |
-| **2. Cài máy mới** | Wizard 7 bước; đổi tên + join + chạy tiếp sau restart; danh mục phần mềm (winget + share) và profile; sửa winget; Office ODT; cấu hình chuẩn; báo cáo | Từ một VM Windows sạch: vào được domain, cài đủ phần mềm theo profile, có báo cáo trên share. IT chỉ phải chọn phòng ban và nhập mật khẩu join |
+| **2. Cài máy mới** ◔ đã có trang Phần mềm | Wizard 7 bước; đổi tên + join + chạy tiếp sau restart; danh mục phần mềm (winget + share) và profile; sửa winget; Office ODT; cấu hình chuẩn; báo cáo | Từ một VM Windows sạch: vào được domain, cài đủ phần mềm theo profile, có báo cáo trên share. IT chỉ phải chọn phòng ban và nhập mật khẩu join |
 | **3. Tối ưu & dọn dẹp** | Dọn rác có quét trước; quản lý startup; debloat và quyền riêng tư; power; các fix P2 | Thấy được dung lượng trước khi xoá; mọi tweak hoàn tác được |
 | **4. Tiện ích & hoàn thiện** | Các tiện ích; gửi kiểm kê lên share; báo bản mới; ký số; hướng dẫn sử dụng; các mục P3 | Bản 1.0 có trên share |
 | **Để sau** | Điều khiển nhiều máy từ xa, bản rút gọn cho nhân viên tự sửa lỗi, giao diện tối | |

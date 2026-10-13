@@ -1,22 +1,23 @@
 # Bàn giao: đọc file này trước khi làm tiếp
 
-Cập nhật lần cuối: 13/10/2026, sau khi xong phần code của GĐ1.
+Cập nhật lần cuối: 13/10/2026, sau khi xong trang Phần mềm (phần đầu của GĐ2).
 
 ## Trạng thái
 
 | | |
 |---|---|
-| Giai đoạn | **GĐ1 (Tổng quan + Sửa lỗi) xong phần code.** Còn chạy thử các mục đổi hệ thống bằng quyền admin (danh sách bên dưới) rồi mới coi là xong |
+| Giai đoạn | **GĐ1 (Tổng quan + Sửa lỗi) xong phần code.** Còn chạy thử các mục đổi hệ thống bằng quyền admin (danh sách bên dưới) rồi mới coi là xong. **GĐ2 đang làm:** đã có trang Phần mềm; wizard Cài máy mới chưa làm |
 | Nhánh | Code mới làm trên `featured`. Chỉ merge về `main` khi được duyệt |
-| Phiên bản | 0.2.0, xem [CHANGELOG.md](../CHANGELOG.md) |
-| Test | 130 test pytest, tất cả đều qua (khoảng 25 giây) |
+| Phiên bản | 0.2.0, xem [CHANGELOG.md](../CHANGELOG.md) (trang Phần mềm nằm ở mục "Chưa phát hành") |
+| Test | 159 test pytest, tất cả đều qua (khoảng 25 giây) |
 | Bản exe | `python packaging\build.py`: thư mục 64MB, zip 27MB. `--test` chạy selftest trên exe, gồm cả đọc thông tin máy |
 
 Đã có:
 - Trang **Tổng quan**: hệ điều hành, kích hoạt, phần cứng, mạng (DNS có trỏ về DC không), bảo mật; copy chữ, xuất HTML.
 - Trang **Sửa lỗi**: 24 mục (mạng, domain, máy in, Windows Update, hệ thống, Office) và 5 gói sửa nhanh.
 - Trang **Cấu hình**: 1 mục mẫu (Hiện đuôi file). Trang **Tiện ích**: mở nhanh 29 công cụ quản trị, công cụ mạng.
-- Trang **Nhật ký**: hoàn tác thay đổi registry. Trang Cài máy mới, Phần mềm, Tối ưu: chưa làm (GĐ2, GĐ3).
+- Trang **Phần mềm**: danh mục `apps.yaml` (share hoặc bản đóng gói), profile phòng ban, đánh dấu đã cài, cài lần lượt qua winget / MSI / EXE / portable. Cách khai báo: [SOFTWARE.md](SOFTWARE.md).
+- Trang **Nhật ký**: hoàn tác thay đổi registry. Trang Cài máy mới, Tối ưu: chưa làm (GĐ2, GĐ3).
 
 ## Bắt đầu
 
@@ -89,10 +90,19 @@ Các mục của GĐ1, chỗ cần để ý:
 - [ ] **Sửa Office:** cần máy có Office Click-to-Run. `OfficeClickToRun.exe` giao việc cho dịch vụ rồi thoát ngay; kiểm tra lấy đúng `Platform`, `ClientCulture` từ registry và Office được sửa thật.
 - [ ] **5 gói sửa nhanh:** dừng đúng khi một bước lỗi; bước bị khoá thì bỏ qua và chạy tiếp.
 
+Trang Phần mềm (GĐ2). Danh mục và phát hiện đã cài đã chạy thật trên máy dev (chỉ đọc); **chưa cài thật ứng dụng nào**:
+- [ ] **winget:** cài 2–3 ứng dụng nhỏ (7-Zip, Notepad++) trên VM; ứng dụng đã có thì báo xong chứ không báo lỗi (`0x8A15002B`, `0x8A150061`). winget lần đầu trên máy mới có thể hỏi điều khoản nguồn dù đã có `--accept-source-agreements`.
+- [ ] **MSI từ share:** log MSI xuất hiện trong thư mục logs; mã 3010 làm tool hỏi khởi động lại; thử 1618 bằng cách chạy một bộ cài MSI khác cùng lúc.
+- [ ] **EXE từ share:** `ExitCode` đọc được sau `WaitForExit` (đã giữ `$process.Handle` để tránh lỗi PowerShell trả ExitCode rỗng).
+- [ ] **Portable (UniKey):** chép vào Program Files, có shortcut Start Menu và Startup chung, đăng nhập tài khoản khác thấy UniKey tự chạy.
+- [ ] **Office bằng ODT:** cần file `setup.exe` và `config.xml` thật trên share; xem có bị timeout 3600 giây không.
+- [ ] **Run as different user:** ứng dụng `scope: user` (Zalo) bị khoá; phần mềm cài riêng cho người dùng (HKU\<SID>\…\Uninstall) vẫn được nhận là đã cài.
+- [ ] **Máy chưa vào domain:** trang báo "Không vào được share", danh mục quay về bản đóng gói; không bị treo lâu khi share không trả lời (quét chạy ở thread nền, nhưng `os.path.isdir` trên UNC có thể chờ 20–60 giây).
+
 ## Việc tiếp theo
 
 1. **Chạy danh sách trên** trên VM, sửa những gì sai. Khi đó GĐ1 mới xong.
-2. **GĐ2: Cài máy mới** (PLAN mục 5.2, 5.5). Cần câu trả lời PLAN mục 11 trước: câu 2 (quy ước tên máy), 3 (OU, tài khoản join), 4 (server/share), 5 (phần mềm từng phòng ban, loại license Office). Hộp thoại tài khoản domain và các hàm kiểm tra DC/DNS/giờ của GĐ1 dùng lại được cho bước "Kiểm tra trước" và "Join domain" của wizard.
+2. **GĐ2: phần còn lại** (PLAN mục 5.2, 5.5): wizard Cài máy mới (kiểm tra trước, đổi tên + join domain, chạy tiếp sau restart, cấu hình chuẩn, báo cáo), sửa / cài lại winget từ share. Cần câu trả lời PLAN mục 11 trước: câu 2 (quy ước tên máy), 3 (OU, tài khoản join), 4 (server/share), 5 (phần mềm từng phòng ban, loại license Office). Hộp thoại tài khoản domain, các hàm kiểm tra DC/DNS/giờ (`core/pslib.py`) và trang Phần mềm (`software/`) dùng lại được cho wizard. Lưu ý khi làm bước restart: tool có thể đang chạy từ USB, sau khi khởi động lại USB có thể đã rút; nên chép tool vào `%ProgramData%\FVPL-ITTools\app` trước khi hẹn tự mở lại.
 3. Câu 11 (10 lỗi người dùng hay báo nhất) giúp chọn fix P2 nào làm trước (GĐ3).
 
 ## Bẫy đã gặp
@@ -115,3 +125,7 @@ GĐ1:
 - **QLabel tự xuống dòng trong QScrollArea bị cắt chữ** (Qt tính sai chiều cao). Trang Tổng quan vẽ bằng HTML trong `QTextBrowser`.
 - **`regedit.exe` nằm ở `C:\Windows`,** không phải System32.
 - **Mã thoát âm** (HRESULT như `0x800705B4`) về Python thành số không dấu; khoá `messages` viết dạng hex là khớp.
+
+GĐ2:
+- **Bộ cài là chương trình giao diện:** gọi thẳng `& setup.exe` trong PowerShell thì không chờ. `Start-Process -Wait` lại chờ cả tiến trình con (nhiều bộ cài mở luôn ứng dụng sau khi cài), nên dùng `Start-Process -PassThru` rồi `WaitForExit()`; phải đọc `$process.Handle` ngay sau khi chạy, không thì `ExitCode` có lúc rỗng.
+- **Programs and Features có thể có hai dòng trùng tên** (.NET Desktop Runtime: một dòng mang số phiên bản nội bộ MSI). Phát hiện đã cài ưu tiên dòng có phiên bản khớp với số trong tên.

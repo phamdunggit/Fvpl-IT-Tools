@@ -1,5 +1,16 @@
 # Nhật ký thay đổi
 
+## Chưa phát hành: GĐ2, Cài máy mới
+
+### Thêm
+
+- Trang **Phần mềm**:
+  - Danh mục `apps.yaml` (winget, share MSI/EXE/portable) và profile phòng ban kế thừa nhau. Bản trên `<share_root>\config\apps.yaml` được ưu tiên; bản đóng gói kèm tool là danh sách gợi ý, chưa chốt. Cách khai báo: [docs/SOFTWARE.md](docs/SOFTWARE.md).
+  - Đánh dấu phần mềm đã cài kèm phiên bản (đọc Programs and Features, không cần winget).
+  - Chọn theo profile, tìm không dấu, xem trước lệnh, cài lần lượt, thử lại mục lỗi. Ứng dụng không cài được thì ghi rõ lý do.
+  - MSI ghi log riêng và tự thử lại khi gặp mã 1618; mã lỗi winget được giải thích bằng tiếng Việt.
+- `--selftest` chờ trang Phần mềm quét xong và báo lỗi danh mục.
+
 ## 0.2.0 (13/10/2026): GĐ1, Tổng quan + Sửa lỗi
 
 Nhánh `featured`, chưa merge về `main`. Các mục đổi hệ thống **chưa chạy thật bằng quyền admin**, xem [docs/HANDOFF.md](docs/HANDOFF.md).
