@@ -3,9 +3,10 @@
 Mỗi mục là một khối trong file `src/fvpl_ittools/data/actions/NN-ten.yaml`. Số `NN` đầu tên file quyết định thứ tự nhóm trong cây (10 mạng, 20 domain, 30 máy in, 40 Windows Update, 50 hệ thống, 60 Office, 90 tuỳ chọn). Thêm mục không cần sửa code.
 Khai báo sai thì mục đó bị loại, tool báo lỗi bằng tiếng Việt kèm tên file và số thứ tự. Các mục khác vẫn chạy bình thường.
 
-**Sau khi thêm hoặc sửa thì chạy `.venv\Scripts\python -m pytest`.** Hai test hay bắt lỗi nhất:
+**Sau khi thêm hoặc sửa thì chạy `.venv\Scripts\python -m pytest`.** Ba test hay bắt lỗi nhất:
 - `test_bundled_actions_load_without_errors`: khai báo sai khoá, sai kiểu.
 - `test_every_powershell_script_parses`: soát cú pháp mọi script PowerShell bằng parser của PowerShell (không chạy script), ví dụ thiếu ngoặc, `"$bien:"` trong chuỗi.
+- `test_every_powershell_script_fits_command_line`: script (kèm hàm dựng sẵn) quá dài để truyền qua dòng lệnh. Gặp thì tách thành hai bước.
 
 ## Ví dụ đủ các phần
 
@@ -58,10 +59,10 @@ Mục chẩn đoán dùng hàm dựng sẵn và giải thích mã thoát:
 
 | Khoá | Bắt buộc | Mặc định | Ý nghĩa |
 |---|---|---|---|
-| `id` | có | | Dạng `nhom.ten`: chữ thường không dấu, số, `_`. Không được trùng giữa các file. Nhóm đang dùng: `net`, `dom`, `prn`, `wu`, `sys`, `off`, `ui`. |
+| `id` | có | | Dạng `nhom.ten`: chữ thường không dấu, số, `_`. Không được trùng giữa các file. Nhóm đang dùng: `net`, `dom`, `prn`, `wu`, `sys`, `off`, `sec`, `sw`, `opt`, `cfg`, `ui`. |
 | `name` | có | | Tên hiện trong danh sách. |
 | `category` | có | | Nhóm trong cây (ví dụ `Mạng & Internet`). |
-| `page` | | `fixes` | Trang hiện mục: `fixes` (Sửa lỗi), `optimize` (Tối ưu & dọn dẹp), `config` (Cấu hình), `utilities` (Tiện ích, tab "Mục khác"). |
+| `page` | | `fixes` | Trang hiện mục: `fixes` (Sửa lỗi), `printers` (Máy in, tab Sửa lỗi), `optimize` (Tối ưu & dọn dẹp), `config` (Cấu hình), `utilities` (Tiện ích, tab "Mục khác"). |
 | `risk` | | `safe` | `safe` / `caution` / `advanced` (An toàn / Cẩn thận / Nâng cao). Mục Cẩn thận/Nâng cao sẽ hỏi xác nhận và tạo restore point trước khi chạy. |
 | `scope` | | `machine` | `machine`: áp cho cả máy, **không được** ghi HKCU. `user`: áp cho người đang đăng nhập, **chỉ được** ghi HKCU; tool tự đổi sang `HKU\<SID>` khi IT chạy tool bằng tài khoản khác. Script PowerShell của mục `user` dùng `$TargetUserProfile`, `$TargetUserSid` thay cho `$env:USERPROFILE`, `HKCU:`. |
 | `admin` | | `true` | Cần quyền admin. Tool không có quyền admin thì mục bị khoá. |
@@ -72,7 +73,7 @@ Mục chẩn đoán dùng hàm dựng sẵn và giải thích mã thoát:
 | `check` | | | `{ registry: { key, name, on_value } }`. Đọc trạng thái hiện tại: giá trị bằng `on_value` thì cột trạng thái hiện "✔ Đã áp dụng", ngược lại "Chưa áp dụng". `on_value` là giá trị *sau khi* chạy mục, kể cả với mục tên "Tắt …". |
 | `apply` | có | | Danh sách bước, chạy lần lượt. Một bước lỗi thì dừng mục đó. |
 | `undo` | có nếu `risk` khác `safe` | `auto` khi có bước registry, ngược lại `none` | `auto`: trả registry về giá trị đã sao lưu. `none`: không hoàn tác được. Hoặc một danh sách bước hoàn tác. |
-| `after` | | | Thao tác làm sau, ví dụ `[restart_explorer]`. Chỉ chạy nếu mục có thay đổi, và chạy **một lần** cho cả lượt dù nhiều mục cùng khai báo. |
+| `after` | | | Thao tác làm sau, ví dụ `[restart_explorer]`, `[restart_spooler]`. Chỉ chạy nếu mục có thay đổi, và chạy **một lần** cho cả lượt dù nhiều mục cùng khai báo. Hoàn tác mục đó cũng chạy lại thao tác này. |
 | `gpo` | | | `[{ key, name }]`. Nếu một giá trị trong đây có mặt, mục hiện "GPO quản lý" và không chạy. |
 | `needs_credential` | | | `domain`. Trước khi chạy, tool hỏi tài khoản domain (tự thêm `DOMAIN\` nếu IT chỉ gõ tên). Script PowerShell dùng biến `$Credential`. Mật khẩu đi qua stdin, bị che trong log và chỉ sống trong lượt chạy đó. Mục loại này phải là Cẩn thận hoặc Nâng cao. |
 
@@ -86,7 +87,7 @@ Mỗi bước có đúng **một** trong các khoá sau:
 | `powershell` | `- powershell: \|` rồi các dòng script | Windows PowerShell 5.1, gặp lỗi là dừng (`$ErrorActionPreference = 'Stop'`), output UTF-8. Mã thoát là mã của lệnh native cuối cùng, gặp lỗi thì là 1; tự đặt được bằng `exit N`. Script dài tối đa khoảng 11.000 ký tự (quá thì tool tự bỏ chú thích và thụt lề). Có sẵn biến và hàm, xem phần dưới. |
 | `registry` | `- registry: { key, name, type, value }` | `type`: `DWORD`, `QWORD`, `SZ`, `EXPAND_SZ`, `MULTI_SZ` (danh sách chuỗi), `BINARY` (chuỗi hex `"01 0a ff"` hoặc danh sách số). `name: ""` là giá trị mặc định của khoá. Xoá giá trị thì viết `{ key, name, delete: true }`. Giá trị đã đúng sẵn thì bỏ qua và không ghi nhật ký. Không được ghi thẳng `HKU`. |
 | `service` | `- service: { name: Spooler, action: restart }` | `action`: `start` / `stop` / `restart`. Đổi kiểu khởi động làm ở GĐ3. |
-| `builtin` | `- builtin: restart_explorer` | Thao tác viết bằng Python. Hiện có: `restart_explorer`, `rebuild_icon_cache` (tắt Explorer, xoá cache icon/thumbnail của người dùng, mở lại). |
+| `builtin` | `- builtin: restart_explorer` | Thao tác viết bằng Python. Hiện có: `restart_explorer`, `rebuild_icon_cache` (tắt Explorer, xoá cache icon/thumbnail của người dùng, mở lại), `restart_spooler` (cho các mục đổi thiết lập máy in). |
 
 Khoá dùng chung cho mọi bước:
 
@@ -112,7 +113,7 @@ Biến, có sẵn trong mọi script:
 | `$ShareRoot` | Kho bộ cài: thư mục `SOFT` cạnh file exe (bản SSD) nếu có, không thì `share_root` trong site.yaml (bản USB); rỗng nếu chưa có. Ví dụ nguồn .NET 3.5 offline: `$ShareRoot\Sources\sxs\<build>`. |
 | `$Credential` | Chỉ có ở mục `needs_credential`. |
 
-Hàm, khai báo trong `src/fvpl_ittools/core/pslib.py`. Tool chỉ thêm chúng vào script nào có gọi tới; nút "Copy lệnh" copy kèm luôn để chạy tay vẫn đúng.
+Hàm, khai báo trong `src/fvpl_ittools/core/pslib.py`. Tool chỉ thêm vào script những hàm script gọi tới (kèm hàm mà chúng gọi), để script không dài quá giới hạn dòng lệnh; nút "Copy lệnh" copy kèm luôn để chạy tay vẫn đúng.
 
 | Hàm | Làm gì |
 |---|---|
@@ -144,7 +145,7 @@ Hai khoá tuỳ chọn:
 
 | Khoá | Mặc định | Ý nghĩa |
 |---|---|---|
-| `page` | `fixes` | Trang hiện nút gói: `fixes` (Sửa lỗi) hoặc `config` (Cấu hình, nhãn "Làm cả gói"). |
+| `page` | `fixes` | Trang hiện nút gói: `fixes` (Sửa lỗi), `printers` (Máy in, tab Sửa lỗi), `optimize` hoặc `config` (hai trang này nhãn "Làm cả gói"). |
 | `stop_on_error` | `true` | `false`: một mục lỗi thì vẫn làm tiếp mục sau. Dùng cho gói cấu hình, ví dụ `pack.standard_config` (lỗi cài .NET 3.5 không nên chặn việc tạo restore point). |
 
 ## Bẫy hay gặp

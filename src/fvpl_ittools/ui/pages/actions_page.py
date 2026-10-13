@@ -279,7 +279,7 @@ class ActionsPage(QWidget):
         bar.setObjectName("PackBar")
         layout = QHBoxLayout(bar)
         layout.setContentsMargins(12, 8, 12, 8)
-        label = QLabel("Gói sửa nhanh" if self.page_key == "fixes" else "Làm cả gói")
+        label = QLabel("Gói sửa nhanh" if self.page_key in ("fixes", "printers") else "Làm cả gói")
         label.setObjectName("SectionLabel")
         layout.addWidget(label)
         for pack in self.packs:

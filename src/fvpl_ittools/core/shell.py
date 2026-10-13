@@ -295,6 +295,22 @@ def compact_powershell(script: str) -> str:
     return "\n".join(line for line in lines if line and not line.startswith("#"))
 
 
+def encode_for_command_line(
+    script: str, with_credential: bool = False, variables: dict[str, str] | None = None
+) -> str:
+    """Script đã bọc, mã hoá base64 để đặt trên dòng lệnh; quá dài thì bỏ chú thích và thụt lề rồi thử lại.
+
+    Vẫn quá giới hạn thì ValueError. Test gọi hàm này cho mọi script để biết trước, không phải đợi chạy thật.
+    """
+    encoded = _encode(build_powershell_script(script, with_credential=with_credential, variables=variables))
+    if len(encoded) > MAX_COMMAND_LINE:
+        compact = compact_powershell(script)
+        encoded = _encode(build_powershell_script(compact, with_credential=with_credential, variables=variables))
+    if len(encoded) > MAX_COMMAND_LINE:
+        raise ValueError("Script PowerShell quá dài để truyền qua dòng lệnh, hãy tách nhỏ.")
+    return encoded
+
+
 def run_powershell(
     script: str,
     *,
@@ -310,12 +326,7 @@ def run_powershell(
     Tài khoản (nếu có) đi qua stdin, không nằm trên dòng lệnh, nên không lộ trong danh sách tiến trình.
     Trong script dùng biến $Credential. `variables` đặt sẵn các biến chuỗi khác cho script.
     """
-    encoded = _encode(build_powershell_script(script, with_credential=credential is not None, variables=variables))
-    if len(encoded) > MAX_COMMAND_LINE:
-        compact = compact_powershell(script)
-        encoded = _encode(build_powershell_script(compact, with_credential=credential is not None, variables=variables))
-    if len(encoded) > MAX_COMMAND_LINE:
-        raise ValueError("Script PowerShell quá dài để truyền qua dòng lệnh, hãy tách nhỏ.")
+    encoded = encode_for_command_line(script, with_credential=credential is not None, variables=variables)
     bootstrap = f"& ([ScriptBlock]::Create([Text.Encoding]::Unicode.GetString([Convert]::FromBase64String('{encoded}'))))"
     argv = [
         powershell_exe(), "-NoLogo", "-NoProfile", "-NonInteractive",

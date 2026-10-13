@@ -4,6 +4,11 @@
 
 ### Thêm
 
+- Trang **Máy in** (mục sửa máy in chuyển từ trang Sửa lỗi sang), ba tab:
+  - **Máy in trên máy**: máy in IP / USB / WSD / ảo, máy in share của cả máy và của người đang đăng nhập (đọc từ hive của họ khi IT chạy tool bằng tài khoản khác), driver, trạng thái, lệnh chờ, máy in mặc định. In trang thử, mở hàng đợi, gỡ máy in (kèm cổng TCP/IP không còn dùng, và driver nếu chọn).
+  - **Thêm máy in**: qua IP (driver đã cài, driver có sẵn trong Windows như Microsoft IPP Class Driver, hoặc file .inf của hãng: tool đọc tên model trong file để chọn); máy in share `\\máy\tên` (cài driver bằng quyền admin để tránh 0x00000bcb, tuỳ chọn thêm cho mọi người dùng bằng `printui /ga`). Lỗi kết nối kèm gợi ý theo mã lỗi.
+  - **Sửa lỗi**: gói "Sửa máy in", nhóm "Share máy in Win11 ↔ Win10": mục kiểm tra (cách gọi RPC, Spooler, firewall, mạng Public, máy chia sẻ có trả lời không, bảng mã lỗi), máy chia sẻ nhận cả Named Pipes và mở firewall File and Printer Sharing, máy Win11 22H2+ kết nối bằng Named Pipes (0x00000709, 0x0000007c), bỏ yêu cầu mã hoá RPC (0x0000011b, Nâng cao). Đều hoàn tác được.
+- Builtin `restart_spooler` (dùng trong `after`).
 - Trang **Tối ưu & dọn dẹp** (GĐ3), ba tab:
   - **Dọn rác**: quét trước 7 loại (Temp người dùng, Temp Windows, bản cập nhật đã tải, cache Delivery Optimization, dump và báo cáo lỗi, thùng rác, Windows.old), hiện dung lượng và số file, tick rồi mới xoá. File Temp sửa trong 24 giờ được giữ; không đi theo junction/symlink; file đang khoá thì bỏ qua. Windows.old và Delivery Optimization dọn bằng Disk Cleanup.
   - **Khởi động cùng Windows**: danh sách từ khoá Run và thư mục Startup, bật/tắt kiểu Task Manager (StartupApproved), có nhật ký và hoàn tác.
@@ -30,6 +35,10 @@
 - Mục **Sửa / cài lại winget** (trang Sửa lỗi, nhóm Phần mềm): đăng ký lại App Installer cho tài khoản đang chạy tool; không được thì cài từ `<share>\Installers\winget\` (có file license thì cài sẵn cho cả máy). Trang Phần mềm và bước Kiểm tra trước trỏ tới mục này khi thiếu winget.
 - Gói có thêm khoá `page` (hiện ở trang nào) và `stop_on_error`. Script PowerShell có thêm biến `$ShareRoot`, `$LogDir`.
 - `--selftest` chờ trang Phần mềm quét xong và báo lỗi danh mục.
+
+### Sửa
+
+- Hàm PowerShell dựng sẵn chỉ được thêm khi script gọi tới (trước đây thêm cả bộ khoảng 7.000 ký tự), để script dài không vượt giới hạn dòng lệnh. Có test soát độ dài mọi script.
 
 ### Bỏ
 

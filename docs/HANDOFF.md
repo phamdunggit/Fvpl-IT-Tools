@@ -1,6 +1,6 @@
 # Bàn giao: đọc file này trước khi làm tiếp
 
-Cập nhật lần cuối: 13/10/2026, sau khi xong trang Phần mềm (phần đầu của GĐ2).
+Cập nhật lần cuối: 13/10/2026, sau khi xong trang Máy in (sửa share máy in Win11 ↔ Win10).
 
 ## Trạng thái
 
@@ -9,12 +9,13 @@ Cập nhật lần cuối: 13/10/2026, sau khi xong trang Phần mềm (phần �
 | Giai đoạn | **GĐ1 (Tổng quan + Sửa lỗi) xong phần code.** Còn chạy thử các mục đổi hệ thống bằng quyền admin (danh sách bên dưới) rồi mới coi là xong. **GĐ2 đang làm:** đã có trang Phần mềm; wizard Cài máy mới chưa làm |
 | Nhánh | Code mới làm trên `featured`. Chỉ merge về `main` khi được duyệt |
 | Phiên bản | 0.2.0, xem [CHANGELOG.md](../CHANGELOG.md) (trang Phần mềm nằm ở mục "Chưa phát hành") |
-| Test | 212 test pytest, tất cả đều qua (khoảng 25 giây) |
+| Test | 243 test pytest, tất cả đều qua (khoảng 35 giây) |
 | Bản exe | `python packaging\build.py`: thư mục 64MB, zip 27MB. `--test` chạy selftest trên exe, gồm cả đọc thông tin máy |
 
 Đã có:
 - Trang **Tổng quan**: hệ điều hành, kích hoạt, phần cứng, mạng (DNS có trỏ về DC không), bảo mật; copy chữ, xuất HTML.
-- Trang **Sửa lỗi**: 24 mục (mạng, domain, máy in, Windows Update, hệ thống, Office) và 5 gói sửa nhanh.
+- Trang **Sửa lỗi**: các mục mạng, domain, Windows Update, hệ thống, Office và 4 gói sửa nhanh.
+- Trang **Máy in**: danh sách máy in (kể cả share của người đang đăng nhập), gỡ máy in / driver, in thử; thêm máy in qua IP (driver từ file .inf) và máy in share; tab Sửa lỗi có các mục share máy in Win11 ↔ Win10 (`printers/`, `30-printers.yaml`).
 - Trang **Cấu hình**: 1 mục mẫu (Hiện đuôi file). Trang **Tiện ích**: mở nhanh 29 công cụ quản trị, công cụ mạng.
 - Trang **Phần mềm**: danh mục `apps.yaml` (share hoặc bản đóng gói), profile phòng ban, đánh dấu đã cài, cài lần lượt qua winget / MSI / EXE / portable. Cách khai báo: [SOFTWARE.md](SOFTWARE.md).
 - Trang **Cài máy mới**: mới có bước 0 "Kiểm tra trước" (`newpc/precheck.py`); các bước 1–7 của wizard chưa làm.
@@ -123,6 +124,15 @@ Trang Tối ưu & dọn dẹp (GĐ3). Quét rác, danh sách khởi động, li�
 - [ ] **Tối ưu**: gói "Tắt quảng cáo và theo dõi" rồi xem Start, Settings, taskbar; Widgets tắt bằng policy `Dsh\AllowNewsAndInterests`; power plan High performance trên laptop Modern Standby (có thể Windows không cho).
 - [ ] **Gỡ app cài sẵn**: chạy "Liệt kê" rồi "Gỡ" trên VM; tài khoản mới tạo sau đó không bị cài lại; các app trong danh sách giữ vẫn còn.
 
+Trang Máy in. Danh sách máy in và mục "Kiểm tra share máy in" đã chạy thật trên máy dev (chỉ đọc); **chưa thêm / gỡ / đổi thật gì**. Cần một VM Win11 24H2+ share máy in (máy in ảo cũng được, ví dụ "Generic / Text Only" cổng FILE:) và một VM Win10 22H2 kết nối tới:
+- [ ] **Win10 → máy in share trên Win11:** trước khi sửa lỗi gì thì ghi lại mã lỗi; "Máy chia sẻ máy in: cho máy khác kết nối vào" trên Win11 (`RpcProtocols = 7`, firewall) rồi Win10 kết nối được. Xem các luật firewall nào được bật (luật gộp Private + Public).
+- [ ] **Win11 → máy in share trên Win10:** "Máy kết nối máy in share: dùng Named Pipes" trên Win11 rồi kết nối được; kiểm tra sau đó Win11 này vẫn kết nối được máy in share trên một Win11 khác đã chạy mục máy chia sẻ.
+- [ ] **0x0000011b:** chỉ thử nếu gặp; xem `RpcAuthnLevelPrivacyEnabled = 0` bây giờ còn tác dụng không (Microsoft vẫn ghi trong tài liệu 02/2026).
+- [ ] **Thêm máy in share** khi tool chạy bằng tài khoản IT (Run as different user): driver được cài, `printui /ga` tạo khoá `HKLM\...\Print\Connections\,,máy,tên`, người dùng thấy máy in sau khi khởi động lại Spooler hay phải đăng nhập lại. Khi kết nối lỗi, mã lỗi lấy được từ `error_Code` hay chỉ có trong chữ của lỗi.
+- [ ] **Thêm máy in qua IP:** driver có sẵn (Microsoft IPP Class Driver), và driver từ file .inf của hãng (`pnputil /add-driver` rồi `Add-PrinterDriver -Name` đúng tên model); mã thoát của pnputil khi driver đã có sẵn.
+- [ ] **Gỡ máy in:** máy in IP (cổng TCP/IP bị xoá khi không còn dùng), gỡ cả driver (`-RemoveFromDriverStore` trên Win10 có không); máy in share của cả máy (`printui /gd`); máy in share của người dùng khi tool chạy bằng tài khoản IT (tác vụ chạy dưới tên họ, người đó phải đang đăng nhập).
+- [ ] **In trang thử** và **Mở hàng đợi** với máy in thật.
+
 Hai bản USB / SSD:
 - [ ] `deploy.py ssd` ra SSD thật, chạy tool từ SSD trên máy chưa vào domain: trang Phần mềm ghi "kho trên ổ mang theo", cài Office từ ISO trên SSD (mount ISO từ ổ USB/SSD).
 - [ ] Bản USB: kho là share; máy chưa join thì báo không vào được kho, không treo.
@@ -155,5 +165,8 @@ GĐ1:
 - **Mã thoát âm** (HRESULT như `0x800705B4`) về Python thành số không dấu; khoá `messages` viết dạng hex là khớp.
 
 GĐ2:
+- **Script quá dài so với dòng lệnh** chỉ lộ ra khi chạy thật (mục "Kiểm tra share máy in" dài 32.400 ký tự sau khi mã hoá, giới hạn 32.000). Giờ hàm dựng sẵn chỉ được thêm khi script gọi tới, và `test_every_powershell_script_fits_command_line` soát mọi script.
+- **`Win32_Printer.Shared` của máy in share (`\\máy\tên`) là True:** đó là trạng thái bên máy chia sẻ. Muốn biết máy này có share máy in nào thì bỏ các máy in có tên bắt đầu bằng `\\`.
+- **Heredoc của Bash nuốt bớt dấu `\`** (`\\` thành `\`), cả khi dùng `<<'EOF'` để chạy Python sửa file. Nội dung có `\` thì sửa bằng công cụ Edit/Write, rồi grep lại.
 - **Bộ cài là chương trình giao diện:** gọi thẳng `& setup.exe` trong PowerShell thì không chờ. `Start-Process -Wait` lại chờ cả tiến trình con (nhiều bộ cài mở luôn ứng dụng sau khi cài), nên dùng `Start-Process -PassThru` rồi `WaitForExit()`; phải đọc `$process.Handle` ngay sau khi chạy, không thì `ExitCode` có lúc rỗng.
 - **Programs and Features có thể có hai dòng trùng tên** (.NET Desktop Runtime: một dòng mang số phiên bản nội bộ MSI). Phát hiện đã cài ưu tiên dòng có phiên bản khớp với số trong tên.

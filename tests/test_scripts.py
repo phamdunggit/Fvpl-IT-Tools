@@ -13,6 +13,8 @@ from fvpl_ittools.actions.model import PowerShellStep
 from fvpl_ittools.core import executor, inventory, pslib, safety, shell
 from fvpl_ittools.newpc import precheck
 
+from . import test_printers as printers_test
+
 _PARSE = """\
 $items = Get-Content -LiteralPath $ScriptsFile -Raw -Encoding UTF8 | ConvertFrom-Json
 $problems = @()
@@ -28,20 +30,25 @@ ConvertTo-Json -InputObject @($problems) -Compress
 """
 
 
-def _bundled_scripts(env) -> list[dict]:
+def _bundled_steps() -> list[tuple[str, str, bool]]:
+    """(tên, script thật sẽ chạy kèm hàm dựng sẵn, có hỏi tài khoản không) của mọi bước PowerShell."""
     actions, errors = loader.load_builtin_actions()
     assert errors == []
-    scripts = []
+    steps = []
     for action in actions:
         for index, step in enumerate(action.apply + action.undo_steps, start=1):
             if isinstance(step, PowerShellStep):
-                wrapped = shell.build_powershell_script(
-                    executor.ps_script_for(step),
-                    with_credential=action.needs_credential is not None,
-                    variables=executor.ps_variables(env),
-                )
-                scripts.append({"name": f"{action.id} bước {index}", "script": wrapped})
-    return scripts
+                steps.append((f"{action.id} bước {index}", executor.ps_script_for(step),
+                              action.needs_credential is not None))
+    return steps
+
+
+def _bundled_scripts(env) -> list[dict]:
+    return [
+        {"name": name, "script": shell.build_powershell_script(
+            script, with_credential=credential, variables=executor.ps_variables(env))}
+        for name, script, credential in _bundled_steps()
+    ]
 
 
 def _internal_scripts() -> list[dict]:
@@ -53,7 +60,8 @@ def _internal_scripts() -> list[dict]:
         {"name": "restore_point", "script": safety._RESTORE_POINT_SCRIPT.replace("__DESC__", "'x'")},
         {"name": "check_helpers", "script": pslib.CHECK_HELPERS},
         {"name": "precheck", "script": pslib.with_helpers(precheck._NETWORK_SCRIPT)},
-    ] + [{"name": f"inventory {part}", "script": inventory.part_script(part)} for part in inventory.PARTS]
+    ] + [{"name": f"inventory {part}", "script": inventory.part_script(part)} for part in inventory.PARTS] + [
+        {"name": name, "script": pslib.with_helpers(script)} for name, script in printers_test.generated_scripts()]
 
 
 def test_every_powershell_script_parses(env, tmp_path):
@@ -65,6 +73,35 @@ def test_every_powershell_script_parses(env, tmp_path):
     assert result.ok, result.output
     problems = json.loads(result.output.strip().splitlines()[-1])
     assert problems == [], "\n".join(f"{p['name']} dòng {p['line']}: {p['message']}" for p in problems)
+
+
+def test_every_powershell_script_fits_command_line(env):
+    """Script truyền qua dòng lệnh, Windows giới hạn độ dài. Quá thì mục chỉ báo lỗi khi chạy thật, nên soát trước.
+
+    Biến dựng sẵn đặt dài 250 ký tự (đường dẫn profile, share dài) cho chắc.
+    """
+    variables = {name: "x" * 250 for name in executor.ps_variables(env)}
+    scripts = [(name, script, credential) for name, script, credential in _bundled_steps()]
+    scripts += [(item["name"], item["script"], False) for item in _internal_scripts()]
+    too_long = []
+    for name, script, credential in scripts:
+        try:
+            shell.encode_for_command_line(script, with_credential=credential, variables=variables)
+        except ValueError:
+            too_long.append(name)
+    assert too_long == [], f"Script quá dài, cần tách nhỏ: {too_long}"
+
+
+def test_helpers_are_added_only_when_called():
+    script = "if (Test-Port $ip 445) { Write-Ok 'mở' }"
+    full = pslib.with_helpers(script)
+    assert full.endswith(script) and "$Checks" in full
+    assert "function Test-Port" in full and "function Write-Ok" in full
+    assert "function Write-Line" in full  # Write-Ok gọi Write-Line
+    assert "function Test-DnsSrv" not in full and "function Get-ActiveAdapters" not in full
+    domain = pslib.with_helpers("Test-DomainDns $d $s")
+    assert "function Test-DnsSrv" in domain and "function Write-Bad" in domain
+    assert pslib.with_helpers("Get-Date") == "Get-Date"
 
 
 def test_bloat_app_lists_match():

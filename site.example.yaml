@@ -14,6 +14,7 @@ netbios_domain: CORP
 #   Installers\...            bộ cài phần mềm nguồn share (đường dẫn khai báo trong apps.yaml)
 #   Installers\winget\        App Installer (.msixbundle, .appx phụ thuộc, license .xml) để cài lại winget
 #   Sources\sxs\<build>\      nguồn .NET 3.5 offline, chép từ sources\sxs của ISO cùng build (ví dụ 26100)
+#   Drivers\Printers\<hãng>\  driver máy in đã giải nén (có file .inf), trang Máy in mở sẵn thư mục này
 share_root: '\\fileserver.corp.example\IT$\ITTools'
 
 # Tiền tố tên máy, ví dụ FVPL- cho FVPL-KT05

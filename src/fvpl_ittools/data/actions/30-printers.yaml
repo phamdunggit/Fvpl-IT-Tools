@@ -1,14 +1,16 @@
-# Máy in. Cách khai báo: xem docs/ACTIONS.md.
+# Máy in (trang Máy in, tab Sửa lỗi). Cách khai báo: xem docs/ACTIONS.md.
+# Thêm / gỡ máy in cần nhập địa chỉ nên viết bằng Python: src/fvpl_ittools/printers/.
 
 - id: prn.list
   name: Liệt kê máy in và lệnh in đang chờ
   category: Máy in
+  page: printers
   risk: safe
   admin: false
   description: >
     Chỉ xem: tên máy in, cổng, driver, trạng thái và số lệnh in đang chờ của từng máy in.
     Máy in share kết nối theo từng người dùng, nên nếu mở tool bằng tài khoản IT khác thì sẽ không thấy
-    máy in share của người dùng.
+    máy in share của người dùng (tab "Máy in trên máy" thì có).
   apply:
     - powershell: |
         $printers = @(Get-Printer | Sort-Object Name)
@@ -26,6 +28,7 @@
 - id: prn.clear_queue
   name: Xoá lệnh in bị kẹt
   category: Máy in
+  page: printers
   risk: safe
   description: >
     Dừng Print Spooler, xoá các lệnh in đang kẹt rồi chạy lại Spooler. Dùng khi lệnh in đứng mãi,
@@ -57,9 +60,229 @@
 - id: prn.restart_spooler
   name: Khởi động lại Print Spooler
   category: Máy in
+  page: printers
   risk: safe
   description: >
     Khởi động lại dịch vụ in. Dùng khi không thêm được máy in, cửa sổ máy in bị treo hoặc báo
     "Print Spooler service is not running". Lệnh in đang chờ vẫn giữ nguyên.
   apply:
     - service: { name: Spooler, action: restart }
+
+# ---- Share máy in giữa Win11 và Win10.
+# Từ Win11 22H2 (build 22621), dịch vụ in gọi nhau bằng RPC qua TCP và chỉ nhận kết nối RPC qua TCP;
+# Win10 dùng Named Pipes. Nguồn: learn.microsoft.com, "Windows 11 RPC connection updates for print".
+# RpcProtocols là cờ bit: 1 = cục bộ, 2 = Named Pipes, 4 = TCP. Mặc định 5 (cục bộ + TCP), 7 = nhận cả hai.
+
+- id: prn.share_check
+  name: Kiểm tra share máy in (Win11 ↔ Win10)
+  category: Share máy in Win11 ↔ Win10
+  page: printers
+  risk: safe
+  admin: false
+  description: >
+    Chỉ xem. Chạy trên cả máy đang share máy in lẫn máy kết nối tới: bản Windows và cách dịch vụ in gọi nhau
+    (TCP hay Named Pipes), Print Spooler, máy này đang share máy in nào, dịch vụ Server, mạng Public hay
+    Domain/Private, firewall File and Printer Sharing, các máy in share đang kết nối tới có trả lời không.
+    Dòng ✖ ghi rõ nên chạy mục sửa nào, trên máy nào. Cuối cùng là bảng mã lỗi hay gặp.
+  apply:
+    - powershell: |
+        $build = [int](Get-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion').CurrentBuildNumber
+        $newRpc = $build -ge 22621
+        $rpc = Get-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\Printers\RPC' -ErrorAction SilentlyContinue
+        $print = Get-ItemProperty -LiteralPath 'HKLM:\SYSTEM\CurrentControlSet\Control\Print' -ErrorAction SilentlyContinue
+        $pnp = Get-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\Printers\PointAndPrint' -ErrorAction SilentlyContinue
+        $useNp = $false
+        $listen = 7
+
+        Write-Line '== Máy này'
+        if ($newRpc) {
+            Write-Line ('Windows build {0}: Win11 22H2 trở lên, dịch vụ in mặc định gọi nhau bằng RPC qua TCP.' -f $build)
+            $useNp = [bool]($rpc -and $rpc.RpcUseNamedPipeProtocol -eq 1)
+            if ($useNp) { Write-Line 'Kết nối tới máy in share: Named Pipes (giống Win10).' }
+            else { Write-Line 'Kết nối tới máy in share: RPC qua TCP (mặc định).' }
+            $listen = 5
+            if ($rpc -and $null -ne $rpc.RpcProtocols) { $listen = [int]$rpc.RpcProtocols }
+            if ($listen -band 2) { Write-Line 'Nhận kết nối từ máy khác: có Named Pipes, máy Win10 kết nối vào được.' }
+            else { Write-Line 'Nhận kết nối từ máy khác: chỉ RPC qua TCP (mặc định), máy Win10 không kết nối vào được.' }
+        }
+        else {
+            Write-Line ('Windows build {0}: dịch vụ in dùng Named Pipes như Win10, không cần đổi cách gọi RPC.' -f $build)
+        }
+        $spooler = Get-Service -Name Spooler
+        if ($spooler.Status -eq 'Running') { Write-Ok 'Print Spooler đang chạy.' }
+        else { Write-Bad ('Print Spooler đang {0}: chạy mục "Khởi động lại Print Spooler".' -f $spooler.Status) }
+        $restrict = 1
+        if ($pnp -and $null -ne $pnp.RestrictDriverInstallationToAdministrators) { $restrict = [int]$pnp.RestrictDriverInstallationToAdministrators }
+        if ($restrict -eq 0) { Write-Warn 'Người dùng thường đang được tự cài driver máy in (đã tắt bảo vệ PrintNightmare), nên bỏ thiết lập này.' }
+        else { Write-Line 'Chỉ admin được cài driver máy in (mặc định). Thêm máy in share bằng tab "Thêm máy in" để tool cài driver bằng quyền admin.' }
+
+        $shared = @()
+        # Máy in share đang kết nối tới (\\máy\tên) cũng có Shared = True, đó là của máy kia nên bỏ ra.
+        try { $shared = @(Get-CimInstance Win32_Printer | Where-Object { $_.Shared -and -not ([string]$_.Name).StartsWith('\\') }) } catch { }
+        Write-Line ''
+        Write-Line '== Máy in máy này đang share'
+        if (-not $shared) { Write-Line 'Không share máy in nào.' }
+        foreach ($p in $shared) { Write-Line ('\\{0}\{1}   ({2})' -f $env:COMPUTERNAME, $p.ShareName, $p.Name) }
+        if ($shared) {
+            $server = Get-Service -Name LanmanServer -ErrorAction SilentlyContinue
+            if ($server -and $server.Status -eq 'Running') { Write-Ok 'Dịch vụ Server (chia sẻ qua mạng) đang chạy.' }
+            else { Write-Bad 'Dịch vụ Server (LanmanServer) không chạy: máy khác không vào được máy in share.' }
+            if (-not ($listen -band 2)) { Write-Bad 'Máy Win10 không kết nối vào được: chạy mục "Máy chia sẻ máy in: cho máy khác kết nối vào" trên máy này.' }
+            $fw = New-Object -ComObject HNetCfg.FwPolicy2
+            $profiles = [int]$fw.CurrentProfileTypes
+            if ($profiles -band 4) { Write-Bad 'Mạng đang là Public: Windows chặn chia sẻ máy in. Đổi mạng sang Private hoặc vào domain.' }
+            $wanted = $profiles -band 3
+            $rules = @(@($fw.Rules) | Where-Object { $_.Grouping -eq '@FirewallAPI.dll,-28502' -and $_.Direction -eq 1 -and ($_.Profiles -band $wanted) })
+            $on = @($rules | Where-Object { $_.Enabled })
+            $firewallOff = $wanted -and -not (@(1, 2) | Where-Object { ($wanted -band $_) -and $fw.FirewallEnabled($_) })
+            if ($firewallOff) { Write-Line 'Firewall đang tắt với mạng đang dùng.' }
+            elseif (-not $wanted) { }
+            elseif (-not $rules) { Write-Warn 'Không đọc được luật firewall File and Printer Sharing.' }
+            elseif ($on.Count -eq $rules.Count) { Write-Ok 'Firewall đã mở File and Printer Sharing cho mạng đang dùng.' }
+            else { Write-Bad ('Firewall mới mở {0}/{1} luật File and Printer Sharing: chạy mục "Máy chia sẻ máy in: cho máy khác kết nối vào".' -f $on.Count, $rules.Count) }
+        }
+        if ($print -and $print.RpcAuthnLevelPrivacyEnabled -eq 0) {
+            if ($shared) { Write-Warn 'Đã bỏ yêu cầu mã hoá RPC (giảm bảo mật). Hết lỗi 0x0000011b thì nên hoàn tác.' }
+            else {
+                Write-Warn 'Đã bỏ yêu cầu mã hoá RPC (RpcAuthnLevelPrivacyEnabled = 0) dù máy này không share máy in, nên trả về mặc định:'
+                Write-Line '    reg delete "HKLM\SYSTEM\CurrentControlSet\Control\Print" /v RpcAuthnLevelPrivacyEnabled /f   rồi khởi động lại Print Spooler.'
+            }
+        }
+
+        # Máy in share đang kết nối tới: của cả máy, của tài khoản chạy tool và của người đang đăng nhập.
+        $me = [Security.Principal.WindowsIdentity]::GetCurrent().User.Value
+        $keys = @('HKLM:\SYSTEM\CurrentControlSet\Control\Print\Connections', 'HKCU:\Printers\Connections')
+        if ($TargetUserSid -and $TargetUserSid -ne $me) { $keys += "Registry::HKEY_USERS\$TargetUserSid\Printers\Connections" }
+        $targets = @()
+        foreach ($key in $keys) {
+            if (-not (Test-Path -LiteralPath $key)) { continue }
+            foreach ($item in @(Get-ChildItem -LiteralPath $key)) {
+                $parts = $item.PSChildName.Split(',')
+                if ($parts.Count -ge 4 -and $parts[2]) { $targets += [pscustomobject]@{ Server = $parts[2]; Printer = $parts[3] } }
+            }
+        }
+        Write-Line ''
+        Write-Line '== Máy in share đang kết nối tới'
+        if (-not $targets) { Write-Line 'Chưa kết nối máy in share nào.' }
+        foreach ($group in @($targets | Group-Object Server)) {
+            $names = @($group.Group | ForEach-Object { $_.Printer } | Select-Object -Unique) -join ', '
+            if (-not (Test-Port $group.Name 445)) {
+                Write-Bad ('{0} ({1}): không vào được cổng 445. Máy đó tắt, sai tên, hoặc firewall bên đó chặn.' -f $group.Name, $names)
+            }
+            elseif (-not (Test-Port $group.Name 135)) {
+                Write-Bad ('{0} ({1}): vào được cổng 445 nhưng cổng 135 (RPC) bị chặn: chạy mục "Máy chia sẻ máy in: cho máy khác kết nối vào" trên máy đó.' -f $group.Name, $names)
+            }
+            else { Write-Ok ('{0} ({1}): cổng 445 và 135 trả lời.' -f $group.Name, $names) }
+        }
+        if ($newRpc -and -not $useNp) {
+            Write-Line 'Máy in share nằm trên máy Win10 mà báo 0x00000709 hoặc 0x0000007c: chạy mục "Máy kết nối máy in share: dùng Named Pipes" trên máy này.'
+        }
+
+        Write-Line ''
+        Write-Line '== Mã lỗi hay gặp khi kết nối máy in share'
+        Write-Line '0x0000011b: máy chia sẻ đòi mã hoá RPC. Cập nhật Windows cả hai máy; vẫn lỗi thì chạy mục "bỏ yêu cầu mã hoá RPC" trên máy chia sẻ.'
+        Write-Line '0x00000709, 0x0000007c: hai máy gọi RPC khác kiểu (Win11 22H2 với Win10). Chạy hai mục "Máy chia sẻ…" và "Máy kết nối…".'
+        Write-Line '0x00000bcb: tài khoản thường không được cài driver. Thêm máy in bằng tab "Thêm máy in" (cài driver bằng quyền admin).'
+        Write-Line '0x000006ba: không gọi được dịch vụ in bên máy chia sẻ. Kiểm tra Print Spooler và firewall máy đó.'
+        Exit-Checks
+      timeout: 120
+      messages:
+        2: Có mục chưa đạt, xem các dòng ✖ ở trên
+
+- id: prn.share_host_fix
+  name: "Máy chia sẻ máy in: cho máy khác kết nối vào"
+  category: Share máy in Win11 ↔ Win10
+  page: printers
+  risk: caution
+  description: >
+    Chạy trên máy đang cắm và share máy in. Win11 22H2 trở lên chỉ nhận kết nối in qua RPC/TCP nên máy Win10
+    (gọi bằng Named Pipes) không kết nối vào được: mục này cho nhận cả Named Pipes và TCP (RpcProtocols = 7).
+    Đồng thời bật nhóm luật firewall "File and Printer Sharing" cho mạng Domain/Private (không mở cho mạng
+    Public; luật nào Windows gộp chung Private và Public thì mở cả hai), rồi khởi động lại Print Spooler.
+    Trên Win10 khoá registry không có tác dụng, chỉ phần firewall. Hoàn tác trả lại registry, luật firewall giữ nguyên.
+  check:
+    registry:
+      key: 'HKLM\SOFTWARE\Policies\Microsoft\Windows NT\Printers\RPC'
+      name: RpcProtocols
+      on_value: 7
+  apply:
+    - powershell: |
+        $fw = New-Object -ComObject HNetCfg.FwPolicy2
+        $wanted = [int]$fw.CurrentProfileTypes -band 3
+        if (-not $wanted) {
+            Write-Bad 'Mạng đang là Public nên tool không mở firewall. Đổi mạng sang Private (Settings > Network & internet > Properties) hoặc vào domain rồi chạy lại.'
+            Exit-Checks
+        }
+        $total = 0
+        $changed = 0
+        foreach ($rule in @($fw.Rules)) {
+            if ($rule.Grouping -ne '@FirewallAPI.dll,-28502' -or $rule.Direction -ne 1 -or -not ($rule.Profiles -band $wanted)) { continue }
+            $total++
+            if (-not $rule.Enabled) {
+                $rule.Enabled = $true
+                $changed++
+                Write-Line ('Bật luật firewall: {0}' -f $rule.Name)
+            }
+        }
+        if (-not $total) { Write-Bad 'Không tìm thấy luật firewall File and Printer Sharing trên máy này.'; Exit-Checks }
+        if ($changed) { Write-Ok ('Đã bật {0}/{1} luật File and Printer Sharing.' -f $changed, $total) }
+        else { Write-Ok 'Firewall đã mở File and Printer Sharing từ trước.' }
+      messages:
+        2: Chưa mở được firewall, xem dòng ✖ ở trên
+    - registry:
+        key: 'HKLM\SOFTWARE\Policies\Microsoft\Windows NT\Printers\RPC'
+        name: RpcProtocols
+        type: DWORD
+        value: 7
+  undo: auto
+  after: [restart_spooler]
+
+- id: prn.share_client_fix
+  name: "Máy kết nối máy in share: dùng Named Pipes (lỗi 0x00000709, 0x0000007c)"
+  category: Share máy in Win11 ↔ Win10
+  page: printers
+  risk: caution
+  os: { min_build: 22621 }
+  description: >
+    Chạy trên máy Win11 22H2 trở lên không kết nối được máy in share nằm trên máy Win10 (báo 0x00000709,
+    0x0000007c hoặc "Windows cannot connect to the printer"). Máy này sẽ gọi dịch vụ in bằng Named Pipes như Win10
+    (RpcUseNamedPipeProtocol = 1), rồi khởi động lại Print Spooler. Sau đó mọi máy in share đều được gọi bằng
+    Named Pipes, nên máy chia sẻ nào là Win11 22H2 trở lên thì phải chạy mục "Máy chia sẻ máy in: cho máy khác
+    kết nối vào" trên máy đó. Xong thì gỡ máy in lỗi và thêm lại ở tab "Thêm máy in".
+  check:
+    registry:
+      key: 'HKLM\SOFTWARE\Policies\Microsoft\Windows NT\Printers\RPC'
+      name: RpcUseNamedPipeProtocol
+      on_value: 1
+  apply:
+    - registry:
+        key: 'HKLM\SOFTWARE\Policies\Microsoft\Windows NT\Printers\RPC'
+        name: RpcUseNamedPipeProtocol
+        type: DWORD
+        value: 1
+  undo: auto
+  after: [restart_spooler]
+
+- id: prn.share_host_privacy_off
+  name: "Máy chia sẻ máy in: bỏ yêu cầu mã hoá RPC (lỗi 0x0000011b)"
+  category: Share máy in Win11 ↔ Win10
+  page: printers
+  risk: advanced
+  description: >
+    Chạy trên máy đang share máy in, CHỈ khi máy kết nối vẫn báo 0x0000011b sau khi đã cập nhật Windows cả hai
+    máy và chạy hai mục ở trên. Đặt RpcAuthnLevelPrivacyEnabled = 0 để máy chia sẻ không đòi mã hoá kết nối RPC
+    của dịch vụ in, rồi khởi động lại Print Spooler. Làm giảm bảo mật (lỗ hổng CVE-2021-1678, KB4599464) nên
+    nhớ hoàn tác khi không còn máy cũ cần dùng.
+  check:
+    registry:
+      key: 'HKLM\SYSTEM\CurrentControlSet\Control\Print'
+      name: RpcAuthnLevelPrivacyEnabled
+      on_value: 0
+  apply:
+    - registry:
+        key: 'HKLM\SYSTEM\CurrentControlSet\Control\Print'
+        name: RpcAuthnLevelPrivacyEnabled
+        type: DWORD
+        value: 0
+  undo: auto
+  after: [restart_spooler]

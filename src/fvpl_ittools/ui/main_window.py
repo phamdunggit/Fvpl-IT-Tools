@@ -30,6 +30,7 @@ from .pages.history import HistoryPage
 from .pages.newpc import NewPcPage
 from .pages.optimize import OptimizePage
 from .pages.overview import OverviewPage
+from .pages.printers import PrintersPage
 from .pages.software import SoftwarePage
 from .pages.utilities import UtilitiesPage
 from .widgets import chip
@@ -78,10 +79,11 @@ def _pages(app: AppContext, controller: RunController) -> list[tuple[str, QWidge
         ("Cài máy mới", NewPcPage(app, controller)),
         ("Sửa lỗi", ActionsPage(
             "fixes", "Sửa lỗi",
-            "Các lỗi thường gặp: mạng, domain, máy in, Windows Update, hệ thống, Office. "
+            "Các lỗi thường gặp: mạng, domain, Windows Update, hệ thống, Office (máy in có trang riêng). "
             "Không chắc lỗi ở đâu thì bấm một gói sửa nhanh.",
             "Chưa có mục sửa lỗi nào.", app, controller, packs=app.packs,
         )),
+        ("Máy in", PrintersPage(app, controller)),
         ("Tối ưu & dọn dẹp", OptimizePage(app, controller)),
         ("Phần mềm", SoftwarePage(app, controller)),
         ("Cấu hình", ActionsPage(
@@ -134,6 +136,8 @@ class MainWindow(QMainWindow):
                 self.newpc = page
             if isinstance(page, OptimizePage):
                 self.optimize = page
+            if isinstance(page, PrintersPage):
+                self.printers = page
         self.overview.alerts_changed.connect(self.header.set_alerts)
 
         self.log_panel = LogPanel()
@@ -201,4 +205,5 @@ class MainWindow(QMainWindow):
         self.overview.stop()
         self.newpc.stop()
         self.optimize.stop()
+        self.printers.stop()
         event.accept()

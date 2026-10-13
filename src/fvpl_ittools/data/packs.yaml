@@ -1,5 +1,5 @@
-# Gói: nút trên đầu trang (page: fixes mặc định, hoặc config). Chạy lần lượt các mục; gói sửa nhanh dừng khi
-# một mục lỗi, gói có stop_on_error: false thì làm tiếp.
+# Gói: nút trên đầu trang (page: fixes mặc định, hoặc printers, optimize, config). Chạy lần lượt các mục;
+# gói sửa nhanh dừng khi một mục lỗi, gói có stop_on_error: false thì làm tiếp.
 # Mục bị khoá (chưa vào domain, thiếu quyền admin...) được bỏ qua và gói chạy tiếp.
 # Cách khai báo: xem docs/ACTIONS.md, phần "Gói sửa nhanh".
 
@@ -19,6 +19,7 @@
 
 - id: pack.printer
   name: Sửa máy in
+  page: printers
   description: >
     Xoá lệnh in bị kẹt (có khởi động lại Print Spooler), rồi liệt kê máy in và trạng thái để kiểm tra.
   actions: [prn.clear_queue, prn.list]

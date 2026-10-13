@@ -31,12 +31,13 @@ class UndoMode(str, Enum):
     STEPS = "steps"  # chạy các bước hoàn tác khai báo riêng
 
 
-PAGES = ("fixes", "optimize", "config", "utilities")
+PAGES = ("fixes", "printers", "optimize", "config", "utilities")
 
 # Các thao tác viết bằng Python, gọi bằng `builtin: <tên>` hoặc `after: [<tên>]`.
 BUILTIN_NAMES = {
     "restart_explorer": "Khởi động lại Explorer",
     "rebuild_icon_cache": "Tắt Explorer, xoá cache icon và thumbnail, mở lại Explorer",
+    "restart_spooler": "Khởi động lại Print Spooler",
 }
 
 SERVICE_ACTIONS = ("start", "stop", "restart")

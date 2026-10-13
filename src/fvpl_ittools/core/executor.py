@@ -608,9 +608,18 @@ def _rebuild_icon_cache(ctx: RunContext) -> StepOutcome:
     return _cycle_explorer(ctx, "rebuild_icon_cache", explorer_script(_ICON_CACHE_BEFORE, _ICON_CACHE_WHILE_STOPPED))
 
 
+def _restart_spooler(ctx: RunContext) -> StepOutcome:
+    """Đổi cách gọi RPC của dịch vụ in chỉ có hiệu lực sau khi Spooler chạy lại. Lệnh in đang chờ vẫn giữ."""
+    ctx.say(Level.CMD, f"> {BUILTIN_NAMES['restart_spooler']}")
+    result = shell.run_powershell("Restart-Service -Name Spooler -Force", timeout=120,
+                                  cancel=ctx.cancel, on_line=_echo(ctx))
+    return _shell_outcome(result, BuiltinStep(name="restart_spooler"), 120)
+
+
 BUILTINS: dict[str, Callable[[RunContext], StepOutcome]] = {
     "restart_explorer": _restart_explorer,
     "rebuild_icon_cache": _rebuild_icon_cache,
+    "restart_spooler": _restart_spooler,
 }
 
 

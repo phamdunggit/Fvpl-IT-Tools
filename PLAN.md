@@ -137,16 +137,18 @@ Mỗi nhóm có một **gói sửa nhanh** (*Sửa mạng*, *Sửa máy in*, *S�
 | Xoá vé Kerberos | `klist purge` | An toàn | P2 |
 | Xoá thông tin đăng nhập đã lưu | Credential Manager, chọn từng mục để xoá | Cẩn thận | P2 |
 
-**Máy in**
+**Máy in** (trang riêng "Máy in": danh sách, thêm, sửa lỗi). Dấu ✔: đã làm.
 
 | Mục | Cách làm | Rủi ro | Ưu tiên |
 |---|---|---|---|
-| Xoá lệnh in bị kẹt | Dừng Spooler, xoá `spool\PRINTERS\*`, chạy lại Spooler | An toàn | P1 |
-| Khởi động lại Print Spooler | | An toàn | P1 |
-| Thêm máy in qua IP | Tạo cổng TCP/IP, cài driver từ share, đặt tên | An toàn | P2 |
-| Thêm máy in share từ server | `Add-Printer -ConnectionName \\server\printer`, áp cho người dùng thật (xem 6.6) | An toàn | P2 |
-| Gỡ máy in và driver lỗi | `Remove-Printer`, `Remove-PrinterDriver`, `pnputil` | Cẩn thận | P2 |
-| Lỗi 0x0000011b / 0x00000709 / 0x0000007c | Khoá registry tương thích RPC máy in. **Cách này hạ bảo mật**, chỉ dùng khi máy in được share từ PC đời cũ. Nên chuyển sang in qua IP | Nâng cao | P2 |
+| Xoá lệnh in bị kẹt ✔ | Dừng Spooler, xoá `spool\PRINTERS\*`, chạy lại Spooler | An toàn | P1 |
+| Khởi động lại Print Spooler ✔ | | An toàn | P1 |
+| Danh sách máy in ✔ | Máy in trên máy, share của cả máy và của người đang đăng nhập (đọc từ hive của họ khi IT chạy tool bằng tài khoản khác), trạng thái, lệnh chờ; in trang thử, mở hàng đợi | An toàn | P2 |
+| Thêm máy in qua IP ✔ | Tạo cổng TCP/IP, driver đã cài / có sẵn trong Windows / từ file .inf (đọc tên model trong file), đặt tên | An toàn | P2 |
+| Thêm máy in share ✔ | `Add-Printer -ConnectionName` bằng quyền admin để driver được cài (tránh 0x00000bcb), rồi `printui /ga` cho cả máy | An toàn | P2 |
+| Gỡ máy in và driver lỗi ✔ | `Remove-Printer`, cổng TCP/IP không còn dùng, `Remove-PrinterDriver` nếu chọn; share của cả máy bằng `printui /gd`; share của người dùng bằng tác vụ chạy dưới tên họ | Cẩn thận | P2 |
+| Share máy in Win11 ↔ Win10 ✔ | Mục kiểm tra (RPC, Spooler, firewall, mạng Public, máy chia sẻ trả lời không); máy chia sẻ nhận cả Named Pipes (`RpcProtocols = 7`) và mở firewall File and Printer Sharing; máy Win11 22H2+ kết nối bằng Named Pipes (`RpcUseNamedPipeProtocol = 1`, lỗi 0x00000709 / 0x0000007c) | Cẩn thận | P1 |
+| Lỗi 0x0000011b ✔ | `RpcAuthnLevelPrivacyEnabled = 0` trên máy chia sẻ. **Hạ bảo mật**, chỉ dùng khi đã cập nhật Windows mà vẫn lỗi; nên chuyển sang in qua IP | Nâng cao | P2 |
 
 **Windows Update**
 
@@ -335,16 +337,18 @@ IT Tools/
 │   ├── software/              # danh mục + profile (catalog), phát hiện đã cài (detect), lệnh cài (install), quét (scan)
 │   ├── newpc/                 # Cài máy mới: precheck (bước 0); các bước wizard còn lại (sẽ có)
 │   ├── cleanup/               # dọn rác (junk) và chương trình khởi động (startup)
+│   ├── printers/              # danh sách máy in, thêm / gỡ máy in (manage), đọc model trong file .inf (inf)
 │   ├── ui/
 │   │   ├── main_window.py     # thanh trên cùng + sidebar + vùng trang + khung log
 │   │   ├── controller.py      # chạy executor ở thread nền, đẩy log về giao diện
 │   │   ├── credential_dialog.py  # hỏi tài khoản domain cho mục needs_credential
 │   │   ├── log_panel.py, theme.py, widgets.py, text.py
-│   │   └── pages/             # overview, actions_page (Sửa lỗi/Cấu hình), optimize, software, newpc, utilities, history
+│   │   └── pages/             # overview, actions_page (Sửa lỗi/Cấu hình), printers, optimize, software, newpc, utilities, history
 │   └── data/
 │       ├── actions/NN-*.yaml  # các fix/tweak; số đầu tên file quyết định thứ tự nhóm trong cây
 │       ├── packs.yaml         # gói sửa nhanh
 │       ├── scripts/inventory/ # script PowerShell đọc thông tin máy (4 phần chạy song song)
+│       ├── scripts/printers/  # script đọc danh sách máy in và driver (chỉ đọc)
 │       └── apps.yaml          # danh mục phần mềm mặc định, bản trên share được ưu tiên
 ├── tests/                     # pytest
 └── packaging/                 # spec PyInstaller + build.py (không dùng build/ vì PyInstaller ghi file tạm vào đó)

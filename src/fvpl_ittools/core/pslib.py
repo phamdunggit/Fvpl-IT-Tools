@@ -155,6 +155,30 @@ def uses_helpers(script: str) -> bool:
     return _HELPER_NAMES.search(script) is not None
 
 
+def _split_helpers() -> tuple[str, dict[str, str]]:
+    """(phần đầu: biến $Checks, {tên hàm: thân hàm}) theo đúng thứ tự trong CHECK_HELPERS."""
+    preamble, *blocks = re.split(r"(?m)^(?=function )", CHECK_HELPERS)
+    return preamble, {re.match(r"function ([\w-]+)", block).group(1).lower(): block for block in blocks}
+
+
+_PREAMBLE, _BLOCKS = _split_helpers()
+
+
+def _called(text: str) -> set[str]:
+    return {match.lower() for match in _HELPER_NAMES.findall(text)}
+
+
 def with_helpers(script: str) -> str:
-    """Thêm bộ hàm dựng sẵn vào đầu script nếu script có gọi tới."""
-    return CHECK_HELPERS + script if uses_helpers(script) else script
+    """Thêm vào đầu script các hàm dựng sẵn mà script gọi tới, kèm hàm mà chúng gọi.
+
+    Chỉ thêm hàm cần dùng: cả bộ khoảng 7.000 ký tự, thêm nguyên bộ thì script dài dễ vượt giới hạn dòng lệnh.
+    """
+    needed = _called(script)
+    if not needed:
+        return script
+    pending = list(needed)
+    while pending:
+        for name in _called(_BLOCKS[pending.pop()]) - needed:
+            needed.add(name)
+            pending.append(name)
+    return _PREAMBLE + "".join(block for name, block in _BLOCKS.items() if name in needed) + script

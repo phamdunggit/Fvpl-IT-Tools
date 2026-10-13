@@ -52,6 +52,11 @@ def window(qt_app, monkeypatch):
     sizes = {"user_temp": 3 * 1024**3, "windows_old": 8 * 1024**3, "recycle_bin": 500 * 1024**2}
     monkeypatch.setattr(junk, "scan_all", lambda env, cancel=None: [
         junk.Scan(item, sizes.get(item.id, 0), 10 if item.id in sizes else 0) for item in junk.CATEGORIES])
+    # Trang Máy in: danh sách mẫu, không đọc máy thật.
+    from fvpl_ittools.printers import manage
+
+    from .test_printers import SNAPSHOT
+    monkeypatch.setattr(manage, "snapshot", lambda env, cancel=None: manage.parse_snapshot(SNAPSHOT))
     win = MainWindow(build_context())
     win.show()
     yield win
@@ -263,7 +268,8 @@ def test_pack_bar_runs_pack_with_stop_on_error(window, monkeypatch):
     from fvpl_ittools.ui.pages import actions_page
     window.select_page("Sửa lỗi")
     page = window.stack.currentWidget()
-    assert set(page.pack_buttons) >= {"pack.network", "pack.printer", "pack.windows_update", "pack.domain"}
+    assert set(page.pack_buttons) >= {"pack.network", "pack.windows_update", "pack.domain"}
+    assert "pack.printer" not in page.pack_buttons  # nằm ở trang Máy in
 
     calls = []
     asked = []
@@ -339,3 +345,86 @@ def test_progress_lines_overwrite_previous(window):
     panel.append(LogEvent(Level.OUTPUT, "xong"))
     lines = panel.plain_text().splitlines()
     assert [line.split("  ", 1)[-1].strip() for line in lines] == ["30%", "xong"]
+
+
+def _wait_printers(qt_app, page):
+    deadline = time.monotonic() + 10
+    while page.loading and time.monotonic() < deadline:
+        qt_app.processEvents()
+        time.sleep(0.01)
+    assert not page.loading
+
+
+def test_printers_page_lists_and_removes(window, qt_app, monkeypatch):
+    from fvpl_ittools.ui.pages import printers as printers_module
+    window.select_page("Máy in")
+    page = window.printers
+    _wait_printers(qt_app, page)
+    panel = page.list
+    assert panel.tree.topLevelItemCount() == 6
+    assert panel.tree.topLevelItem(0).text(0) == "Contoso Laser (10.0.0.5)   (đang share: Laser)"
+    assert panel.tree.topLevelItem(4).font(0).bold()  # máy in mặc định của người dùng
+    assert "6 máy in" in panel.status.text()
+
+    runs, asked = [], []
+    monkeypatch.setattr(window.controller, "run", lambda actions, **kw: runs.append(actions))
+    monkeypatch.setattr(printers_module.QMessageBox, "question",
+                        lambda parent, title, text: asked.append(text) or printers_module.QMessageBox.StandardButton.Yes)
+    panel.tree.setCurrentItem(panel.tree.topLevelItem(0))
+    panel.driver_checkbox.setChecked(True)
+    panel.remove()
+    assert "đang share" in asked[0] and "Gỡ cả driver" in asked[0]
+    assert runs[0][0].id == "prn.remove" and "$RemoveDriver = '1'" in runs[0][0].apply[0].script
+
+    # Máy in share của người đang đăng nhập: tài khoản chạy tool không in thử / mở hàng đợi được.
+    panel.tree.setCurrentItem(panel.tree.topLevelItem(4))
+    assert not panel.test_button.isEnabled() and not panel.queue_button.isEnabled()
+    panel.remove()
+    assert "phải đang đăng nhập" in asked[1] and "$RemoveDriver = ''" in runs[1][0].apply[0].script
+
+
+def test_printers_page_adds_printers(window, qt_app, monkeypatch, tmp_path):
+    from .test_printers import SAMPLE_INF
+    window.select_page("Máy in")
+    page = window.printers
+    _wait_printers(qt_app, page)
+    add = page.add
+    runs = []
+    monkeypatch.setattr(window.controller, "run", lambda actions, **kw: runs.append(actions[0]))
+
+    texts = [add.driver.itemText(index) for index in range(add.driver.count())]
+    assert texts[1:3] == ["Contoso PCL6", "Microsoft IPP Class Driver"]
+    assert "Generic / Text Only  (có sẵn trong Windows)" in texts
+
+    add.address.setText("10.0.0.9 & calc")
+    add.add_ip()
+    assert runs == [] and "Nhập IP" in add.error.text()
+    add.address.setText("10.0.0.9")
+    add.add_ip()
+    assert runs == [] and "Chọn driver" in add.error.text()
+
+    file = tmp_path / "contoso.inf"
+    file.write_bytes(SAMPLE_INF.replace("NTamd64.10.0, ", "").replace(
+        '"Contoso Laser 100 PCL6" = INSTALL, WSDPRINT\\Contoso100\n', "").encode("utf-16"))
+    from fvpl_ittools.ui.pages import printers as printers_module
+    monkeypatch.setattr(printers_module.QInputDialog, "getItem",
+                        lambda *args: ("Contoso Laser 200 PS", True))
+    add.use_inf(str(file))
+    assert add.selected_driver() == ("Contoso Laser 200 PS", str(file))
+    add.set_drivers(["Contoso PCL6"])  # đọc lại danh sách vẫn giữ driver lấy từ file .inf
+    assert add.selected_driver() == ("Contoso Laser 200 PS", str(file))
+    add.add_ip()
+    assert runs[-1].id == "prn.add_ip" and "$PrinterName = 'Máy in 10.0.0.9'" in runs[-1].apply[0].script
+
+    add.share_path.setText("pc01/HP LaserJet")
+    add.per_machine.setChecked(True)
+    add.add_share()
+    assert add.share_path.text() == "\\\\pc01\\HP LaserJet"
+    assert runs[-1].id == "prn.add_share" and "$PerMachine = '1'" in runs[-1].apply[0].script
+
+
+def test_printers_page_fix_tab_has_pack_and_share_fixes(window):
+    fixes = window.printers.fixes
+    assert list(fixes.pack_buttons) == ["pack.printer"]
+    assert {"prn.share_check", "prn.share_host_fix", "prn.share_client_fix",
+            "prn.share_host_privacy_off"} <= set(fixes._by_id)
