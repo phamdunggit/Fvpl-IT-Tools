@@ -5,10 +5,14 @@ Mỗi lần bật/tắt là một mục registry chạy qua executor nên có nh
 
 Giá trị StartupApproved là 12 byte: byte đầu chẵn (02, 06) là bật, lẻ (03, 07) là tắt; 8 byte cuối là thời điểm
 tắt (FILETIME). Không có giá trị nghĩa là đang bật.
+
+Thêm task trong Task Scheduler chạy lúc đăng nhập / lúc bật máy (phần mềm hay dùng thay cho khoá Run, Task Manager
+không hiện). Task thì bật / tắt chính task đó, không có nhật ký registry.
 """
 
 from __future__ import annotations
 
+import json
 import os
 import struct
 import time
@@ -16,8 +20,8 @@ import winreg
 from dataclasses import dataclass
 from pathlib import Path
 
-from ..actions.model import Action, RegistryStep, Scope
-from ..core import registry
+from ..actions.model import Action, PowerShellStep, RegistryStep, Scope
+from ..core import registry, shell
 from ..core.executor import Env
 
 _RUN = r"SOFTWARE\Microsoft\Windows\CurrentVersion\Run"
@@ -27,11 +31,12 @@ _APPROVED = r"Software\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved
 
 @dataclass(frozen=True)
 class StartupEntry:
-    name: str             # tên giá trị Run hoặc tên file trong thư mục Startup
+    name: str             # tên giá trị Run, tên file trong thư mục Startup, hoặc tên task
     command: str          # lệnh chạy hoặc đường dẫn file
     source: str           # nhãn hiện cho IT
-    approved_key: str     # khoá StartupApproved tương ứng (HKLM\… hoặc HKCU\…)
+    approved_key: str     # khoá StartupApproved tương ứng (HKLM\… hoặc HKCU\…); rỗng với task
     enabled: bool
+    task: str = ""        # đường dẫn đầy đủ của task trong Task Scheduler (\Thư mục\Tên)
 
     @property
     def for_user(self) -> bool:
@@ -39,7 +44,7 @@ class StartupEntry:
 
     @property
     def key(self) -> str:
-        return f"{self.approved_key}|{self.name}"
+        return f"task|{self.task}" if self.task else f"{self.approved_key}|{self.name}"
 
 
 def _values(root, subkey: str, view: int = 0) -> list[tuple[str, object]]:
@@ -114,9 +119,97 @@ def entries(env: Env) -> list[StartupEntry]:
     return found
 
 
+# ---------------------------------------------------------------- task chạy lúc đăng nhập / khởi động máy
+
+# Task Scheduler qua COM (nhanh, không phải nạp module ScheduledTasks). Chỉ lấy task có trigger lúc đăng nhập (9)
+# hoặc lúc khởi động máy (8); bỏ thư mục \Microsoft (task của Windows, Office...). Không có quyền đọc thư mục nào
+# thì bỏ qua thư mục đó.
+TASK_SCRIPT = """\
+$service = New-Object -ComObject Schedule.Service
+$service.Connect()
+$found = New-Object System.Collections.ArrayList
+function Read-TaskFolder($Folder) {
+    try { $tasks = @($Folder.GetTasks(1)) } catch { $tasks = @() }
+    foreach ($task in $tasks) {
+        try {
+            $definition = $task.Definition
+            $kinds = @(foreach ($trigger in @($definition.Triggers)) {
+                if ($trigger.Type -eq 9) { 'logon' } elseif ($trigger.Type -eq 8) { 'boot' }
+            })
+            if (-not $kinds) { continue }
+            $commands = @(foreach ($action in @($definition.Actions)) {
+                if ($action.Type -eq 0) { ('"{0}" {1}' -f $action.Path, $action.Arguments).Trim() }
+            })
+            [void]$found.Add([pscustomobject]@{
+                path = [string]$task.Path; name = [string]$task.Name; enabled = [bool]$task.Enabled
+                trigger = (@($kinds | Select-Object -Unique) -join ','); command = ($commands -join ' ; ')
+            })
+        }
+        catch { }
+    }
+    try { $folders = @($Folder.GetFolders(0)) } catch { $folders = @() }
+    foreach ($sub in $folders) {
+        if ($sub.Path -like '\\Microsoft*') { continue }
+        Read-TaskFolder $sub
+    }
+}
+Read-TaskFolder ($service.GetFolder('\\'))
+ConvertTo-Json -InputObject @($found) -Compress
+"""
+
+_TOGGLE_TASK = """\
+$service = New-Object -ComObject Schedule.Service
+$service.Connect()
+$index = $TaskPath.LastIndexOf('\\')
+$folderPath = '\\'
+if ($index -gt 0) { $folderPath = $TaskPath.Substring(0, $index) }
+$task = $service.GetFolder($folderPath).GetTask($TaskPath.Substring($index + 1))
+$task.Enabled = ($Enable -eq '1')
+if ($Enable -eq '1') { Write-Output ('Đã bật task {0}.' -f $TaskPath) } else { Write-Output ('Đã tắt task {0}.' -f $TaskPath) }
+"""
+
+TASK_SOURCES = {"logon": "Task lúc đăng nhập", "boot": "Task lúc bật máy", "logon,boot": "Task lúc bật máy, đăng nhập",
+                "boot,logon": "Task lúc bật máy, đăng nhập"}
+
+
+def parse_tasks(output: str) -> list[StartupEntry]:
+    """Dòng JSON của TASK_SCRIPT thành danh sách mục (tách ra để test)."""
+    data = json.loads(output) if output.strip() else []
+    items = data if isinstance(data, list) else [data]
+    entries = []
+    for item in items:
+        if not isinstance(item, dict) or not item.get("path"):
+            continue
+        trigger = str(item.get("trigger") or "")
+        entries.append(StartupEntry(str(item.get("name") or item["path"]), str(item.get("command") or ""),
+                                    TASK_SOURCES.get(trigger, "Task"), "", bool(item.get("enabled")),
+                                    task=str(item["path"])))
+    return sorted(entries, key=lambda entry: entry.name.lower())
+
+
+def task_entries(cancel=None) -> list[StartupEntry]:
+    """Task chạy lúc đăng nhập / bật máy (không gồm task của Windows). Lỗi thì OSError kèm lời báo."""
+    result = shell.run_powershell(TASK_SCRIPT, timeout=60, cancel=cancel)
+    lines = [line for line in result.output.splitlines() if line.startswith("[") or line.startswith("{")]
+    if not result.ok or not lines:
+        raise OSError(f"Không đọc được Task Scheduler: {result.output.strip()[-200:] or result.code}")
+    return parse_tasks(lines[-1])
+
+
 def toggle_action(entry: StartupEntry, enable: bool) -> Action:
-    """Mục registry bật/tắt một chương trình khởi động, chạy bằng executor (có nhật ký, hoàn tác được)."""
+    """Bật/tắt một chương trình khởi động, chạy bằng executor.
+
+    Mục Run / thư mục Startup đổi khoá StartupApproved (có nhật ký, hoàn tác được ở trang Nhật ký). Task thì bật /
+    tắt chính task đó; muốn quay lại thì bấm Bật / Tắt lần nữa.
+    """
     verb = "Bật" if enable else "Tắt"
+    if entry.task:
+        script = shell.ps_variable_lines({"TaskPath": entry.task, "Enable": "1" if enable else ""}) + _TOGGLE_TASK
+        return Action(
+            id="startup.task_toggle", name=f"{verb} task khởi động: {entry.name}", category="Khởi động cùng Windows",
+            apply=(PowerShellStep(script=script, timeout=60),), page="optimize", scope=Scope.MACHINE, admin=True,
+            description=f"{entry.source}: {entry.command}",
+        )
     step = RegistryStep(key=entry.approved_key, name=entry.name, type="BINARY", value=approval_value(enable))
     return Action(
         id="startup.toggle",

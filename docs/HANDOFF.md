@@ -9,7 +9,7 @@ Cập nhật lần cuối: 13/10/2026, sau khi xong wizard Cài máy mới (GĐ2
 | Giai đoạn | **GĐ1, GĐ2 (wizard Cài máy mới), phần lớn GĐ3 xong phần code.** Còn chạy thử các mục đổi hệ thống bằng quyền admin trên VM (danh sách bên dưới) rồi mới coi là xong |
 | Nhánh | Code mới làm trên `featured`. Chỉ merge về `main` khi được duyệt |
 | Phiên bản | 0.2.0, xem [CHANGELOG.md](../CHANGELOG.md) (trang Phần mềm nằm ở mục "Chưa phát hành") |
-| Test | 294 test pytest, tất cả đều qua (khoảng 35 giây) |
+| Test | 298 test pytest, tất cả đều qua (khoảng 37 giây) |
 | Bản exe | `python packaging\build.py`: thư mục 64MB, zip 27MB. `--test` chạy selftest trên exe, gồm cả đọc thông tin máy |
 
 Đã có:
@@ -138,6 +138,8 @@ Trang Tối ưu & dọn dẹp (GĐ3). Quét rác, danh sách khởi động, li�
 - [ ] **Windows.old** (VM vừa nâng cấp Windows) và **Delivery Optimization**: `cleanmgr /sagerun:4242` chạy xong, tool xoá lại thiết lập `StateFlags4242`. Xem cleanmgr có hiện cửa sổ chờ người bấm không.
 - [ ] **Thùng rác**: chỉ xoá của người đang đăng nhập (`$Recycle.Bin\<SID>` trên mọi ổ cứng), Explorer hiện thùng rác trống.
 - [ ] **Khởi động cùng Windows**: tắt một mục rồi đăng xuất / đăng nhập, mục không chạy; Task Manager cũng hiện Disabled; hoàn tác ở trang Nhật ký thì bật lại.
+- [ ] **Task khởi động** (đọc đã chạy thật trên máy dev, không quyền admin thấy 4 task): bằng quyền admin thấy thêm task của Edge / Google Update; tắt một task (COM `Enabled = false`) rồi Task Scheduler hiện Disabled; bật lại được.
+- [ ] **Mục tối ưu mới:** hiệu ứng hình ảnh có hiệu lực sau khi đăng xuất / đăng nhập, hoàn tác về như cũ; dịch vụ edgeupdate / gupdate sang Manual mà Edge, Chrome vẫn tự cập nhật (qua task); cắm thiết bị mới (chuột, tai nghe) không tự cài app của hãng sau khi bật mục chặn app đồng hành.
 - [ ] **Tối ưu**: gói "Tắt quảng cáo và theo dõi" rồi xem Start, Settings, taskbar; Widgets tắt bằng policy `Dsh\AllowNewsAndInterests`; power plan High performance trên laptop Modern Standby (có thể Windows không cho).
 - [ ] **Gỡ app cài sẵn**: chạy "Liệt kê" rồi "Gỡ" trên VM; tài khoản mới tạo sau đó không bị cài lại; các app trong danh sách giữ vẫn còn.
 

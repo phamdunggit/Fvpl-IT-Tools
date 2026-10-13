@@ -268,3 +268,85 @@
       messages:
         2: Có gói không gỡ được (xem các dòng ⚠ ở trên), các gói khác đã gỡ xong
   undo: none
+
+- id: opt.block_device_apps
+  name: Chặn app "đồng hành" do driver tự cài
+  category: Gỡ app cài sẵn
+  page: optimize
+  risk: safe
+  description: >
+    Khi cắm thiết bị hoặc cài driver, Windows tự tải app của hãng đi kèm (Realtek Audio Console, app chuột, bàn
+    phím, máy in...) và biểu tượng riêng. Mục này bật chính sách "Prevent automatic download of applications associated
+    with device metadata" (tên cũ: Prevent device metadata retrieval from the Internet): driver vẫn cài bình thường,
+    chỉ không tự cài app đi kèm. Cần app thì IT cài tay. Áp cho cả máy, hoàn tác được.
+  check:
+    registry: { key: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\Device Metadata', name: PreventDeviceMetadataFromNetwork, on_value: 1 }
+  apply:
+    - registry: { key: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\Device Metadata', name: PreventDeviceMetadataFromNetwork, type: DWORD, value: 1 }
+  undo: auto
+
+# ---------------------------------------------------------------- hiệu năng
+
+- id: opt.visual_effects_performance
+  name: Hiệu ứng hình ảnh ưu tiên hiệu năng (máy yếu)
+  category: Hiệu năng
+  page: optimize
+  risk: safe
+  scope: user
+  admin: false
+  description: >
+    Cho người đang đăng nhập, các hiệu ứng tốn tài nguyên nhất trong "Performance Options" của System Properties:
+    tắt hiệu ứng mở / thu nhỏ cửa sổ, hiệu ứng taskbar, khung chọn mờ và bóng chữ dưới biểu tượng, Aero Peek, nền
+    trong suốt. Giữ chữ mịn và ảnh thu nhỏ. Dành cho máy RAM ít, card đồ hoạ yếu. Đầy đủ hiệu lực sau khi đăng xuất
+    rồi đăng nhập lại. Hoàn tác được.
+  check:
+    registry: { key: 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced', name: TaskbarAnimations, on_value: 0 }
+  apply:
+    # Không ghi UserPreferencesMask (giá trị nhị phân gộp nhiều hiệu ứng): chỉ đổi các giá trị rõ nghĩa.
+    - registry: { key: 'HKCU\Control Panel\Desktop\WindowMetrics', name: MinAnimate, type: SZ, value: "0" }
+    - registry: { key: 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced', name: TaskbarAnimations, type: DWORD, value: 0 }
+    - registry: { key: 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced', name: ListviewAlphaSelect, type: DWORD, value: 0 }
+    - registry: { key: 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced', name: ListviewShadow, type: DWORD, value: 0 }
+    - registry: { key: 'HKCU\Software\Microsoft\Windows\DWM', name: EnableAeroPeek, type: DWORD, value: 0 }
+    - registry: { key: 'HKCU\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize', name: EnableTransparency, type: DWORD, value: 0 }
+  undo: auto
+  after: [restart_explorer]
+
+- id: opt.updater_services_manual
+  name: Chuyển dịch vụ cập nhật của Edge, Chrome, Adobe, bản đồ sang Manual
+  category: Hiệu năng
+  page: optimize
+  risk: advanced
+  description: >
+    Các dịch vụ này tự chạy mỗi lần bật máy dù hiếm khi cần: Microsoft Edge Update (edgeupdate), Google Update
+    (gupdate), Adobe Acrobat Update (AdobeARMservice), Downloaded Maps Manager (MapsBroker). Chuyển sang Manual: chúng
+    vẫn chạy khi được gọi (tác vụ cập nhật định kỳ của Edge, Chrome, Adobe vẫn cập nhật bình thường), chỉ không chạy
+    sẵn lúc khởi động. Dịch vụ nào máy không có hoặc không phải Automatic thì giữ nguyên. Không đụng dịch vụ của
+    Windows liên quan tới mạng, in, cập nhật, bảo mật. Hoàn tác trả các dịch vụ này về kiểu khởi động mặc định.
+  apply:
+    - powershell: |
+        $targets = @(
+            @{ Name = 'edgeupdate'; Label = 'Microsoft Edge Update' },
+            @{ Name = 'gupdate'; Label = 'Google Update' },
+            @{ Name = 'AdobeARMservice'; Label = 'Adobe Acrobat Update' },
+            @{ Name = 'MapsBroker'; Label = 'Downloaded Maps Manager' }
+        )
+        foreach ($target in $targets) {
+            if (-not (Get-Service -Name $target.Name -ErrorAction SilentlyContinue)) { continue }
+            $start = (Get-ItemProperty -LiteralPath ('HKLM:\SYSTEM\CurrentControlSet\Services\' + $target.Name)).Start
+            if ($start -ne 2) { Write-Line ('{0}: không phải Automatic, giữ nguyên.' -f $target.Label); continue }
+            $output = & sc.exe config $target.Name start= demand
+            if ($LASTEXITCODE) { Write-Bad ('{0}: không đổi được ({1}).' -f $target.Label, ($output -join ' ').Trim()) }
+            else { Write-Ok ('{0}: đã chuyển sang Manual.' -f $target.Label) }
+        }
+        Exit-Checks
+      messages:
+        2: Có dịch vụ không đổi được, xem dòng ✖ ở trên
+  undo:
+    - powershell: |
+        $defaults = @{ edgeupdate = 'delayed-auto'; gupdate = 'delayed-auto'; AdobeARMservice = 'auto'; MapsBroker = 'delayed-auto' }
+        foreach ($name in $defaults.Keys) {
+            if (-not (Get-Service -Name $name -ErrorAction SilentlyContinue)) { continue }
+            & sc.exe config $name start= $defaults[$name] | Out-Null
+            Write-Output ('{0}: trả về {1}.' -f $name, $defaults[$name])
+        }

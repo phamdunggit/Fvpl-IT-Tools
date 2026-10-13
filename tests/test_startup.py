@@ -80,5 +80,33 @@ def test_entries_reads_run_keys_and_startup_folders(env, tmp_path, monkeypatch):
     assert not any(name == "desktop.ini" or name == "" for _, name in found)
 
 
+def test_parse_tasks():
+    output = ('[{"path": "\\\\Zeta\\\\Updater", "name": "Updater", "enabled": false, "trigger": "boot", '
+              '"command": "\\"C:\\\\z.exe\\" /s"}, '
+              '{"path": "\\\\Adobe Acrobat Update Task", "name": "Adobe Acrobat Update Task", "enabled": true, '
+              '"trigger": "logon", "command": "\\"C:\\\\AdobeARM.exe\\""}]')
+    found = startup.parse_tasks(output)
+    assert [(item.name, item.source, item.enabled) for item in found] == [
+        ("Adobe Acrobat Update Task", "Task lúc đăng nhập", True), ("Updater", "Task lúc bật máy", False)]
+    assert found[1].task == "\\Zeta\\Updater" and found[1].key == "task|\\Zeta\\Updater"
+    single = startup.parse_tasks('{"path": "\\\\A", "name": "A", "enabled": true, "trigger": "logon,boot"}')
+    assert single[0].source == "Task lúc bật máy, đăng nhập"
+    assert startup.parse_tasks("[]") == []
+
+
+def test_task_toggle_action():
+    entry = startup.StartupEntry("Adobe Acrobat Update Task", "x", "Task lúc đăng nhập", "", True,
+                                 task="\\Adobe Acrobat Update Task")
+    action = startup.toggle_action(entry, enable=False)
+    assert action.id == "startup.task_toggle" and action.admin and action.scope.value == "machine"
+    script = action.apply[0].script
+    assert "$TaskPath = '\\Adobe Acrobat Update Task'" in script and "$Enable = ''" in script
+    assert "$Enable = '1'" in startup.toggle_action(entry, enable=True).apply[0].script
+
+
+def test_task_entries_on_this_machine_reads_only():
+    assert all(item.task for item in startup.task_entries())
+
+
 def test_entries_on_this_machine_reads_only(env):
     assert all(isinstance(item, startup.StartupEntry) for item in startup.entries(env))

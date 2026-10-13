@@ -30,7 +30,7 @@ from ...cleanup import bigfiles, junk, startup
 from ...core import shell
 from ...core.executor import BatchResult, Level
 from ..controller import RunController
-from ..widgets import page_header
+from ..widgets import Worker, page_header
 from .actions_page import ActionsPage
 
 log = logging.getLogger(__name__)
@@ -220,13 +220,17 @@ class StartupPanel(QWidget):
         self.app = app
         self.controller = controller
         self.entries: list[startup.StartupEntry] = []
+        self.task_generation = 0
+        self.worker = Worker(self)
+        self.worker.done.connect(self._tasks_read)
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 12, 0, 0)
         layout.setSpacing(10)
         note = QLabel("Tắt bớt chương trình chạy cùng Windows để máy khởi động nhanh hơn. Tắt giống tab Startup của "
-                      "Task Manager: không xoá gì, bật lại hoặc hoàn tác ở trang Nhật ký được. Có hiệu lực từ lần "
-                      "đăng nhập sau. Chọn nhiều dòng bằng Ctrl hoặc Shift.")
+                      "Task Manager: không xoá gì, bật lại hoặc hoàn tác ở trang Nhật ký được. Có cả task trong Task "
+                      "Scheduler chạy lúc đăng nhập / bật máy (trừ task của Windows): task thì bật lại bằng nút Bật. "
+                      "Có hiệu lực từ lần đăng nhập sau. Chọn nhiều dòng bằng Ctrl hoặc Shift.")
         note.setObjectName("PageSubtitle")
         note.setWordWrap(True)
         layout.addWidget(note)
@@ -260,17 +264,34 @@ class StartupPanel(QWidget):
         controller.finished.connect(self._run_finished)
 
     def refresh(self) -> None:
+        """Khoá Run, thư mục Startup đọc ngay; task trong Task Scheduler đọc ở nền (PowerShell, khoảng 1 giây)."""
         try:
             self.entries = startup.entries(self.app.env)
         except OSError as exc:
             log.exception("Không đọc được danh sách khởi động")
             self.controller.say(Level.ERROR, f"Không đọc được danh sách chương trình khởi động: {exc}")
             self.entries = []
+        self._populate()
+        self.task_generation += 1
+        generation = self.task_generation
+        self.worker.run(f"tasks-{generation}", startup.task_entries)
+
+    def _tasks_read(self, name: str, result: object) -> None:
+        if name != f"tasks-{self.task_generation}":
+            return  # kết quả của lượt đọc cũ
+        if isinstance(result, Exception):
+            self.controller.say(Level.WARN, f"Không đọc được task khởi động: {result}")
+            return
+        self.entries = [entry for entry in self.entries if not entry.task] + list(result)
+        self._populate()
+
+    def _populate(self) -> None:
         self.tree.clear()
         for index, entry in enumerate(self.entries):
             item = QTreeWidgetItem(self.tree, [entry.name, "Bật" if entry.enabled else "Tắt", entry.source, entry.command])
             item.setData(0, ENTRY_ROLE, index)
             item.setForeground(1, QBrush(QColor("#15803d" if entry.enabled else "#64748b")))
+            item.setToolTip(0, entry.task or entry.name)
             item.setToolTip(3, entry.command)
         self._update_buttons()
 
@@ -284,7 +305,8 @@ class StartupPanel(QWidget):
         self.controller.run([startup.toggle_action(entry, enable) for entry in targets])
 
     def _run_finished(self, result: object) -> None:
-        if isinstance(result, BatchResult) and any(item.action.id == "startup.toggle" for item in result.results):
+        if isinstance(result, BatchResult) and any(item.action.id in ("startup.toggle", "startup.task_toggle")
+                                                   for item in result.results):
             self.refresh()
 
     def _update_buttons(self) -> None:

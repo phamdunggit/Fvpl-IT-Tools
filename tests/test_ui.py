@@ -52,6 +52,9 @@ def window(qt_app, monkeypatch):
     sizes = {"user_temp": 3 * 1024**3, "windows_old": 8 * 1024**3, "recycle_bin": 500 * 1024**2}
     monkeypatch.setattr(junk, "scan_all", lambda env, cancel=None: [
         junk.Scan(item, sizes.get(item.id, 0), 10 if item.id in sizes else 0) for item in junk.CATEGORIES])
+    # Khởi động cùng Windows: không đọc Task Scheduler thật.
+    from fvpl_ittools.cleanup import startup
+    monkeypatch.setattr(startup, "task_entries", lambda cancel=None: [])
     # Trang Máy in: danh sách mẫu, không đọc máy thật.
     from fvpl_ittools.printers import manage
 
@@ -448,6 +451,28 @@ def test_startup_tab_toggles_selected(window, qt_app, monkeypatch):
     assert panel.disable_button.isEnabled() and panel.enable_button.isEnabled()
     panel.toggle(False)
     assert runs == [["Tắt khởi động cùng Windows: Spotify"]]  # Zalo đã tắt sẵn thì bỏ qua
+
+
+def test_startup_tab_adds_tasks_in_background(window, qt_app, monkeypatch):
+    from fvpl_ittools.cleanup import startup
+    monkeypatch.setattr(startup, "entries", lambda env: [
+        startup.StartupEntry("Spotify", r"C:\Spotify.exe", "Người dùng (Run)", r"HKCU\Software\X\StartupApproved\Run", True)])
+    task = startup.StartupEntry("Adobe Acrobat Update Task", r'"C:\AdobeARM.exe"', "Task lúc đăng nhập", "", True,
+                                task=r"\Adobe Acrobat Update Task")
+    monkeypatch.setattr(startup, "task_entries", lambda cancel=None: [task])
+    panel = window.optimize.startup
+    panel.refresh()
+    assert panel.tree.topLevelItemCount() == 1  # task đọc ở nền, hiện sau
+    deadline = time.monotonic() + 5
+    while panel.tree.topLevelItemCount() < 2 and time.monotonic() < deadline:
+        qt_app.processEvents()
+        time.sleep(0.01)
+    assert panel.tree.topLevelItem(1).text(2) == "Task lúc đăng nhập"
+    runs = []
+    monkeypatch.setattr(window.controller, "run", lambda actions, **kw: runs.append([a.id for a in actions]))
+    panel.tree.setCurrentItem(panel.tree.topLevelItem(1))
+    panel.toggle(False)
+    assert runs == [["startup.task_toggle"]]
 
 
 def test_big_files_tab_searches_in_background(window, qt_app, tmp_path):

@@ -4,7 +4,7 @@ Cập nhật: 13/10/2026. File này được cập nhật trước mỗi commit.
 
 ## Đang làm
 
-- Không có việc dở. Việc tiếp theo: số 1 ở bảng "Còn lại" (startup: task chạy lúc đăng nhập, các mục P3).
+- Không có việc dở. Việc tiếp theo: GĐ4 ở bảng "Còn lại" (bắt đầu bằng sao lưu driver, xem event log).
 
 ## Đã xong (code xong, **chưa chạy thử bằng quyền admin trên máy ảo**)
 
@@ -18,7 +18,7 @@ Cập nhật: 13/10/2026. File này được cập nhật trước mỗi commit.
 | GĐ1 Tổng quan + Sửa lỗi | Trang Tổng quan (copy, xuất HTML); các mục sửa lỗi P1; gói sửa nhanh; Tiện ích (mở nhanh 29 công cụ, ping/tracert/nslookup/cổng) |
 | GĐ2 Cài máy mới | **Wizard 8 bước:** kiểm tra trước; tên `FVPL-<mã phòng><2 số>` (thêm mã phòng mới, lưu vào site.yaml; gợi ý số kế tiếp từ AD); đổi tên + join OU chung; tự mở lại sau khi khởi động lại; gpupdate, nhóm IT vào Administrators; phần mềm theo profile; cấu hình chuẩn (có vi-VN); driver / BIOS của hãng (Dell Command \| Update, Lenovo System Update) + Windows Update; báo cáo HTML trên máy và ổ mang theo. **Mẫu** (ví dụ "Kế toán – Laptop": phòng, profile, phần mềm thêm như bản Office) chọn lại một lần là xong. Trang Phần mềm (winget, share MSI/EXE/ISO/portable); danh mục công ty trong `SOFT` |
 | Hai bản mang theo | **USB** (tool + cài qua share) và **SSD** (tool + kho `SOFT` cạnh exe, không cần mạng); `packaging/deploy.py usb/ssd` chép ra ổ |
-| GĐ3 Tối ưu & dọn dẹp | Dọn rác có quét trước (8 loại, có cache trình duyệt); tìm file lớn; khởi động cùng Windows; tắt quảng cáo / theo dõi; power; gỡ app cài sẵn; các mục sửa lỗi P2 (hosts, firewall, Windows Update, WMI, MSI, Teams, RDP, BitLocker, Defender…) |
+| GĐ3 Tối ưu & dọn dẹp | Dọn rác có quét trước (8 loại, có cache trình duyệt); tìm file lớn; khởi động cùng Windows (khoá Run, thư mục Startup, **task chạy lúc đăng nhập / bật máy**); hiệu ứng hình ảnh cho máy yếu; dịch vụ cập nhật Edge / Chrome / Adobe sang Manual; chặn app "đồng hành" driver; tắt quảng cáo / theo dõi; power; gỡ app cài sẵn; các mục sửa lỗi P2 (hosts, firewall, Windows Update, WMI, MSI, Teams, RDP, BitLocker, Defender…) |
 | Trang Máy in | Danh sách máy in (kể cả share của người đang đăng nhập), gỡ máy in / driver, in thử; thêm qua IP (driver từ file .inf) và qua share; **sửa share máy in Win11 ↔ Win10** |
 | Câu hỏi PLAN mục 11 | Đã trả lời hết (13/10/2026) |
 
@@ -26,8 +26,7 @@ Cập nhật: 13/10/2026. File này được cập nhật trước mỗi commit.
 
 | # | Việc | Ghi chú |
 |---|---|---|
-| 1 | Startup: task chạy lúc đăng nhập; P3: hiệu ứng hình ảnh, service Manual, chặn app "đồng hành" driver | |
-| 2 | GĐ4: sao lưu driver, xem event log, sửa HOSTS/PATH, file bị khoá, mật khẩu Wi-Fi, chuyển dữ liệu máy cũ, báo bản mới, ký số exe, bản 1.0 | |
+| 1 | GĐ4: sao lưu driver, xem event log, sửa HOSTS/PATH, file bị khoá, mật khẩu Wi-Fi, chuyển dữ liệu máy cũ, báo bản mới, ký số exe, bản 1.0 | |
 
 ## Bồ cần làm
 

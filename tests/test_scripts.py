@@ -9,6 +9,7 @@ from __future__ import annotations
 import json
 
 from fvpl_ittools.actions import loader
+from fvpl_ittools.cleanup import startup
 from fvpl_ittools.actions.model import PowerShellStep
 from fvpl_ittools.core import adsecrets, executor, inventory, pslib, safety, shell
 from fvpl_ittools.newpc import naming, precheck, steps
@@ -63,7 +64,9 @@ def _internal_scripts() -> list[dict]:
     ] + [{"name": f"inventory {part}", "script": inventory.part_script(part)} for part in inventory.PARTS] + [
         {"name": name, "script": pslib.with_helpers(script)}
         for name, script in printers_test.generated_scripts() + steps.generated_scripts()
-    ] + [{"name": "newpc tên máy trong AD", "script": naming.ad_script()}] + [
+    ] + [{"name": "newpc tên máy trong AD", "script": naming.ad_script()},
+         {"name": "startup task", "script": startup.TASK_SCRIPT},
+         {"name": "startup bật tắt task", "script": startup._TOGGLE_TASK}] + [
         {"name": name, "script": script} for name, script in adsecrets.scripts()]
 
 

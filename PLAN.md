@@ -221,11 +221,11 @@ Mỗi nhóm có một **gói sửa nhanh** (*Sửa mạng*, *Sửa máy in*, *S�
 | Mục | Ghi chú | Rủi ro | Ưu tiên |
 |---|---|---|---|
 | Tắt Fast Startup ✔ | Ở trang Cấu hình, nhóm Cấu hình chuẩn | An toàn | P1 |
-| Quản lý startup ✔ | Đọc Run keys (HKLM/HKCU), thư mục Startup (task chạy lúc đăng nhập: chưa làm). Bật/tắt kiểu Task Manager (`StartupApproved`) nên hoàn tác được | An toàn | P2 |
+| Quản lý startup ✔ | Đọc Run keys (HKLM/HKCU), thư mục Startup, task trong Task Scheduler chạy lúc đăng nhập / bật máy (trừ task của Windows). Bật/tắt kiểu Task Manager (`StartupApproved`) nên hoàn tác được | An toàn | P2 |
 | Power plan ✔ | Balanced / High performance; máy bàn thì tắt USB selective suspend | An toàn | P2 |
 | Tắt hibernation trên máy bàn ✔ | Giải phóng `hiberfil.sys` | Cẩn thận | P2 |
-| Hiệu ứng hình ảnh tối ưu hiệu năng | Dành cho máy yếu | An toàn | P3 |
-| Chuyển một số service sang Manual | Chỉ những service trong danh sách đã chọn lọc | Nâng cao | P3 |
+| Hiệu ứng hình ảnh tối ưu hiệu năng ✔ | Dành cho máy yếu; chỉ đổi các giá trị rõ nghĩa (không ghi UserPreferencesMask) | An toàn | P3 |
+| Chuyển một số service sang Manual ✔ | Chỉ dịch vụ cập nhật của Edge, Chrome, Adobe và Downloaded Maps Manager; không đụng dịch vụ Windows về mạng, in, cập nhật, bảo mật | Nâng cao | P3 |
 
 **Gọn gàng và quyền riêng tư (debloat)**
 
@@ -235,7 +235,7 @@ Mỗi nhóm có một **gói sửa nhanh** (*Sửa mạng*, *Sửa máy in*, *S�
 | Tắt quảng cáo và gợi ý ✔ | Gợi ý trong Start, tips, quảng cáo màn hình khoá, consumer features (tự cài game) | An toàn | P2 |
 | Tắt Bing trong Start, Widgets, Copilot ✔ | Tắt bằng policy | An toàn | P2 |
 | Telemetry về mức thấp nhất mà bản Pro cho phép ✔ | | An toàn | P2 |
-| Chặn app "đồng hành" của driver tự cài | | An toàn | P3 |
+| Chặn app "đồng hành" của driver tự cài ✔ | Policy PreventDeviceMetadataFromNetwork | An toàn | P3 |
 
 > Phần lớn các mục ở trên nên đặt bằng **GPO cho cả domain** nếu được. Tool chỉ là phương án cho từng máy, và sẽ không ghi đè những gì GPO đang quản lý.
 
