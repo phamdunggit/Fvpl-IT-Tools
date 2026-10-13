@@ -64,6 +64,7 @@ class SoftwarePage(QWidget):
         self.loading = False
         self._items: dict[str, QTreeWidgetItem] = {}
         self._started = False
+        self._wanted_profile: str | None = None
         self.loader = ScanLoader(app, self)
         self.loader.done.connect(self._scanned)
 
@@ -159,6 +160,21 @@ class SoftwarePage(QWidget):
         self._populate()
         self.info.setText(self._info_text())
         self._update_buttons()
+        if self._wanted_profile is not None:
+            self.preselect_profile(self._wanted_profile)
+
+    def preselect_profile(self, profile_id: str) -> None:
+        """Chọn profile và tick sẵn ứng dụng của nó (wizard Cài máy mới gọi). Chưa quét xong thì làm sau khi quét."""
+        if self.state is None or self.loading:
+            self._wanted_profile = profile_id
+            return
+        self._wanted_profile = None
+        index = self.profile.findData(profile_id)
+        if index < 0:
+            self.controller.say(Level.WARN, f"Danh mục phần mềm không có profile {profile_id!r}, chọn tay nhé.")
+            return
+        self.profile.setCurrentIndex(index)
+        self.pick_profile()
 
     def _info_text(self) -> str:
         state = self.state

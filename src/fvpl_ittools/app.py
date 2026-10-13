@@ -15,6 +15,7 @@ from .actions.model import Action, Pack
 from .core import config, paths, session, sysinfo, winapi
 from .core.executor import Env
 from .core.journal import UndoJournal
+from .newpc import state as wizard_state
 
 log = logging.getLogger(__name__)
 
@@ -47,7 +48,7 @@ def build_context(log_file: Path | None = None) -> AppContext:
     site = config.load_site_config()
     for error in site.errors:
         log.warning("%s", error)
-    software = config.software_source(site)
+    software =config.software_source(site, extra_local=wizard_state.origin_soft(wizard_state.active()))
     env = Env(
         is_admin=winapi.is_admin(),
         build=machine.build,

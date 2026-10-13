@@ -1,9 +1,18 @@
 # Nhật ký thay đổi
 
-## Chưa phát hành: GĐ2 (Cài máy mới) và GĐ3 (Tối ưu & dọn dẹp)
+## Chưa phát hành: GĐ2 (Cài máy mới), GĐ3 (Tối ưu & dọn dẹp), trang Máy in
 
 ### Thêm
 
+- **Wizard Cài máy mới** (trang Cài máy mới, 8 bước, tiến độ lưu lại để làm tiếp sau khi khởi động lại):
+  - Bước 1: chọn phòng ban, **thêm mã phòng mới** (ghi vào `departments` trong site.yaml, giữ chú thích), **gợi ý tên** `<tiền tố><mã><2 số>` theo số lớn nhất đang có trong AD (máy chưa join thì hỏi AD bằng tài khoản join), báo tên đã có (KB5020276); người dùng chính, profile phần mềm.
+  - Bước 2: chép tool vào `%ProgramData%\FVPL-ITTools\app` (chỉ admin ghi được), đổi tên + join domain vào OU chung trong một lần khởi động lại, hẹn tool tự mở lại (`--resume`) khi admin đăng nhập; lỗi join kèm gợi ý theo nguyên nhân.
+  - Bước 3: kiểm tra đã vào domain / đúng tên / secure channel, đồng bộ giờ, gpupdate, thêm nhóm IT (`it_admins_group`) vào Administrators.
+  - Bước 4–6: mở trang Phần mềm với profile tick sẵn, gói Cấu hình chuẩn, Windows Update; kết quả tự ghi vào bước.
+  - Bước 7: báo cáo HTML (các bước, hệ điều hành, phần cứng + serial, phần mềm như Programs and Features), lưu trên máy và `Reports\` cạnh tool trên ổ mang theo; Kết thúc thì bỏ hẹn mở lại.
+  - Sau khởi động lại, trang Phần mềm vẫn dùng được kho SOFT trên SSD nếu ổ còn cắm đúng chỗ.
+- Mục **Định dạng vùng Việt Nam (vi-VN)** (trang Cấu hình, có trong gói Cấu hình chuẩn): tài khoản đang chạy tool, màn hình đăng nhập và tài khoản mới.
+- site.yaml thêm `computer_ou`, `it_admins_group`, `departments`.
 - Trang **Máy in** (mục sửa máy in chuyển từ trang Sửa lỗi sang), ba tab:
   - **Máy in trên máy**: máy in IP / USB / WSD / ảo, máy in share của cả máy và của người đang đăng nhập (đọc từ hive của họ khi IT chạy tool bằng tài khoản khác), driver, trạng thái, lệnh chờ, máy in mặc định. In trang thử, mở hàng đợi, gỡ máy in (kèm cổng TCP/IP không còn dùng, và driver nếu chọn).
   - **Thêm máy in**: qua IP (driver đã cài, driver có sẵn trong Windows như Microsoft IPP Class Driver, hoặc file .inf của hãng: tool đọc tên model trong file để chọn); máy in share `\\máy\tên` (cài driver bằng quyền admin để tránh 0x00000bcb, tuỳ chọn thêm cho mọi người dùng bằng `printui /ga`). Lỗi kết nối kèm gợi ý theo mã lỗi.

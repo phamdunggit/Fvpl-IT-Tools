@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import json
 import os
+import re
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -11,7 +13,9 @@ import yaml
 from . import paths
 
 SITE_FILE = "site.yaml"
-_FIELDS = ("domain", "netbios_domain", "share_root", "computer_prefix")
+_FIELDS = ("domain", "netbios_domain", "share_root", "computer_prefix", "computer_ou", "it_admins_group")
+_DEPARTMENTS = "departments"
+DEPARTMENT_CODE = re.compile(r"^[A-Z0-9]{1,6}$")
 
 
 @dataclass(frozen=True)
@@ -21,11 +25,18 @@ class SiteConfig:
     netbios_domain: str = ""
     share_root: str = ""
     computer_prefix: str = ""
+    computer_ou: str = ""              # OU chung của máy trạm (distinguished name), rỗng = container Computers
+    it_admins_group: str = ""          # nhóm domain của IT, thêm vào Administrators của máy sau khi join
+    departments: tuple[tuple[str, str], ...] = ()  # (mã phòng, tên phòng), thêm dần từ wizard
     errors: tuple[str, ...] = ()
 
     @property
     def loaded(self) -> bool:
         return self.source is not None
+
+    @property
+    def prefix(self) -> str:
+        return self.computer_prefix or "FVPL-"
 
 
 LOCAL_REPO = "SOFT"
@@ -50,10 +61,14 @@ class SoftwareSource:
         return "chưa có (không có thư mục SOFT cạnh tool, chưa khai báo share_root trong site.yaml)"
 
 
-def software_source(site: SiteConfig, app_root: Path | None = None) -> SoftwareSource:
+def software_source(site: SiteConfig, app_root: Path | None = None, extra_local: Path | None = None) -> SoftwareSource:
+    """`extra_local`: thư mục SOFT trên ổ SSD lúc bắt đầu wizard Cài máy mới, khi tool đã chạy tiếp từ bản chép
+    trong ProgramData sau khi khởi động lại."""
     local = (app_root if app_root is not None else paths.app_root()) / LOCAL_REPO
     if local.is_dir():
         return SoftwareSource(str(local), "local")
+    if extra_local is not None and extra_local.is_dir():
+        return SoftwareSource(str(extra_local), "local")
     if site.share_root:
         return SoftwareSource(site.share_root, "share")
     return SoftwareSource()
@@ -84,6 +99,61 @@ def _parse(file: Path) -> SiteConfig:
         return SiteConfig(source=file, errors=(f"Không đọc được {file}: {exc}",))
     if not isinstance(data, dict):
         return SiteConfig(source=file, errors=(f"{file} phải là các dòng key: value",))
-    errors = [f"{file.name}: không hiểu khoá {key!r}" for key in data if key not in _FIELDS]
+    errors = [f"{file.name}: không hiểu khoá {key!r}" for key in data if key not in (*_FIELDS, _DEPARTMENTS)]
     values = {key: str(data[key]).strip() for key in _FIELDS if data.get(key) is not None}
-    return SiteConfig(source=file, errors=tuple(errors), **values)
+    departments: list[tuple[str, str]] = []
+    raw = data.get(_DEPARTMENTS)
+    if isinstance(raw, dict):
+        for code, name in raw.items():
+            code = str(code).strip().upper()
+            if DEPARTMENT_CODE.match(code):
+                departments.append((code, str(name or code).strip()))
+            else:
+                errors.append(f"{file.name}: mã phòng {code!r} chỉ gồm chữ in hoa không dấu và số, tối đa 6 ký tự")
+    elif raw is not None:
+        errors.append(f"{file.name}: '{_DEPARTMENTS}' phải là các dòng MÃ: Tên phòng")
+    return SiteConfig(source=file, errors=tuple(errors), departments=tuple(departments), **values)
+
+
+def site_file_for_write(site: SiteConfig) -> Path:
+    """File site.yaml sẽ ghi: file đang dùng, chưa có thì tạo cạnh file exe."""
+    return site.source if site.source is not None else paths.app_root() / SITE_FILE
+
+
+def add_department(site: SiteConfig, code: str, name: str) -> SiteConfig:
+    """Thêm mã phòng vào site.yaml rồi đọc lại. Sửa thẳng chữ trong file để giữ nguyên chú thích của IT.
+
+    Lỗi (mã sai, trùng, không ghi được) thì ValueError / OSError kèm lời báo tiếng Việt.
+    """
+    code, name = code.strip().upper(), " ".join(name.split())
+    if not DEPARTMENT_CODE.match(code):
+        raise ValueError("Mã phòng chỉ gồm chữ in hoa không dấu và số, tối đa 6 ký tự (ví dụ KT, NS, KHO).")
+    if not name:
+        raise ValueError("Chưa nhập tên phòng.")
+    if code in dict(site.departments):
+        raise ValueError(f"Mã {code} đã có ({dict(site.departments)[code]}).")
+    file = site_file_for_write(site)
+    text = file.read_text(encoding="utf-8") if file.is_file() else (
+        "# Cấu hình riêng của công ty, tạo bởi FVPL IT Toolkit. Mẫu đầy đủ: site.example.yaml.\n")
+    entry = f"  {code}: {json.dumps(name, ensure_ascii=False)}"
+    lines = text.splitlines()
+    start = next((index for index, line in enumerate(lines)
+                  if re.match(rf"^{_DEPARTMENTS}\s*:\s*(\{{\s*\}}\s*)?(#.*)?$", line)), None)
+    if start is None:
+        if any(line.startswith(f"{_DEPARTMENTS}:") for line in lines):
+            raise ValueError(f"Trong {file.name}, viết '{_DEPARTMENTS}:' dạng nhiều dòng (mỗi dòng 'MÃ: Tên') "
+                             "thì tool mới thêm mã mới vào được.")
+        lines += ["", f"{_DEPARTMENTS}:", entry]
+    else:
+        lines[start] = f"{_DEPARTMENTS}:"
+        end = start + 1
+        while end < len(lines) and (not lines[end].strip() or lines[end].startswith((" ", "\t"))):
+            end += 1
+        while end > start + 1 and not lines[end - 1].strip():
+            end -= 1
+        lines.insert(end, entry)
+    file.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    updated = _parse(file)
+    if code not in dict(updated.departments):
+        raise ValueError(f"Đã ghi {file} nhưng đọc lại không thấy mã {code}, kiểm tra lại file.")
+    return updated

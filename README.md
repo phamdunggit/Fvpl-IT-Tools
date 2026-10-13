@@ -3,7 +3,7 @@
 Công cụ cho IT: cài máy mới, join domain, sửa lỗi thường gặp, tối ưu Windows.
 Viết bằng Python 3.13 + PySide6, đóng gói thành exe chạy portable từ USB hoặc share.
 
-- Trạng thái: **GĐ1 (Tổng quan + Sửa lỗi) xong phần code, phiên bản 0.2.0.** Trang Tổng quan, 24 mục sửa lỗi, 5 gói sửa nhanh, trang Tiện ích. **GĐ2 đang làm:** đã có trang Phần mềm (danh mục, profile, cài qua winget và share), bước Kiểm tra trước và cấu hình chuẩn; wizard join domain làm tiếp (đã có đủ thông tin công ty, xem PLAN mục 11). **GĐ3:** đã có dọn rác có quét trước, quản lý khởi động, tối ưu và quyền riêng tư. **Trang Máy in:** thêm / gỡ máy in, sửa lỗi share máy in giữa Win11 và Win10. Các mục đổi hệ thống chưa chạy thật bằng quyền admin, xem [docs/HANDOFF.md](docs/HANDOFF.md).
+- Trạng thái: **GĐ1 (Tổng quan + Sửa lỗi) xong phần code, phiên bản 0.2.0.** Trang Tổng quan, các mục sửa lỗi và gói sửa nhanh, trang Tiện ích. **GĐ2 xong phần code:** wizard Cài máy mới (đặt tên theo phòng ban, join domain, tự làm tiếp sau khi khởi động lại, báo cáo), trang Phần mềm (winget, share, ISO), cấu hình chuẩn. **GĐ3:** đã có dọn rác có quét trước, quản lý khởi động, tối ưu và quyền riêng tư. **Trang Máy in:** thêm / gỡ máy in, sửa lỗi share máy in giữa Win11 và Win10. Các mục đổi hệ thống chưa chạy thật bằng quyền admin, xem [docs/HANDOFF.md](docs/HANDOFF.md).
 
 | Tài liệu | Nội dung |
 |---|---|
@@ -100,7 +100,7 @@ src/fvpl_ittools/
 ├── core/              chạy lệnh (shell, pslib), registry, executor, thông tin máy (inventory),
 │                      nhật ký hoàn tác, restore point, log
 ├── software/          danh mục phần mềm, phát hiện đã cài, lệnh cài (winget, share)
-├── newpc/             Cài máy mới: kiểm tra trước
+├── newpc/             Cài máy mới: kiểm tra trước, tên máy (AD), tiến độ wizard, join, báo cáo
 ├── cleanup/           dọn rác, chương trình khởi động cùng Windows
 ├── printers/          danh sách máy in, thêm (IP / share) và gỡ máy in, đọc model trong file .inf
 ├── ui/                PySide6: cửa sổ chính, các trang, khung log, hộp thoại tài khoản
@@ -113,4 +113,4 @@ packaging/             spec PyInstaller + build.py
 tests/                 pytest
 ```
 
-Dữ liệu khi chạy: `%ProgramData%\FVPL-ITTools\logs\` (log từng phiên, giữ 90 ngày), `undo\journal.json` (nhật ký hoàn tác) và `reports\` (thông tin máy xuất HTML, báo cáo gpresult).
+Dữ liệu khi chạy: `%ProgramData%\FVPL-ITTools\logs\` (log từng phiên, giữ 90 ngày), `undo\journal.json` (nhật ký hoàn tác), `reports\` (thông tin máy xuất HTML, báo cáo gpresult, báo cáo cài máy), `newpc-wizard.json` (tiến độ wizard Cài máy mới) và `app\` (bản chép của tool để tự mở lại sau khi khởi động lại). Báo cáo cài máy có thêm một bản trong `Reports\` cạnh tool trên USB / SSD.

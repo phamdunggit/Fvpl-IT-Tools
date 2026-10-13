@@ -11,7 +11,7 @@ import json
 from fvpl_ittools.actions import loader
 from fvpl_ittools.actions.model import PowerShellStep
 from fvpl_ittools.core import executor, inventory, pslib, safety, shell
-from fvpl_ittools.newpc import precheck
+from fvpl_ittools.newpc import naming, precheck, steps
 
 from . import test_printers as printers_test
 
@@ -61,7 +61,9 @@ def _internal_scripts() -> list[dict]:
         {"name": "check_helpers", "script": pslib.CHECK_HELPERS},
         {"name": "precheck", "script": pslib.with_helpers(precheck._NETWORK_SCRIPT)},
     ] + [{"name": f"inventory {part}", "script": inventory.part_script(part)} for part in inventory.PARTS] + [
-        {"name": name, "script": pslib.with_helpers(script)} for name, script in printers_test.generated_scripts()]
+        {"name": name, "script": pslib.with_helpers(script)}
+        for name, script in printers_test.generated_scripts() + steps.generated_scripts()
+    ] + [{"name": "newpc tên máy trong AD", "script": naming.ad_script()}]
 
 
 def test_every_powershell_script_parses(env, tmp_path):

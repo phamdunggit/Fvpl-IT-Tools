@@ -36,10 +36,10 @@
   page: config
   stop_on_error: false
   description: >
-    Múi giờ UTC+7, tắt Fast Startup, hiện đuôi file và This PC, cài .NET 3.5, rồi bật System Protection và tạo
-    restore point "sau khi cài máy". Mục nào lỗi thì vẫn làm tiếp mục sau.
-  actions: [cfg.timezone_vn, cfg.disable_fast_startup, ui.show_file_ext, cfg.this_pc_desktop, cfg.netfx3,
-            cfg.system_protection]
+    Múi giờ UTC+7, định dạng vùng vi-VN, tắt Fast Startup, hiện đuôi file và This PC, cài .NET 3.5, rồi bật
+    System Protection và tạo restore point "sau khi cài máy". Mục nào lỗi thì vẫn làm tiếp mục sau.
+  actions: [cfg.timezone_vn, cfg.region_vn, cfg.disable_fast_startup, ui.show_file_ext, cfg.this_pc_desktop,
+            cfg.netfx3, cfg.system_protection]
 
 - id: pack.optimize_company
   name: Tắt quảng cáo và theo dõi

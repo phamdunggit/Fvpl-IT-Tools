@@ -14,6 +14,43 @@
   apply:
     - cmd: tzutil /s "SE Asia Standard Time"
 
+- id: cfg.region_vn
+  name: Định dạng vùng Việt Nam (vi-VN)
+  category: Cấu hình chuẩn
+  page: config
+  risk: safe
+  description: >
+    Định dạng ngày giờ, số và tiền tệ theo Việt Nam (vi-VN: ngày dd/MM/yyyy, dấu thập phân là dấu phẩy) cho
+    tài khoản đang chạy tool, màn hình đăng nhập và mọi tài khoản đăng nhập lần đầu sau này (chép sang Default
+    User). Tài khoản đã đăng nhập trên máy từ trước thì tự đổi trong Settings > Time & language > Region.
+    Không đổi ngôn ngữ hiển thị và không đổi system locale (ngôn ngữ cho chương trình không Unicode).
+  apply:
+    - powershell: |
+        # Cách của Windows cho cả Win10 và Win11: intl.cpl đọc file XML, chép thiết lập sang Default User và hệ thống.
+        $xml = '<gs:GlobalizationServices xmlns:gs="urn:longhornGlobalizationUnattend">' +
+            '<gs:UserList><gs:User UserID="Current" CopySettingsToDefaultUserAcct="true" CopySettingsToSystemAcct="true"/></gs:UserList>' +
+            '<gs:UserLocale><gs:Locale Name="vi-VN" SetAsCurrent="true"/></gs:UserLocale>' +
+            '</gs:GlobalizationServices>'
+        $file = Join-Path $env:TEMP ('fvpl-region-{0}.xml' -f [guid]::NewGuid().ToString('N'))
+        [IO.File]::WriteAllText($file, $xml, (New-Object Text.UTF8Encoding $false))
+        try {
+            $rundll = Join-Path $env:SystemRoot 'System32\rundll32.exe'
+            $process = Start-Process -FilePath $rundll -ArgumentList ('shell32.dll,Control_RunDLL intl.cpl,,/f:"{0}"' -f $file) -PassThru
+            $null = $process.Handle
+            if (-not $process.WaitForExit(120000)) { Write-Output 'intl.cpl chạy quá 2 phút.'; exit 4 }
+        }
+        finally {
+            Remove-Item -LiteralPath $file -Force -ErrorAction SilentlyContinue
+        }
+        $current = (Get-ItemProperty -LiteralPath 'HKCU:\Control Panel\International').LocaleName
+        $system = (Get-ItemProperty -LiteralPath 'Registry::HKEY_USERS\.DEFAULT\Control Panel\International').LocaleName
+        Write-Output ('Tài khoản đang chạy tool: {0}. Màn hình đăng nhập: {1}.' -f $current, $system)
+        if ($current -ne 'vi-VN') { exit 3 }
+      timeout: 180
+      messages:
+        3: Windows chưa nhận định dạng vi-VN
+        4: intl.cpl chạy quá lâu
+
 - id: cfg.disable_fast_startup
   name: Tắt Fast Startup
   category: Cấu hình chuẩn

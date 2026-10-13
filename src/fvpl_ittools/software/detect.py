@@ -24,6 +24,7 @@ class InstalledEntry:
     name: str
     version: str = ""
     publisher: str = ""
+    hidden: bool = False  # Programs and Features không hiện: thành phần hệ thống, bản cập nhật của phần mềm khác
 
 
 @dataclass(frozen=True)
@@ -50,7 +51,8 @@ def _read_entries(root, subkey: str, view: int = 0) -> list[InstalledEntry]:
             try:
                 with winreg.OpenKey(key, child_name) as child:
                     values = {}
-                    for value_name in ("DisplayName", "DisplayVersion", "Publisher"):
+                    for value_name in ("DisplayName", "DisplayVersion", "Publisher", "SystemComponent",
+                                       "ParentKeyName"):
                         try:
                             values[value_name] = str(winreg.QueryValueEx(child, value_name)[0]).strip()
                         except OSError:
@@ -58,7 +60,9 @@ def _read_entries(root, subkey: str, view: int = 0) -> list[InstalledEntry]:
             except OSError:
                 continue
             if values["DisplayName"]:
-                entries.append(InstalledEntry(values["DisplayName"], values["DisplayVersion"], values["Publisher"]))
+                hidden = values["SystemComponent"] == "1" or bool(values["ParentKeyName"])
+                entries.append(InstalledEntry(values["DisplayName"], values["DisplayVersion"], values["Publisher"],
+                                              hidden))
     return entries
 
 

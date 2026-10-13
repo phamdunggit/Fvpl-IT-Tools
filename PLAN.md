@@ -90,7 +90,14 @@ Nguyên tắc chung cho mọi tính năng:
 
 ### 5.2 Cài máy mới (wizard)
 
-Wizard đi theo từng bước. Mọi lựa chọn có thể lưu thành **mẫu** (ví dụ "Kế toán – Laptop"), lần sau chỉ cần chọn mẫu.
+Wizard đi theo từng bước. Mọi lựa chọn có thể lưu thành **mẫu** (ví dụ "Kế toán – Laptop"), lần sau chỉ cần chọn mẫu (mẫu: chưa làm).
+
+**Đã làm (13/10/2026), chưa chạy thật trên VM:** trang Cài máy mới thành wizard 8 bước, danh sách bước bên trái, tiến độ lưu ở `%ProgramData%\FVPL-ITTools\newpc-wizard.json` (`newpc/state.py`).
+- Bước 1: chọn mã phòng (thêm mã mới thì ghi tiếp vào `departments` trong site.yaml, giữ chú thích của IT). **Gợi ý tên** hỏi AD bằng LDAP (máy chưa join thì dùng tài khoản join, chỉ đọc), lấy số lớn nhất + 1, báo nếu tên đã có (KB5020276). Ghi người dùng chính, profile phần mềm.
+- Bước 2: chép tool vào `%ProgramData%\FVPL-ITTools\app` (khoá quyền: Users chỉ đọc), `Add-Computer -NewName -OUPath` (đã ở đúng domain thì `Rename-Computer`), hẹn tác vụ mở lại tool (`--resume`, khi một admin đăng nhập, quyền cao nhất). Lỗi join kèm gợi ý theo mã.
+- Bước 3: kiểm tra đã vào domain, đúng tên, secure channel; đồng bộ giờ; gpupdate; thêm `it_admins_group` vào Administrators.
+- Bước 4: mở trang Phần mềm với profile tick sẵn; tool ghi kết quả khi lượt cài kết thúc. Bước 5: gói Cấu hình chuẩn (đã thêm định dạng vùng vi-VN). Bước 6: Windows Update (bỏ qua được).
+- Bước 7: báo cáo HTML (các bước, hệ điều hành, phần cứng + serial, phần mềm như Programs and Features), lưu trên máy và `Reports\` cạnh tool trên ổ mang theo. Kết thúc thì xoá tác vụ mở lại.
 
 | Bước | Nội dung |
 |---|---|
@@ -101,7 +108,7 @@ Wizard đi theo từng bước. Mọi lựa chọn có thể lưu thành **mẫu
 | **4. Cài phần mềm** | Cài theo profile: app winget trước, app từ share sau. Hiện tiến độ từng app; lỗi thì ghi lại và chạy tiếp app sau. |
 | **5. Cấu hình chuẩn** | Mỗi mục tick được: múi giờ SE Asia (UTC+7) và đồng bộ giờ; định dạng vùng; power plan và **tắt Fast Startup** (máy domain nên tắt để GPO và bản cập nhật áp đúng); hiện đuôi file; This PC trên desktop; .NET 3.5 (nguồn offline trên share); tắt quảng cáo và consumer features; gỡ app rác; bật System Protection cho ổ C rồi tạo restore point "Sau khi cài máy"; sao lưu khoá BitLocker lên AD (nếu công ty dùng). |
 | **6. Windows Update** | Tuỳ chọn: quét và cài cập nhật, có thể để chạy nền. |
-| **7. Báo cáo** | Liệt kê bước nào ✔ / ✖, phần mềm đã cài kèm phiên bản, phần cứng và serial. Lưu HTML trên máy và copy lên share `Inventory\<tên máy>`. |
+| **7. Báo cáo** | Liệt kê bước nào ✔ / ✖, phần mềm đã cài kèm phiên bản, phần cứng và serial. Lưu HTML trên máy và trên ổ mang theo (`Reports\` cạnh tool); không gửi lên share (mục 11, câu 12). |
 
 Lưu ý về thứ tự và các trường hợp đặc biệt:
 
@@ -331,11 +338,11 @@ IT Tools/
 │   │   ├── session.py         # tài khoản chạy tool và người đang đăng nhập (SID, profile)
 │   │   ├── sysinfo.py         # tên máy, domain, bản Windows
 │   │   ├── winapi.py          # hàm Windows API qua ctypes
-│   │   ├── config.py          # đọc site.yaml
-│   │   ├── paths.py, log.py
-│   │   └── state.py           # (sẽ có, GĐ2) trạng thái wizard để chạy tiếp sau restart
+│   │   ├── config.py          # đọc site.yaml, thêm mã phòng ban
+│   │   └── paths.py, log.py
 │   ├── software/              # danh mục + profile (catalog), phát hiện đã cài (detect), lệnh cài (install), quét (scan)
-│   ├── newpc/                 # Cài máy mới: precheck (bước 0); các bước wizard còn lại (sẽ có)
+│   ├── newpc/                 # Cài máy mới: precheck (bước 0), naming (tên máy, hỏi AD), state (tiến độ, chạy tiếp
+│   │                          # sau restart), steps (join, sau khởi động lại, kết thúc), report (báo cáo HTML)
 │   ├── cleanup/               # dọn rác (junk) và chương trình khởi động (startup)
 │   ├── printers/              # danh sách máy in, thêm / gỡ máy in (manage), đọc model trong file .inf (inf)
 │   ├── ui/
@@ -499,7 +506,7 @@ Repo để public nên **tên domain, tên server, đường dẫn share, OU, ti
 |---|---|---|
 | **0. Nền móng** ✔ 08/10/2026 | Khung PySide6 (sidebar, khung log, thanh trạng thái); kiểm tra quyền admin; runner chạy nền có nút huỷ; nạp và kiểm tra YAML; log ra file; restore point và nhật ký hoàn tác; build exe | Exe chạy được trên VM Win10 và Win11 sạch (không có Python), chạy được 3 mục mẫu, có log, hoàn tác được 1 tweak registry |
 | **1. Tổng quan + Sửa lỗi** ◐ code xong 13/10/2026 | Trang Tổng quan (copy và xuất thông tin); toàn bộ fix P1 (mạng, domain, máy in, Windows Update, hệ thống, Office); gói sửa nhanh (làm 5 gói: thêm "Reset mạng toàn bộ"); mở nhanh panel; công cụ mạng | IT dùng hằng ngày thay cho gõ lệnh tay; mục nào cũng có ⓘ và copy lệnh |
-| **2. Cài máy mới** ◔ đã có trang Phần mềm và bước 0 Kiểm tra trước | Wizard 7 bước; đổi tên + join + chạy tiếp sau restart; danh mục phần mềm (winget + share) và profile; sửa winget; Office ODT; cấu hình chuẩn; báo cáo | Từ một VM Windows sạch: vào được domain, cài đủ phần mềm theo profile, có báo cáo trên share. IT chỉ phải chọn phòng ban và nhập mật khẩu join |
+| **2. Cài máy mới** ◐ code xong 13/10/2026 (còn mẫu wizard) | Wizard 7 bước; đổi tên + join + chạy tiếp sau restart; danh mục phần mềm (winget + share) và profile; sửa winget; Office từ ISO; cấu hình chuẩn; báo cáo | Từ một VM Windows sạch: vào được domain, cài đủ phần mềm theo profile, có báo cáo trên máy và trên ổ mang theo. IT chỉ phải chọn phòng ban và nhập mật khẩu join |
 | **3. Tối ưu & dọn dẹp** ◑ đã có dọn rác, startup, debloat, power | Dọn rác có quét trước; quản lý startup; debloat và quyền riêng tư; power; các fix P2 | Thấy được dung lượng trước khi xoá; mọi tweak hoàn tác được |
 | **4. Tiện ích & hoàn thiện** | Các tiện ích; gửi kiểm kê lên share; báo bản mới; ký số; hướng dẫn sử dụng; các mục P3 | Bản 1.0 có trên share |
 | **Để sau** | Điều khiển nhiều máy từ xa, bản rút gọn cho nhân viên tự sửa lỗi, giao diện tối | |

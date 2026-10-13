@@ -155,7 +155,7 @@ def test_software_page_profiles_and_install(window, qt_app, monkeypatch):
 
 def test_newpc_page_shows_checks_and_time_fix(window, qt_app, monkeypatch):
     window.select_page("Cài máy mới")
-    page = window.newpc
+    page = window.newpc.check
     deadline = time.monotonic() + 10
     while (page.loading or not page.checks) and time.monotonic() < deadline:
         qt_app.processEvents()
@@ -170,6 +170,117 @@ def test_newpc_page_shows_checks_and_time_fix(window, qt_app, monkeypatch):
     assert runs == [["dom.time_sync"]]
     page.copy_text()
     assert QtWidgets.QApplication.clipboard().text().startswith("Kiểm tra trước khi cài máy")
+
+
+def _finish_batch(window, actions, status):
+    from fvpl_ittools.core.executor import ActionResult, BatchResult
+    window.controller.finished.emit(BatchResult(results=[ActionResult(action, status) for action in actions]))
+
+
+def test_newpc_wizard_flow(window, qt_app, monkeypatch, tmp_path):
+    from dataclasses import replace
+
+    from fvpl_ittools.core import config
+    from fvpl_ittools.core.executor import Status
+    from fvpl_ittools.newpc import naming, state
+    from fvpl_ittools.ui.pages import newpc as newpc_module
+
+    page = window.newpc
+    window.select_page("Cài máy mới")
+    assert page.state is None and page.step_list.currentRow() == 0
+    # Máy chưa join, có quyền admin, site.yaml tạm có domain và OU.
+    site_file = tmp_path / "site.yaml"
+    site_file.write_text("domain: corp.example\nnetbios_domain: CORP\ncomputer_ou: OU=May,DC=corp,DC=example\n",
+                         encoding="utf-8")
+    page.app.site = config.load_site_config([site_file])
+    page.app.machine = replace(page.app.machine, joined_domain=False, computer_name="DESKTOP-ABC",
+                               join_name="WORKGROUP", dns_domain="")
+    page.app.env = replace(page.app.env, is_admin=True)
+
+    # Bước 1: thêm mã phòng (lưu vào site.yaml), gợi ý tên bằng AD giả.
+    class FakeDialog:
+        def __init__(self, parent):
+            self.code, self.name = QtWidgets.QLineEdit("kt"), QtWidgets.QLineEdit("Kế toán")
+
+        def exec(self):
+            return QtWidgets.QDialog.DialogCode.Accepted
+    monkeypatch.setattr(newpc_module, "DepartmentDialog", FakeDialog)
+    page.add_department()
+    assert "KT:" in site_file.read_text(encoding="utf-8") and page.selected_department() == "KT"
+
+    asked = []
+    monkeypatch.setattr(newpc_module, "ask_credential",
+                        lambda names, domain, parent: asked.append(domain) or ("CORP\\join", "pw"))
+    monkeypatch.setattr(naming, "existing_names", lambda domain, prefix, credential=None, cancel=None:
+                        ["FVPL-KT01", "FVPL-KT04"])
+    page.suggest_name()
+    deadline = time.monotonic() + 5
+    while not page.computer_name.text() and time.monotonic() < deadline:
+        qt_app.processEvents()
+        time.sleep(0.01)
+    assert page.computer_name.text() == "FVPL-KT05" and asked == ["CORP"]
+    page.computer_name.setText("FVPL-KT04")
+    assert "đã có trong AD" in page.name_status.text()
+    page.computer_name.setText("FVPL-KT05")
+    page.primary_user.setText("Nguyễn Văn A")
+    page.save_info()
+    assert state.load().computer_name == "FVPL-KT05" and page.step_list.currentRow() == 2
+
+    # Bước 2: join dùng lại tài khoản đã nhập ở bước 1, chạy xong thì ghi "chờ khởi động lại".
+    runs = []
+    monkeypatch.setattr(window.controller, "run", lambda actions, **kw: runs.append((actions, kw)))
+    monkeypatch.setattr(newpc_module.QMessageBox, "question",
+                        lambda *args: newpc_module.QMessageBox.StandardButton.Yes)
+    page._update_buttons()
+    assert page.join_button.isEnabled()
+    page.join()
+    actions, options = runs[-1]
+    assert actions[0].id == "newpc.join" and options["credential"] == ("CORP\\join", "pw")
+    assert page._credential is None
+    _finish_batch(window, actions, Status.OK)
+    assert page.state.steps["join"].note == "Chờ khởi động lại" and page.start_step() == "join"
+
+    # Sau khởi động lại: máy đã đúng tên, ở domain → mở bước 3.
+    page.app.machine = replace(page.app.machine, joined_domain=True, computer_name="FVPL-KT05",
+                               dns_domain="corp.example")
+    assert page.start_step() == "after"
+    page.run_after_restart()
+    actions, options = runs[-1]
+    assert [action.id for action in actions][:1] == ["newpc.verify"] and options == {"stop_on_error": False}
+    _finish_batch(window, actions, Status.OK)
+    assert page.state.status("after") == "ok" and page.step_list.currentRow() == 4
+
+    # Bước 4: mở trang Phần mềm; ghi kết quả khi có lượt cài phần mềm kết thúc.
+    picked = []
+    monkeypatch.setattr(window.software, "preselect_profile", picked.append)
+    page.state.profile = "van-phong"
+    page.go_software()
+    assert window.stack.currentWidget() is window.software and picked == ["van-phong"]
+    _finish_batch(window, [page._actions["dom.gpupdate"]], Status.OK)  # việc khác: chưa tính
+    assert page.state.status("software") == ""
+    from fvpl_ittools.software import catalog, install
+    app = catalog.load_catalog_file(catalog.BUNDLED_FILE).apps[0]
+    _finish_batch(window, [install.install_action(app, "")], Status.FAILED)
+    assert page.state.status("software") == "failed"
+
+    # Bước 5, 6, 7.
+    page.run_config()
+    assert runs[-1][1] == {"stop_on_error": False} and "cfg.region_vn" in [a.id for a in runs[-1][0]]
+    _finish_batch(window, runs[-1][0], Status.OK)
+    page.record("update", "skipped", "IT bỏ qua")
+    jobs = []
+    monkeypatch.setattr(window.controller, "run_job", jobs.append)
+    page.make_report()
+    assert len(jobs) == 1
+    opened = []
+    monkeypatch.setattr(newpc_module, "open_as_user", opened.append)
+    report_file = tmp_path / "CaiMay_FVPL-KT05.html"
+    window.controller.finished.emit(newpc_module.ReportResult([report_file]))
+    assert page.state.status("report") == "ok" and opened == [report_file]
+
+    # Kết thúc: bỏ tác vụ mở lại tool, wizard không còn dở.
+    page.finish()
+    assert runs[-1][0][0].id == "newpc.finish" and page.state is None and state.active() is None
 
 
 def test_cleanup_scans_first_then_cleans_selected(window, qt_app, monkeypatch):

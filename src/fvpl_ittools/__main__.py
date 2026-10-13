@@ -22,6 +22,8 @@ def _parse_args(argv: list[str]) -> argparse.Namespace:
                         help="không hỏi mở lại bằng quyền admin (dùng khi phát triển)")
     parser.add_argument("--selftest", metavar="THƯ_MỤC",
                         help="dựng cửa sổ, chụp ảnh từng trang và ghi selftest.json vào thư mục rồi thoát")
+    parser.add_argument("--resume", action="store_true",
+                        help="mở thẳng trang Cài máy mới để làm tiếp sau khi khởi động lại (tác vụ hẹn của wizard)")
     return parser.parse_args(argv)
 
 
@@ -128,7 +130,7 @@ def main(argv: list[str] | None = None) -> int:
             return 0
 
     app_ctx = build_context(log_file)
-    window = MainWindow(app_ctx)
+    window = MainWindow(app_ctx, resume=args.resume)
     if args.selftest:
         return _selftest(window, app_ctx, Path(args.selftest))
     window.show()

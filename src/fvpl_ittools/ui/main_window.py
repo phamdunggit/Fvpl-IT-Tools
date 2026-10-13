@@ -98,7 +98,8 @@ def _pages(app: AppContext, controller: RunController) -> list[tuple[str, QWidge
 
 
 class MainWindow(QMainWindow):
-    def __init__(self, app: AppContext):
+    def __init__(self, app: AppContext, resume: bool = False):
+        """`resume`: tool được tác vụ hẹn của wizard Cài máy mới mở lại sau khi khởi động lại máy."""
         super().__init__()
         self.app = app
         self.setWindowTitle(f"{APP_NAME} {__version__}")
@@ -139,6 +140,7 @@ class MainWindow(QMainWindow):
             if isinstance(page, PrintersPage):
                 self.printers = page
         self.overview.alerts_changed.connect(self.header.set_alerts)
+        self.newpc.open_software.connect(self._open_software)
 
         self.log_panel = LogPanel()
         splitter = QSplitter(Qt.Orientation.Vertical)
@@ -171,6 +173,17 @@ class MainWindow(QMainWindow):
             )
         for error in app.load_errors:
             self.controller.say(Level.ERROR, f"Mục khai báo sai, đã bỏ qua: {error}")
+        wizard = self.newpc.state
+        if wizard is not None:
+            self.controller.say(Level.WARN, f"Đang cài dở máy {wizard.computer_name or '(chưa đặt tên)'}: "
+                                            "xem trang Cài máy mới để làm tiếp.")
+            if resume:
+                self.select_page("Cài máy mới")
+
+    def _open_software(self, profile_id: str) -> None:
+        self.select_page("Phần mềm")
+        if profile_id:
+            self.software.preselect_profile(profile_id)
 
     def select_page(self, name: str) -> None:
         for row in range(self.sidebar.count()):

@@ -19,3 +19,15 @@ share_root: '\\fileserver.corp.example\IT$\ITTools'
 
 # Tiền tố tên máy, ví dụ FVPL- cho FVPL-KT05
 computer_prefix: FVPL-
+
+# OU chung của máy trạm khi join domain (distinguished name). Bỏ trống thì máy vào container Computers.
+computer_ou: 'OU=Workstations,DC=corp,DC=example'
+
+# Nhóm domain của IT, wizard thêm vào nhóm Administrators của máy sau khi join (bỏ trống nếu không cần)
+it_admins_group: 'CORP\IT Admins'
+
+# Mã phòng ban cho tên máy <computer_prefix><mã><2 số>, ví dụ FVPL-KT05.
+# Wizard Cài máy mới có nút thêm mã mới, tự ghi tiếp vào đây (giữ dạng nhiều dòng như dưới).
+departments:
+  KT: "Kế toán"
+  NS: "Nhân sự"

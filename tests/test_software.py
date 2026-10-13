@@ -197,6 +197,20 @@ def test_installed_programs_reads_this_machine():
     assert entries and all(entry.name for entry in entries)
 
 
+def test_hidden_uninstall_entries(test_key):
+    """Thành phần hệ thống và bản cập nhật vẫn đọc (để phát hiện đã cài) nhưng đánh dấu ẩn cho báo cáo."""
+    import winreg
+    subkey = test_key.split("\\", 1)[1]
+    for name, extra in (("App", {}), ("Lib", {"SystemComponent": 1}), ("KB1", {"ParentKeyName": "App"})):
+        with winreg.CreateKey(winreg.HKEY_CURRENT_USER, f"{subkey}\\{name}") as key:
+            winreg.SetValueEx(key, "DisplayName", 0, winreg.REG_SZ, name)
+            for value_name, value in extra.items():
+                kind = winreg.REG_DWORD if isinstance(value, int) else winreg.REG_SZ
+                winreg.SetValueEx(key, value_name, 0, kind, value)
+    entries = {entry.name: entry.hidden for entry in detect._read_entries(winreg.HKEY_CURRENT_USER, subkey)}
+    assert entries == {"App": False, "Lib": True, "KB1": True}
+
+
 # ---------------------------------------------------------------- cài
 
 

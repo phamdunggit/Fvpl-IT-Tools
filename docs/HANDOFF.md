@@ -1,15 +1,15 @@
 # Bàn giao: đọc file này trước khi làm tiếp
 
-Cập nhật lần cuối: 13/10/2026, sau khi xong trang Máy in (sửa share máy in Win11 ↔ Win10).
+Cập nhật lần cuối: 13/10/2026, sau khi xong wizard Cài máy mới (GĐ2).
 
 ## Trạng thái
 
 | | |
 |---|---|
-| Giai đoạn | **GĐ1 (Tổng quan + Sửa lỗi) xong phần code.** Còn chạy thử các mục đổi hệ thống bằng quyền admin (danh sách bên dưới) rồi mới coi là xong. **GĐ2 đang làm:** đã có trang Phần mềm; wizard Cài máy mới chưa làm |
+| Giai đoạn | **GĐ1, GĐ2 (wizard Cài máy mới), phần lớn GĐ3 xong phần code.** Còn chạy thử các mục đổi hệ thống bằng quyền admin trên VM (danh sách bên dưới) rồi mới coi là xong |
 | Nhánh | Code mới làm trên `featured`. Chỉ merge về `main` khi được duyệt |
 | Phiên bản | 0.2.0, xem [CHANGELOG.md](../CHANGELOG.md) (trang Phần mềm nằm ở mục "Chưa phát hành") |
-| Test | 243 test pytest, tất cả đều qua (khoảng 35 giây) |
+| Test | 266 test pytest, tất cả đều qua (khoảng 35 giây) |
 | Bản exe | `python packaging\build.py`: thư mục 64MB, zip 27MB. `--test` chạy selftest trên exe, gồm cả đọc thông tin máy |
 
 Đã có:
@@ -18,7 +18,7 @@ Cập nhật lần cuối: 13/10/2026, sau khi xong trang Máy in (sửa share m
 - Trang **Máy in**: danh sách máy in (kể cả share của người đang đăng nhập), gỡ máy in / driver, in thử; thêm máy in qua IP (driver từ file .inf) và máy in share; tab Sửa lỗi có các mục share máy in Win11 ↔ Win10 (`printers/`, `30-printers.yaml`).
 - Trang **Cấu hình**: 1 mục mẫu (Hiện đuôi file). Trang **Tiện ích**: mở nhanh 29 công cụ quản trị, công cụ mạng.
 - Trang **Phần mềm**: danh mục `apps.yaml` (share hoặc bản đóng gói), profile phòng ban, đánh dấu đã cài, cài lần lượt qua winget / MSI / EXE / portable. Cách khai báo: [SOFTWARE.md](SOFTWARE.md).
-- Trang **Cài máy mới**: mới có bước 0 "Kiểm tra trước" (`newpc/precheck.py`); các bước 1–7 của wizard chưa làm.
+- Trang **Cài máy mới**: wizard 8 bước (`ui/pages/newpc.py`, `newpc/`): kiểm tra trước, thông tin máy (mã phòng lưu vào site.yaml, gợi ý tên bằng AD), đổi tên + join, sau khởi động lại, phần mềm, cấu hình chuẩn, Windows Update, báo cáo. Tiến độ lưu ở `newpc-wizard.json` trong thư mục dữ liệu; bước 2 chép tool vào `%ProgramData%\FVPL-ITTools\app` và hẹn tác vụ `FVPL-ITTools-TiepTucCaiMay` mở lại tool (`--resume`) khi admin đăng nhập.
 - Trang **Tối ưu & dọn dẹp** (GĐ3): dọn rác có quét trước (`cleanup/junk.py`), chương trình khởi động cùng Windows (`cleanup/startup.py`), tối ưu / quyền riêng tư / nguồn điện / gỡ app cài sẵn (`75-optimize.yaml`).
 - Trang **Nhật ký**: hoàn tác thay đổi registry.
 
@@ -103,6 +103,15 @@ Trang Phần mềm (GĐ2). Danh mục và phát hiện đã cài đã chạy th�
 - [ ] **Sửa / cài lại winget:** tài khoản mới đăng nhập lần đầu chưa có winget → mục đăng ký lại được; xoá App Installer của tài khoản (`Get-AppxPackage Microsoft.DesktopAppInstaller | Remove-AppxPackage`) → mục cài lại từ `<share>\Installers\winget\`. Phần kiểm tra `winget --version` đã chạy thật trên máy dev.
 - [ ] **Máy chưa vào domain:** trang báo "Không vào được share", danh mục quay về bản đóng gói; không bị treo lâu khi share không trả lời (quét chạy ở thread nền, nhưng `os.path.isdir` trên UNC có thể chờ 20–60 giây).
 
+Wizard Cài máy mới. "Gợi ý tên" (hỏi AD, máy đã join) và tạo báo cáo đã chạy thật trên máy dev (chỉ đọc); **chưa join / đổi tên / hẹn tác vụ thật**. Cần VM chưa join, bản exe trên USB, có `site.yaml` (`domain`, `netbios_domain`, `computer_ou`, `it_admins_group`):
+- [ ] **Gợi ý tên khi máy chưa join:** LDAP bằng tài khoản join (`DirectoryEntry` với user/mật khẩu) qua DNS đang trỏ về DC; sai mật khẩu thì báo rõ và hỏi lại.
+- [ ] **Join + đổi tên một lần khởi động lại**, vào đúng OU; thử cả tên đã có trong AD bằng tài khoản join thường (phải ra gợi ý KB5020276) và OU sai. Xem lời báo của `Add-Computer` có mã lỗi không (đang dò theo chữ tiếng Anh).
+- [ ] **Chạy tiếp sau khởi động lại:** rút USB, khởi động lại, đăng nhập bằng Domain Admin: tác vụ mở bản chép trong ProgramData, không hỏi UAC, vào thẳng bước 3. Đăng nhập bằng tài khoản không phải admin thì tác vụ không chạy (đúng ý), mở tool bằng tay vẫn thấy wizard dở. `icacls` đã khoá thư mục (Users chỉ đọc).
+- [ ] **Bước 3:** secure channel, gpupdate, thêm `it_admins_group` vào Administrators bằng ADSI (đã có sẵn thì báo đã có).
+- [ ] **Bản SSD:** bắt đầu từ SSD, sau khởi động lại SSD vẫn cắm cùng ký tự ổ → trang Phần mềm dùng kho SOFT trên SSD (`origin` trong newpc-wizard.json). Cắm khác ký tự ổ thì quay về share.
+- [ ] **Định dạng vùng vi-VN:** `rundll32 shell32.dll,Control_RunDLL intl.cpl,,/f:"x.xml"` có chờ xong mới thoát không; tài khoản mới tạo sau đó nhận vi-VN; màn hình đăng nhập (`HKU\.DEFAULT`) đổi theo.
+- [ ] **Báo cáo:** mở được bằng trình duyệt của người dùng; có bản trong `Reports\` trên USB. Kết thúc wizard thì tác vụ mở lại bị xoá.
+
 Trang Cài máy mới, bước Kiểm tra trước. Đã chạy thật trên máy dev (máy đã join, đang ở Wi-Fi ngoài nên DNS không trỏ về DC):
 - [ ] VM **chưa join**, có `site.yaml` khai báo `domain`, cắm mạng công ty: DNS tìm được DC, DC trả lời LDAP, đo được giờ lệch.
 - [ ] Chỉnh giờ VM lệch 10 phút: dòng giờ báo ✖, nút Đồng bộ giờ chạy rồi tự kiểm tra lại.
@@ -139,9 +148,9 @@ Hai bản USB / SSD:
 
 ## Việc tiếp theo
 
-1. **Chạy danh sách trên** trên VM, sửa những gì sai. Khi đó GĐ1 mới xong.
-2. **GĐ2: phần còn lại** (PLAN mục 5.2, 5.5): wizard Cài máy mới (kiểm tra trước, đổi tên + join domain, chạy tiếp sau restart, cấu hình chuẩn, báo cáo), sửa / cài lại winget từ share. Câu hỏi PLAN mục 11 đã được trả lời (13/10/2026): tên `FVPL-<mã phòng><2 chữ số>`, mã phòng ban thêm dần (wizard cho thêm mã mới và lưu lại), một OU chung cho máy trạm, đã có tài khoản join riêng, Office chọn theo từng người (MAK), Symantec managed qua SEPM, định dạng vùng vi-VN, kiểm kê chỉ lưu trên ổ mang theo. Thứ tự việc tiếp theo ở [TIEN-DO.md](TIEN-DO.md). Hộp thoại tài khoản domain, các hàm kiểm tra DC/DNS/giờ (`core/pslib.py`) và trang Phần mềm (`software/`) dùng lại được cho wizard. Lưu ý khi làm bước restart: tool có thể đang chạy từ USB, sau khi khởi động lại USB có thể đã rút; nên chép tool vào `%ProgramData%\FVPL-ITTools\app` trước khi hẹn tự mở lại.
-3. Câu 11 (10 lỗi người dùng hay báo nhất) giúp chọn fix P2 nào làm trước (GĐ3).
+1. **Chạy danh sách trên** trên VM, sửa những gì sai. Khi đó GĐ1, GĐ2 mới xong. Wizard cần VM chưa join + domain test.
+2. Thứ tự việc còn lại ở [TIEN-DO.md](TIEN-DO.md) (driver Dell / Lenovo, kiểm kê ra ổ mang theo, hướng dẫn BitLocker / LAPS / GPO, GĐ4). Câu trả lời của PLAN mục 11 (13/10/2026) quyết định các việc đó.
+3. Wizard chưa có **mẫu** (lưu bộ lựa chọn "Kế toán – Laptop" để lần sau chọn lại), PLAN mục 5.2.
 
 ## Bẫy đã gặp
 
@@ -167,6 +176,8 @@ GĐ1:
 GĐ2:
 - **Script quá dài so với dòng lệnh** chỉ lộ ra khi chạy thật (mục "Kiểm tra share máy in" dài 32.400 ký tự sau khi mã hoá, giới hạn 32.000). Giờ hàm dựng sẵn chỉ được thêm khi script gọi tới, và `test_every_powershell_script_fits_command_line` soát mọi script.
 - **`Win32_Printer.Shared` của máy in share (`\\máy\tên`) là True:** đó là trạng thái bên máy chia sẻ. Muốn biết máy này có share máy in nào thì bỏ các máy in có tên bắt đầu bằng `\\`.
+- **Tác vụ chạy bằng quyền admin phải trỏ vào thư mục người dùng thường không ghi được.** Thư mục con của ProgramData mặc định cho Users tạo file (thả DLL cạnh exe là chạy bằng quyền admin), nên bước join `icacls` lại `%ProgramData%\FVPL-ITTools`. Kho SOFT trên ổ mang theo (`origin`) vẫn là chỗ tin tưởng ổ cắm vào: trang Phần mềm luôn ghi rõ đang dùng kho nào.
+- **Programs and Features ẩn các mục `SystemComponent = 1` và có `ParentKeyName`** (bản cập nhật). Máy dev có 321 mục trong registry nhưng chỉ 142 mục hiện; báo cáo bỏ mục ẩn, còn phát hiện "đã cài" vẫn đọc tất cả.
 - **Heredoc của Bash nuốt bớt dấu `\`** (`\\` thành `\`), cả khi dùng `<<'EOF'` để chạy Python sửa file. Nội dung có `\` thì sửa bằng công cụ Edit/Write, rồi grep lại.
 - **Bộ cài là chương trình giao diện:** gọi thẳng `& setup.exe` trong PowerShell thì không chờ. `Start-Process -Wait` lại chờ cả tiến trình con (nhiều bộ cài mở luôn ứng dụng sau khi cài), nên dùng `Start-Process -PassThru` rồi `WaitForExit()`; phải đọc `$process.Handle` ngay sau khi chạy, không thì `ExitCode` có lúc rỗng.
 - **Programs and Features có thể có hai dòng trùng tên** (.NET Desktop Runtime: một dòng mang số phiên bản nội bộ MSI). Phát hiện đã cài ưu tiên dòng có phiên bản khớp với số trong tên.
