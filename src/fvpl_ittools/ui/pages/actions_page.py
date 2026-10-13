@@ -46,7 +46,7 @@ def action_status(action: Action, app: AppContext, controller: RunController) ->
         return "GPO quản lý", "gpo"
     state = executor.check_state(action, env)
     if state is True:
-        return "Đang bật", "on"
+        return "✔ Đã áp dụng", "on"
     last = controller.last_results.get(action.id)
     if last is not None:
         time_label = last.finished_at.strftime("%H:%M")
@@ -55,7 +55,7 @@ def action_status(action: Action, app: AppContext, controller: RunController) ->
         if last.status is Status.FAILED:
             return f"✖ Lỗi {time_label}", "error"
     if state is False:
-        return "Đang tắt", "off"
+        return "Chưa áp dụng", "off"
     if action.admin and not env.is_admin:
         return "Cần quyền admin", "blocked"
     return "", "off"

@@ -92,7 +92,7 @@ Step = CmdStep | PowerShellStep | RegistryStep | ServiceStep | BuiltinStep
 
 @dataclass(frozen=True)
 class RegistryCheck:
-    """Đọc trạng thái hiện tại: giá trị bằng `on_value` nghĩa là "Đang bật"."""
+    """Đọc trạng thái hiện tại: giá trị bằng `on_value` nghĩa là mục đã được áp dụng ("✔ Đã áp dụng")."""
     key: str
     name: str
     on_value: Any

@@ -190,6 +190,24 @@ def test_cleanup_scans_first_then_cleans_selected(window, qt_app, monkeypatch):
     assert jobs and "Không lấy lại được: Thùng rác của người dùng" in asked[0]
 
 
+def test_startup_tab_toggles_selected(window, qt_app, monkeypatch):
+    from fvpl_ittools.cleanup import startup
+    fake = [
+        startup.StartupEntry("Spotify", r"C:\Spotify.exe", "Người dùng (Run)", r"HKCU\Software\X\StartupApproved\Run", True),
+        startup.StartupEntry("Zalo", r"C:\Zalo.exe", "Người dùng (Run)", r"HKCU\Software\X\StartupApproved\Run", False),
+    ]
+    monkeypatch.setattr(startup, "entries", lambda env: fake)
+    panel = window.optimize.startup
+    panel.refresh()
+    assert panel.tree.topLevelItemCount() == 2 and panel.tree.topLevelItem(1).text(1) == "Tắt"
+    runs = []
+    monkeypatch.setattr(window.controller, "run", lambda actions, **kw: runs.append([a.name for a in actions]))
+    panel.tree.selectAll()
+    assert panel.disable_button.isEnabled() and panel.enable_button.isEnabled()
+    panel.toggle(False)
+    assert runs == [["Tắt khởi động cùng Windows: Spotify"]]  # Zalo đã tắt sẵn thì bỏ qua
+
+
 def test_every_page_renders(window, qt_app):
     for row in range(window.sidebar.count()):
         window.sidebar.setCurrentRow(row)

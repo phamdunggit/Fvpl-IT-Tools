@@ -69,7 +69,7 @@ Mục chẩn đoán dùng hàm dựng sẵn và giải thích mã thoát:
 | `reboot` | | `false` | Cần khởi động lại sau khi chạy (chỉ tính khi mục có thay đổi). |
 | `os` | | | `{ min_build: 22000, max_build: 26100 }`. Ví dụ 19045 = Win10 22H2, 22000 = Win11 đầu tiên. |
 | `description` | | | Mô tả hiện trong khung chi tiết. Viết cho IT đọc: làm gì, dùng khi nào, ảnh hưởng gì. Test yêu cầu tối thiểu 40 ký tự. |
-| `check` | | | `{ registry: { key, name, on_value } }`. Đọc trạng thái hiện tại: giá trị bằng `on_value` thì hiện "Đang bật", ngược lại "Đang tắt". |
+| `check` | | | `{ registry: { key, name, on_value } }`. Đọc trạng thái hiện tại: giá trị bằng `on_value` thì cột trạng thái hiện "✔ Đã áp dụng", ngược lại "Chưa áp dụng". `on_value` là giá trị *sau khi* chạy mục, kể cả với mục tên "Tắt …". |
 | `apply` | có | | Danh sách bước, chạy lần lượt. Một bước lỗi thì dừng mục đó. |
 | `undo` | có nếu `risk` khác `safe` | `auto` khi có bước registry, ngược lại `none` | `auto`: trả registry về giá trị đã sao lưu. `none`: không hoàn tác được. Hoặc một danh sách bước hoàn tác. |
 | `after` | | | Thao tác làm sau, ví dụ `[restart_explorer]`. Chỉ chạy nếu mục có thay đổi, và chạy **một lần** cho cả lượt dù nhiều mục cùng khai báo. |
