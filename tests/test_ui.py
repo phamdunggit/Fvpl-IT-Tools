@@ -69,6 +69,61 @@ def test_controller_runs_in_background_and_reports(window, qt_app):
     assert finished and finished[0].results[0].status.value == "ok"
 
 
+def test_pack_bar_runs_pack_with_stop_on_error(window, monkeypatch):
+    from fvpl_ittools.ui.pages import actions_page
+    window.select_page("Sửa lỗi")
+    page = window.stack.currentWidget()
+    assert set(page.pack_buttons) >= {"pack.network", "pack.printer", "pack.windows_update", "pack.domain"}
+
+    calls = []
+    asked = []
+    monkeypatch.setattr(window.controller, "run", lambda actions, **kw: calls.append(([a.id for a in actions], kw)))
+    monkeypatch.setattr(actions_page.QMessageBox, "question",
+                        lambda parent, title, text: asked.append(text) or actions_page.QMessageBox.StandardButton.Yes)
+    monkeypatch.setattr(actions_page.QMessageBox, "information", lambda *args: asked.append(args[2]))
+    pack = next(pack for pack in page.packs if pack.id == "pack.network")
+    page.run_pack(pack)
+    assert asked and "dừng nếu một bước lỗi" in asked[0]
+    assert calls == [(list(pack.actions), {"credential": None, "stop_on_error": True})]
+
+
+def test_actions_needing_credential_ask_first(window, monkeypatch):
+    from dataclasses import replace
+
+    from fvpl_ittools.ui.pages import actions_page
+    page = window.stack.widget([window.sidebar.item(row).text() for row in range(window.sidebar.count())].index("Sửa lỗi"))
+    action = replace(page._all_actions["dom.repair_trust"], requires_domain=False, admin=False)
+    calls = []
+    monkeypatch.setattr(window.controller, "run", lambda actions, **kw: calls.append(kw))
+
+    monkeypatch.setattr(actions_page, "ask_credential", lambda names, domain, parent: None)
+    page._start([action], stop_on_error=False)
+    assert calls == []
+    assert "chưa nhập tài khoản" in window.log_panel.plain_text()
+
+    monkeypatch.setattr(actions_page, "ask_credential", lambda names, domain, parent: ("CORP\\it", "pw"))
+    page._start([action], stop_on_error=False)
+    assert calls == [{"credential": ("CORP\\it", "pw"), "stop_on_error": False}]
+
+
+def test_credential_dialog(qt_app):
+    from fvpl_ittools.ui.credential_dialog import CredentialDialog, qualify_user
+    assert qualify_user(" join ", "CORP") == "CORP\\join"
+    assert qualify_user("OTHER\\join", "CORP") == "OTHER\\join"
+    assert qualify_user("join@corp.example", "CORP") == "join@corp.example"
+    assert qualify_user("join", "") == "join"
+
+    dialog = CredentialDialog(["Sửa lỗi trust relationship"], "CORP")
+    ok = dialog.buttons.button(QtWidgets.QDialogButtonBox.StandardButton.Ok)
+    assert not ok.isEnabled()
+    dialog.user.setText("join")
+    dialog.password.setText("bí mật")
+    assert ok.isEnabled()
+    dialog.done(1)
+    assert dialog.result_credential == ("CORP\\join", "bí mật")
+    assert dialog.password.text() == ""
+
+
 def test_progress_lines_overwrite_previous(window):
     from fvpl_ittools.core.executor import Level, LogEvent
     panel = window.log_panel

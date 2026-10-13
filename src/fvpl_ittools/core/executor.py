@@ -255,12 +255,18 @@ def ps_script_for(step: PowerShellStep) -> str:
     return step.script
 
 
-def describe_step(step: Step, env: Env) -> str:
+def describe_step(step: Step, env: Env, full: bool = False) -> str:
+    """Lệnh của một bước để IT đọc. `full`: kèm cả hàm kiểm tra dựng sẵn, để copy ra chạy tay vẫn đúng."""
     if isinstance(step, CmdStep):
         return step.command
     if isinstance(step, PowerShellStep):
-        # Kèm biến và hàm dựng sẵn để copy ra PowerShell chạy tay vẫn đúng.
-        script = shell.ps_variable_lines(_used_variables(step.script, env)) + ps_script_for(step)
+        script = shell.ps_variable_lines(_used_variables(step.script, env))
+        if full:
+            script += ps_script_for(step)
+        else:
+            script += step.script
+            if ps_script_for(step) != step.script:
+                script += "\n# (dùng hàm kiểm tra dựng sẵn Write-Ok, Test-Port...: nút Copy lệnh copy kèm cả các hàm này)"
         body = "\n".join(f"    {line}" for line in script.splitlines())
         return f"PowerShell:\n{body}"
     if isinstance(step, RegistryStep):
@@ -270,8 +276,8 @@ def describe_step(step: Step, env: Env) -> str:
     return f"[{BUILTIN_NAMES[step.name]}]"
 
 
-def describe_action(action: Action, env: Env) -> str:
-    lines = [describe_step(step, env) for step in action.apply]
+def describe_action(action: Action, env: Env, full: bool = False) -> str:
+    lines = [describe_step(step, env, full) for step in action.apply]
     lines += [f"Sau khi xong: {BUILTIN_NAMES[hook]}" for hook in action.after]
     return "\n".join(lines)
 

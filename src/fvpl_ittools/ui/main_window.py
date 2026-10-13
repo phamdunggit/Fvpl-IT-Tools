@@ -68,8 +68,10 @@ def _pages(app: AppContext, controller: RunController) -> list[tuple[str, QWidge
              "Cấu hình chuẩn và báo cáo lưu lên share"],
         )),
         ("Sửa lỗi", ActionsPage(
-            "fixes", "Sửa lỗi", "Các lỗi thường gặp: mạng, domain, máy in, Windows Update, hệ thống, Office.",
-            "Chưa có mục sửa lỗi nào.", app, controller,
+            "fixes", "Sửa lỗi",
+            "Các lỗi thường gặp: mạng, domain, máy in, Windows Update, hệ thống, Office. "
+            "Không chắc lỗi ở đâu thì bấm một gói sửa nhanh.",
+            "Chưa có mục sửa lỗi nào.", app, controller, packs=app.packs,
         )),
         ("Tối ưu & dọn dẹp", ActionsPage(
             "optimize", "Tối ưu & dọn dẹp", "Dọn rác có quét trước, quản lý startup, gỡ app rác, quyền riêng tư.",

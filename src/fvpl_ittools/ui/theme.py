@@ -45,6 +45,9 @@ QLabel[chip="warn"] { background: #b45309; color: #ffffff; border-radius: 10px; 
 #PageSubtitle { color: #52606d; }
 #EmptyState { color: #52606d; background: #ffffff; border: 1px dashed #c5cfda; border-radius: 8px; padding: 28px; }
 #Card { background: #ffffff; border: 1px solid #dde3ea; border-radius: 8px; }
+#PackBar { background: #eef4fc; border: 1px solid #c9dbf3; border-radius: 8px; }
+QPushButton#PackButton { background: #ffffff; border-color: #9dbbe6; color: #1e3a5f; font-weight: 600; }
+QPushButton#PackButton:hover { background: #dbe9fb; }
 #DetailTitle { font-size: 13pt; font-weight: 600; color: #102a43; }
 #SectionLabel { color: #52606d; font-weight: 600; }
 #Note { color: #b45309; }

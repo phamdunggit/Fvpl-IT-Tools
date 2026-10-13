@@ -242,3 +242,12 @@ def test_describe_includes_used_variables_only(env):
     text = executor.describe_action(ps_action("Get-ChildItem $TargetUserProfile"), env)
     assert "$TargetUserProfile = ''" in text
     assert "$TargetUserSid" not in text
+
+
+def test_check_helpers_only_in_full_description(env):
+    action = ps_action("if (Test-Port dc 389) { Write-Ok 'ldap' }")
+    short = executor.describe_action(action, env)
+    full = executor.describe_action(action, env, full=True)
+    assert "function Test-Port" not in short and "nút Copy lệnh" in short
+    assert "function Test-Port" in full
+    assert "function" not in executor.describe_action(ps_action("Get-Date"), env, full=True)
