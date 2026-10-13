@@ -12,6 +12,7 @@ Viết bằng Python 3.13 + PySide6, đóng gói thành exe chạy portable từ
 | [PLAN.md](PLAN.md) | Kế hoạch tổng: chức năng, kiến trúc, lộ trình, câu hỏi còn mở |
 | [docs/ACTIONS.md](docs/ACTIONS.md) | Tham chiếu khai báo mục sửa lỗi / tweak bằng YAML |
 | [docs/SOFTWARE.md](docs/SOFTWARE.md) | Khai báo danh mục phần mềm và profile phòng ban (apps.yaml) |
+| [docs/BITLOCKER-LAPS-GPO.md](docs/BITLOCKER-LAPS-GPO.md) | Hướng dẫn triển khai GPO, Windows LAPS, BitLocker cho công ty |
 | [CHANGELOG.md](CHANGELOG.md) | Thay đổi theo phiên bản |
 
 ## Quy ước nhánh

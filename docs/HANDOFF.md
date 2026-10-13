@@ -31,7 +31,7 @@ py -3.13 -m venv .venv
 .venv\Scripts\python -m fvpl_ittools --no-elevate
 ```
 
-Chi tiết chạy, build, selftest: [README.md](../README.md). Cách khai báo mục, gói, biến và hàm PowerShell dựng sẵn: [ACTIONS.md](ACTIONS.md). Kế hoạch tổng: [PLAN.md](../PLAN.md).
+Chi tiết chạy, build, selftest: [README.md](../README.md). Cách khai báo mục, gói, biến và hàm PowerShell dựng sẵn: [ACTIONS.md](ACTIONS.md). Kế hoạch tổng: [PLAN.md](../PLAN.md). Hướng dẫn triển khai GPO / LAPS / BitLocker cho công ty (không phải code): [BITLOCKER-LAPS-GPO.md](BITLOCKER-LAPS-GPO.md).
 
 ## Quy tắc khi làm repo này
 

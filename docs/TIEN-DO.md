@@ -4,12 +4,13 @@ Cập nhật: 13/10/2026. File này được cập nhật trước mỗi commit.
 
 ## Đang làm
 
-- Không có việc dở. Việc tiếp theo: số 1 ở bảng "Còn lại" (hướng dẫn BitLocker, LAPS, GPO).
+- Không có việc dở. Việc tiếp theo: số 1 ở bảng "Còn lại" (xem mật khẩu LAPS, bật BitLocker trong tool).
 
 ## Đã xong (code xong, **chưa chạy thử bằng quyền admin trên máy ảo**)
 
 | Giai đoạn | Đã có |
 |---|---|
+| Tài liệu | [Hướng dẫn GPO, Windows LAPS, BitLocker](BITLOCKER-LAPS-GPO.md): từng bước, GPO nên tạo, lộ trình 4 tuần |
 | Kiểm kê | Nút "Lưu kiểm kê" (trang Tổng quan, wizard bước 7): `Inventory\` cạnh tool trên USB / SSD, file tổng hợp `KiemKe.xlsx` một dòng một máy (đã thử mở bằng Excel) |
 | GĐ0 Nền móng | Khung app, chạy lệnh nền, YAML, log, hoàn tác, restore point, đóng gói exe |
 | GĐ1 Tổng quan + Sửa lỗi | Trang Tổng quan (copy, xuất HTML); các mục sửa lỗi P1; gói sửa nhanh; Tiện ích (mở nhanh 29 công cụ, ping/tracert/nslookup/cổng) |
@@ -23,13 +24,14 @@ Cập nhật: 13/10/2026. File này được cập nhật trước mỗi commit.
 
 | # | Việc | Ghi chú |
 |---|---|---|
-| 1 | Hướng dẫn triển khai **BitLocker, Windows LAPS, GPO** cho công ty | Bồ muốn tìm hiểu |
+| 1 | Tool hỗ trợ LAPS và BitLocker: **xem mật khẩu LAPS** của một máy (cho IT đang đứng ở máy khác), **bật BitLocker** ổ hệ thống có kiểm tra TPM và khoá đã lên AD | Sau khi bồ làm GPO theo hướng dẫn |
 | 2 | Wizard: lưu **mẫu** (ví dụ "Kế toán – Laptop") để lần sau chọn lại | |
 | 3 | Startup: task chạy lúc đăng nhập; P3: hiệu ứng hình ảnh, service Manual, chặn app "đồng hành" driver | |
 | 4 | GĐ4: sao lưu driver, xem event log, sửa HOSTS/PATH, file bị khoá, mật khẩu Wi-Fi, chuyển dữ liệu máy cũ, báo bản mới, ký số exe, hướng dẫn sử dụng, bản 1.0 | |
 
 ## Bồ cần làm
 
+- Đọc [hướng dẫn GPO, LAPS, BitLocker](BITLOCKER-LAPS-GPO.md), làm theo lộ trình ở mục 5 (bắt đầu bằng nhóm máy thử).
 - Chạy thử trên máy ảo bằng quyền admin (danh sách từng mục trong [HANDOFF](HANDOFF.md)). Wizard cần một VM chưa join và domain test (hoặc domain thật với tài khoản join); trang Máy in cần một máy Win11 share máy in và một máy Win10.
 - Điền vào `site.yaml` (mẫu: `site.example.yaml`; file này không lên git): `share_root`, `domain`, `netbios_domain`, **`computer_ou`** (OU chung của máy trạm), **`it_admins_group`** (nhóm IT thêm vào Administrators, bỏ trống nếu không cần). Mã phòng ban thì thêm dần ngay trong wizard.
 - Điền key MAK vào `SOFT\config\office\*.xml`.
