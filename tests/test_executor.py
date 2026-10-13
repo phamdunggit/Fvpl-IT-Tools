@@ -177,3 +177,68 @@ def test_secrets_are_masked_in_events(ctx):
         log.forget_secret("p@ss-123")
     assert not any("p@ss-123" in event.text for event in ctx.events)
     assert any(log.MASK in event.text for event in ctx.events)
+
+
+def test_stop_on_error_skips_remaining_actions(ctx):
+    actions = [cmd_action(id="test.a"), cmd_action("exit /b 5", id="test.b"), cmd_action(id="test.c")]
+    batch = executor.run_batch(actions, ctx, stop_on_error=True)
+    assert [result.status for result in batch.results] == [Status.OK, Status.FAILED, Status.SKIPPED]
+    assert "Dừng vì" in batch.results[2].message
+    keep_going = executor.run_batch(actions, ctx)
+    assert keep_going.results[2].status is Status.OK
+
+
+def test_exit_code_messages_explain_failure(ctx):
+    action = cmd_action(apply=[{"cmd": "exit /b 3", "messages": {3: "Ổ đĩa có lỗi, cần chạy chkdsk /f"}}])
+    result = executor.run_batch([action], ctx).results[0]
+    assert result.status is Status.FAILED
+    assert result.message == "Ổ đĩa có lỗi, cần chạy chkdsk /f (mã 3)"
+
+
+def test_requires_domain(ctx, env):
+    action = cmd_action(requires_domain=True)
+    assert executor.blocked_reason(action, env) == "Máy chưa vào domain"
+    assert executor.blocked_reason(action, replace(env, joined_domain=True)) is None
+
+
+def ps_action(script, **overrides):
+    raw = {"id": "test.ps", "name": "PowerShell", "category": "Test", "admin": False, "apply": [{"powershell": script}]}
+    raw.update(overrides)
+    return parse_action(raw)
+
+
+def test_credential_is_passed_and_masked(ctx):
+    action = ps_action(
+        "Write-Output ($Credential.UserName + ' ' + $Credential.GetNetworkCredential().Password)",
+        needs_credential="domain",
+    )
+    skipped = executor.run_batch([action], ctx).results[0]
+    assert skipped.status is Status.SKIPPED and "tài khoản" in skipped.message
+
+    ctx.credential = ("CORP\\join", "Bí-mật-123")
+    result = executor.run_batch([action], ctx).results[0]
+    assert result.status is Status.OK
+    text = "\n".join(event.text for event in ctx.events)
+    assert "CORP\\join ******" in text
+    assert "Bí-mật-123" not in text
+    from fvpl_ittools.core import log
+    assert log.mask("Bí-mật-123") == "Bí-mật-123"  # chỉ che trong lượt chạy, xong thì quên
+
+
+def test_credential_not_sent_to_actions_that_do_not_need_it(ctx):
+    ctx.credential = ("CORP\\join", "secret")
+    action = ps_action("if (Get-Variable Credential -ErrorAction SilentlyContinue) { exit 9 }")
+    assert executor.run_batch([action], ctx).results[0].status is Status.OK
+
+
+def test_powershell_gets_target_user_variables(ctx, state_dir):
+    action = ps_action("Write-Output \"$TargetUserName|$TargetUserSid|$ReportDir\"")
+    executor.run_batch([action], ctx)
+    expected = f"TEST\\it|S-1-5-21-1-2-3-1001|{state_dir / 'reports'}"
+    assert any(event.text == expected for event in ctx.events)
+
+
+def test_describe_includes_used_variables_only(env):
+    text = executor.describe_action(ps_action("Get-ChildItem $TargetUserProfile"), env)
+    assert "$TargetUserProfile = ''" in text
+    assert "$TargetUserSid" not in text

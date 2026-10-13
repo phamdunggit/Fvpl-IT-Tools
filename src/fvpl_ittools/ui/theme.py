@@ -21,6 +21,7 @@ LOG_COLORS = {
     Level.CMD: "#7dd3fc",
     Level.OUTPUT: "#e2e8f0",
 }
+OUTPUT_MARK_COLORS = {"✔": LOG_COLORS[Level.OK], "✖": LOG_COLORS[Level.ERROR], "⚠": LOG_COLORS[Level.WARN]}
 
 STYLESHEET = """
 QWidget { color: #1f2933; }

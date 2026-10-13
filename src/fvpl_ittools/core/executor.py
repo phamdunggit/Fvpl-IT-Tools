@@ -7,6 +7,7 @@ và `cancel` để huỷ giữa chừng.
 from __future__ import annotations
 
 import logging
+import re
 import subprocess
 import threading
 import time
@@ -26,9 +27,9 @@ from ..actions.model import (
     ServiceStep,
     Step,
 )
-from . import registry, safety, shell
+from . import paths, registry, safety, shell
 from .journal import JournalEntry, RegChange, UndoJournal
-from .log import mask
+from .log import forget_secret, mask, register_secret
 from .session import UserIdentity
 
 log = logging.getLogger("fvpl_ittools.run")
@@ -79,6 +80,7 @@ class Env:
     build: int
     process_user: UserIdentity
     target_user: UserIdentity
+    joined_domain: bool = False
 
     @property
     def user_hive_sid(self) -> str | None:
@@ -97,6 +99,7 @@ class RunContext:
     cancel: threading.Event = field(default_factory=threading.Event)
     create_restore_point: bool = True
     restore_point: Callable[..., safety.RestorePointResult] = safety.create_restore_point
+    credential: tuple[str, str] | None = None  # (tài khoản, mật khẩu) cho mục needs_credential, chỉ giữ trong RAM
 
     def say(self, level: Level, text: str, progress: bool = False) -> None:
         text = mask(text)
@@ -155,6 +158,8 @@ def blocked_reason(action: Action, env: Env) -> str | None:
     """Lý do mục này không chạy được trên máy này, hoặc None nếu chạy được."""
     if not action.supports_build(env.build):
         return f"Không dùng cho bản Windows này (build {env.build})"
+    if action.requires_domain and not env.joined_domain:
+        return "Máy chưa vào domain"
     if action.admin and not env.is_admin:
         return "Cần mở tool bằng quyền admin"
     if gpo_managed(action, env):
@@ -185,11 +190,78 @@ def _service_script(step: ServiceStep) -> str:
     return f"Restart-Service -Name {name} -Force"
 
 
+def ps_variables(env: Env) -> dict[str, str]:
+    """Biến dựng sẵn cho mọi script PowerShell của mục (xem docs/ACTIONS.md)."""
+    return {
+        "TargetUserName": env.target_user.name,
+        "TargetUserSid": env.target_user.sid,
+        "TargetUserProfile": env.target_user.profile_path or "",
+        "ReportDir": str(paths.reports_dir()),
+    }
+
+
+def _used_variables(script: str, env: Env) -> dict[str, str]:
+    lowered = script.lower()
+    return {name: value for name, value in ps_variables(env).items() if f"${name.lower()}" in lowered}
+
+
+# Hàm dựng sẵn cho script chẩn đoán. Chỉ được thêm vào script nào có gọi tới (xem docs/ACTIONS.md).
+PS_CHECK_HELPERS = """\
+$Checks = @{ Failed = 0 }
+function Write-Ok([string]$Text) { Write-Output "✔ $Text" }
+function Write-Bad([string]$Text) { Write-Output "✖ $Text"; $Checks.Failed++ }
+function Write-Warn([string]$Text) { Write-Output "⚠ $Text" }
+function Exit-Checks { if ($Checks.Failed) { exit 2 } }
+function Test-Ping([string]$Target, [int]$Timeout = 1500) {
+    try { return (New-Object System.Net.NetworkInformation.Ping).Send($Target, $Timeout).Status -eq 'Success' }
+    catch { return $false }
+}
+function Test-Port([string]$Target, [int]$Port, [int]$Timeout = 2000) {
+    $client = New-Object System.Net.Sockets.TcpClient
+    try { return $client.ConnectAsync($Target, $Port).Wait($Timeout) -and $client.Connected }
+    catch { return $false }
+    finally { $client.Close() }
+}
+function Get-NtpOffset([string]$Server, [int]$Timeout = 2000) {
+    # Số giây giờ máy này lệch so với $Server (dương = máy này chậm hơn), hoặc $null nếu không hỏi được.
+    $udp = New-Object System.Net.Sockets.UdpClient
+    try {
+        $udp.Client.ReceiveTimeout = $Timeout
+        $udp.Connect($Server, 123)
+        $request = New-Object byte[] 48
+        $request[0] = 0x1B
+        $sent = [DateTime]::UtcNow
+        [void]$udp.Send($request, 48)
+        $remote = New-Object System.Net.IPEndPoint([System.Net.IPAddress]::Any, 0)
+        $reply = $udp.Receive([ref]$remote)
+        $received = [DateTime]::UtcNow
+        $seconds = [BitConverter]::ToUInt32([byte[]]($reply[43], $reply[42], $reply[41], $reply[40]), 0)
+        $fraction = [BitConverter]::ToUInt32([byte[]]($reply[47], $reply[46], $reply[45], $reply[44]), 0)
+        $serverTime = (New-Object DateTime(1900, 1, 1, 0, 0, 0, [DateTimeKind]::Utc)).AddSeconds($seconds + $fraction / 4294967296.0)
+        $localTime = $sent.AddTicks(($received - $sent).Ticks / 2)
+        return ($serverTime - $localTime).TotalSeconds
+    }
+    catch { return $null }
+    finally { $udp.Close() }
+}
+"""
+_PS_HELPER_NAMES = re.compile(r"\b(Write-Ok|Write-Bad|Write-Warn|Exit-Checks|Test-Ping|Test-Port|Get-NtpOffset)\b", re.I)
+
+
+def ps_script_for(step: PowerShellStep) -> str:
+    """Script thật sẽ chạy: thêm hàm dựng sẵn nếu script có dùng."""
+    if _PS_HELPER_NAMES.search(step.script):
+        return PS_CHECK_HELPERS + step.script
+    return step.script
+
+
 def describe_step(step: Step, env: Env) -> str:
     if isinstance(step, CmdStep):
         return step.command
     if isinstance(step, PowerShellStep):
-        body = "\n".join(f"    {line}" for line in step.script.splitlines())
+        # Kèm biến và hàm dựng sẵn để copy ra PowerShell chạy tay vẫn đúng.
+        script = shell.ps_variable_lines(_used_variables(step.script, env)) + ps_script_for(step)
+        body = "\n".join(f"    {line}" for line in script.splitlines())
         return f"PowerShell:\n{body}"
     if isinstance(step, RegistryStep):
         return registry.reg_exe_command(env.resolve(step.key), step.name, step.type, step.value, step.delete)
@@ -234,6 +306,9 @@ def _shell_outcome(result: shell.ShellResult, step: Step, timeout: float) -> Ste
     if result.code in step.ok_codes:
         return StepOutcome(Status.OK, changed=True)
     code = result.code if result.code is not None else -1
+    explained = step.message_for(code)
+    if explained:
+        return StepOutcome(Status.FAILED, f"{explained} (mã {code})")
     return StepOutcome(Status.FAILED, f"Lệnh trả mã lỗi {code} (0x{code & 0xFFFFFFFF:08X})")
 
 
@@ -260,7 +335,7 @@ def _run_registry(step: RegistryStep, ctx: RunContext, changes: list[RegChange])
     return StepOutcome(changed=True)
 
 
-def _run_step(step: Step, ctx: RunContext, changes: list[RegChange]) -> StepOutcome:
+def _run_step(step: Step, ctx: RunContext, changes: list[RegChange], action: Action) -> StepOutcome:
     if isinstance(step, RegistryStep):
         return _run_registry(step, ctx, changes)
     if isinstance(step, BuiltinStep):
@@ -274,7 +349,11 @@ def _run_step(step: Step, ctx: RunContext, changes: list[RegChange]) -> StepOutc
         first_line = step.script.strip().splitlines()[0]
         more = " …" if len(step.script.strip().splitlines()) > 1 else ""
         ctx.say(Level.CMD, f"> PowerShell: {first_line}{more}")
-        result = shell.run_powershell(step.script, encoding=step.encoding, **options)
+        credential = ctx.credential if action.needs_credential else None
+        result = shell.run_powershell(
+            ps_script_for(step), encoding=step.encoding, credential=credential, variables=ps_variables(ctx.env),
+            **options,
+        )
     else:
         script = _service_script(step)
         ctx.say(Level.CMD, f"> {script}")
@@ -298,7 +377,7 @@ def run_action(action: Action, ctx: RunContext) -> ActionResult:
             if ctx.cancel.is_set():
                 result.status, result.message = Status.CANCELLED, "Đã huỷ"
                 break
-            outcome = _run_step(step, ctx, changes)
+            outcome = _run_step(step, ctx, changes, action)
             result.changed |= outcome.changed
             result.reboot_required |= outcome.reboot
             if outcome.status is not Status.OK:
@@ -344,11 +423,23 @@ def _make_restore_point(ctx: RunContext) -> None:
     ctx.say(Level.OK if point.created else Level.WARN, point.message)
 
 
-def run_batch(actions: list[Action], ctx: RunContext) -> BatchResult:
+def run_batch(actions: list[Action], ctx: RunContext, stop_on_error: bool = False) -> BatchResult:
+    """Chạy lần lượt các mục. `stop_on_error` (dùng cho gói sửa nhanh): một mục lỗi thì bỏ các mục sau."""
+    password = ctx.credential[1] if ctx.credential else None
+    register_secret(password)
+    try:
+        return _run_batch(actions, ctx, stop_on_error)
+    finally:
+        forget_secret(password)
+
+
+def _run_batch(actions: list[Action], ctx: RunContext, stop_on_error: bool) -> BatchResult:
     batch = BatchResult()
     runnable: list[Action] = []
     for action in actions:
         reason = blocked_reason(action, ctx.env)
+        if reason is None and action.needs_credential and ctx.credential is None:
+            reason = "Chưa nhập tài khoản domain"
         if reason:
             batch.results.append(ActionResult(action, Status.SKIPPED, reason))
             ctx.say(Level.WARN, f"Bỏ qua “{action.name}”: {reason}")
@@ -370,6 +461,11 @@ def run_batch(actions: list[Action], ctx: RunContext) -> BatchResult:
             batch.cancelled = True
         if result.changed:
             hooks += [hook for hook in action.after if hook not in hooks]
+        if stop_on_error and result.status is Status.FAILED and index + 1 < len(runnable):
+            reason = f"Dừng vì “{action.name}” lỗi"
+            ctx.say(Level.WARN, f"{reason}, bỏ qua {len(runnable) - index - 1} mục còn lại.")
+            batch.results += [ActionResult(rest, Status.SKIPPED, reason) for rest in runnable[index + 1:]]
+            break
 
     # Việc làm sau (ví dụ khởi động lại Explorer) chỉ chạy một lần cho cả lượt.
     for hook in hooks:
@@ -440,9 +536,12 @@ def run_undo_steps(action: Action, ctx: RunContext) -> ActionResult:
 
 # ---------------------------------------------------------------- thao tác viết bằng Python
 
-_RESTART_EXPLORER = """\
+# Khung chung: tắt Explorer trong phiên của tool, làm việc cần làm khi Explorer đang tắt, chờ Windows tự mở lại.
+_EXPLORER_TEMPLATE = """\
+__BEFORE__
 $session = (Get-Process -Id $PID).SessionId
 Get-Process explorer -ErrorAction SilentlyContinue | Where-Object SessionId -eq $session | Stop-Process -Force
+__WHILE_STOPPED__
 for ($i = 0; $i -lt 16; $i++) {
     Start-Sleep -Milliseconds 500
     if (Get-Process explorer -ErrorAction SilentlyContinue | Where-Object SessionId -eq $session) {
@@ -453,26 +552,102 @@ for ($i = 0; $i -lt 16; $i++) {
 exit 2
 """
 
+# Mở Explorer bằng tài khoản người dùng (không phải quyền admin của tool) qua một tác vụ chạy một lần.
+_START_EXPLORER_AS_USER = """\
+$session = (Get-Process -Id $PID).SessionId
+$name = 'FVPL-ITTools-StartExplorer-' + [guid]::NewGuid().ToString('N').Substring(0, 8)
+$taskAction = New-ScheduledTaskAction -Execute (Join-Path $env:SystemRoot 'explorer.exe')
+$principal = New-ScheduledTaskPrincipal -UserId $TargetUserName -LogonType Interactive -RunLevel Limited
+Register-ScheduledTask -TaskName $name -Action $taskAction -Principal $principal -Force | Out-Null
+$started = $false
+try {
+    Start-ScheduledTask -TaskName $name
+    for ($i = 0; $i -lt 20 -and -not $started; $i++) {
+        Start-Sleep -Milliseconds 500
+        $started = [bool](Get-Process explorer -ErrorAction SilentlyContinue | Where-Object SessionId -eq $session)
+    }
+}
+finally {
+    Unregister-ScheduledTask -TaskName $name -Confirm:$false -ErrorAction SilentlyContinue
+}
+if (-not $started) { exit 2 }
+Write-Output 'Đã mở lại Explorer bằng tài khoản người dùng.'
+"""
+
+_ICON_CACHE_BEFORE = """\
+if (-not $TargetUserProfile -or -not (Test-Path -LiteralPath $TargetUserProfile)) {
+    Write-Output 'Không tìm thấy thư mục profile của người dùng.'
+    exit 3
+}
+$local = Join-Path $TargetUserProfile 'AppData\\Local'
+$cache = @(Join-Path $local 'IconCache.db')
+$explorerDir = Join-Path $local 'Microsoft\\Windows\\Explorer'
+if (Test-Path -LiteralPath $explorerDir) {
+    $cache += @(Get-ChildItem -LiteralPath $explorerDir -Force -File |
+        Where-Object { $_.Name -like 'iconcache*.db' -or $_.Name -like 'thumbcache*.db' } |
+        ForEach-Object { $_.FullName })
+}
+"""
+
+# Xoá ngay sau khi tắt Explorer, trước khi Windows kịp mở lại và khoá file. Thử lại tối đa 5 giây.
+_ICON_CACHE_WHILE_STOPPED = """\
+$deadline = (Get-Date).AddSeconds(5)
+$deleted = 0
+$locked = 0
+foreach ($file in $cache) {
+    if (-not (Test-Path -LiteralPath $file)) { continue }
+    $done = $false
+    while (-not $done) {
+        try { Remove-Item -LiteralPath $file -Force -ErrorAction Stop; $done = $true }
+        catch { if ((Get-Date) -gt $deadline) { break }; Start-Sleep -Milliseconds 100 }
+    }
+    if ($done) { $deleted++ } else { $locked++ }
+}
+Write-Output "Đã xoá $deleted file cache."
+if ($locked) { Write-Output "$locked file đang bị chương trình khác giữ, sẽ được làm mới sau khi khởi động lại máy." }
+"""
+
+
+def explorer_script(before: str = "", while_stopped: str = "") -> str:
+    return _EXPLORER_TEMPLATE.replace("__BEFORE__", before).replace("__WHILE_STOPPED__", while_stopped)
+
+
+def _cycle_explorer(ctx: RunContext, name: str, script: str) -> StepOutcome:
+    ctx.say(Level.CMD, f"> {BUILTIN_NAMES[name]}")
+    options = {"cancel": ctx.cancel, "on_line": _echo(ctx), "variables": ps_variables(ctx.env)}
+    result = shell.run_powershell(script, timeout=60, **options)
+    if result.code == 3:
+        return StepOutcome(Status.FAILED, "Không tìm thấy thư mục profile của người dùng")
+    if result.code != 2:
+        return _shell_outcome(result, BuiltinStep(name=name), 60)
+
+    # Windows không tự mở lại Explorer. Không mở thẳng từ tool khi tool có quyền admin hoặc chạy bằng
+    # tài khoản khác: Explorer sẽ chạy bằng quyền đó, mọi thứ mở từ desktop cũng thành admin.
+    if not ctx.env.is_admin and ctx.env.user_hive_sid is None:
+        subprocess.Popen(["explorer.exe"], creationflags=shell.CREATE_NO_WINDOW)
+        ctx.say(Level.INFO, "Đã mở lại Explorer.")
+        return StepOutcome(changed=True)
+    if ctx.env.is_admin:
+        result = shell.run_powershell(_START_EXPLORER_AS_USER, timeout=60, **options)
+        if result.ok:
+            return StepOutcome(changed=True)
+    return StepOutcome(
+        Status.FAILED,
+        "Explorer chưa tự mở lại. Nhấn Ctrl+Shift+Esc → Run new task → gõ explorer → OK.",
+    )
+
 
 def _restart_explorer(ctx: RunContext) -> StepOutcome:
-    ctx.say(Level.CMD, "> Khởi động lại Explorer")
-    result = shell.run_powershell(_RESTART_EXPLORER, timeout=60, cancel=ctx.cancel, on_line=_echo(ctx))
-    if result.code == 2:
-        # Windows không tự mở lại. Chỉ tự mở khi tool không chạy bằng quyền admin, vì Explorer mở
-        # từ tiến trình admin sẽ chạy luôn bằng quyền admin, mọi thứ mở từ desktop cũng thành admin.
-        if not ctx.env.is_admin and ctx.env.user_hive_sid is None:
-            subprocess.Popen(["explorer.exe"], creationflags=shell.CREATE_NO_WINDOW)
-            ctx.say(Level.INFO, "Đã mở lại Explorer.")
-            return StepOutcome(changed=True)
-        return StepOutcome(
-            Status.FAILED,
-            "Explorer chưa tự mở lại. Nhấn Ctrl+Shift+Esc → Run new task → gõ explorer → OK.",
-        )
-    return _shell_outcome(result, BuiltinStep(name="restart_explorer"), 60)
+    return _cycle_explorer(ctx, "restart_explorer", explorer_script())
+
+
+def _rebuild_icon_cache(ctx: RunContext) -> StepOutcome:
+    return _cycle_explorer(ctx, "rebuild_icon_cache", explorer_script(_ICON_CACHE_BEFORE, _ICON_CACHE_WHILE_STOPPED))
 
 
 BUILTINS: dict[str, Callable[[RunContext], StepOutcome]] = {
     "restart_explorer": _restart_explorer,
+    "rebuild_icon_cache": _rebuild_icon_cache,
 }
 
 

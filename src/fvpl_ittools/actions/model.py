@@ -36,6 +36,7 @@ PAGES = ("fixes", "optimize", "config", "utilities")
 # Các thao tác viết bằng Python, gọi bằng `builtin: <tên>` hoặc `after: [<tên>]`.
 BUILTIN_NAMES = {
     "restart_explorer": "Khởi động lại Explorer",
+    "rebuild_icon_cache": "Tắt Explorer, xoá cache icon và thumbnail, mở lại Explorer",
 }
 
 SERVICE_ACTIONS = ("start", "stop", "restart")
@@ -48,6 +49,10 @@ class StepBase:
     timeout: float | None = None
     ok_codes: tuple[int, ...] = DEFAULT_OK_CODES
     reboot_codes: tuple[int, ...] = DEFAULT_REBOOT_CODES
+    messages: tuple[tuple[int, str], ...] = ()  # (mã thoát, giải thích) hiện thay cho "mã lỗi N"
+
+    def message_for(self, code: int) -> str | None:
+        return dict(self.messages).get(code)
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -120,6 +125,7 @@ class Action:
     after: tuple[str, ...] = ()
     gpo: tuple[GpoRef, ...] = ()
     needs_credential: str | None = None
+    requires_domain: bool = False
     source: str = ""
 
     def supports_build(self, build: int) -> bool:
@@ -132,3 +138,13 @@ class Action:
     @property
     def can_undo(self) -> bool:
         return self.undo_mode is not UndoMode.NONE
+
+
+@dataclass(frozen=True, kw_only=True)
+class Pack:
+    """Gói sửa nhanh: chạy lần lượt nhiều mục, dừng khi một mục lỗi."""
+    id: str
+    name: str
+    description: str
+    actions: tuple[str, ...]
+    source: str = ""

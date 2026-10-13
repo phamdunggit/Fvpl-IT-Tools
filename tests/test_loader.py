@@ -92,3 +92,38 @@ def test_supports_build():
     assert not action.supports_build(19045)
     assert action.supports_build(22631)
     assert not action.supports_build(26200)
+
+
+def test_requires_domain_and_messages():
+    action = loader.parse_action(base(requires_domain=True, apply=[{"cmd": "x", "messages": {3: " Có lỗi "}}]))
+    assert action.requires_domain
+    assert action.apply[0].message_for(3) == "Có lỗi"
+    assert action.apply[0].message_for(4) is None
+    with pytest.raises(loader.ActionError, match="'messages' phải có dạng"):
+        loader.parse_action(base(apply=[{"cmd": "x", "messages": {"3": "a"}}]))
+
+
+def test_bundled_packs_load_without_errors():
+    actions, _ = loader.load_builtin_actions()
+    packs, errors = loader.load_builtin_packs(actions)
+    assert errors == []
+    assert packs
+
+
+def test_pack_validation(tmp_path):
+    known = [loader.parse_action(base(id=f"a.{name}")) for name in ("one", "two")]
+    file = tmp_path / "packs.yaml"
+    file.write_text(
+        "- id: pack.ok\n  name: Được\n  actions: [a.one, a.two]\n"
+        "- id: pack.missing\n  name: Thiếu\n  actions: [a.one, a.three]\n"
+        "- id: pack.short\n  name: Ngắn\n  actions: [a.one]\n"
+        "- id: pack.ok\n  name: Trùng\n  actions: [a.two, a.one]\n",
+        encoding="utf-8",
+    )
+    packs, errors = loader.load_pack_file(file, known)
+    assert [pack.id for pack in packs] == ["pack.ok"]
+    assert packs[0].actions == ("a.one", "a.two")
+    assert len(errors) == 3
+    assert "không có mục a.three" in errors[0]
+    assert "ít nhất 2 mục" in errors[1]
+    assert "trùng id" in errors[2]

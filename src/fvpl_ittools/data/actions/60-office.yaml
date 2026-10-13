@@ -1,0 +1,64 @@
+# Office. Cách khai báo: xem docs/ACTIONS.md.
+#
+# Hai mục dưới chỉ dùng được với Office bản Click-to-Run (Microsoft 365, Office 2016 trở lên cài bằng ODT).
+# OfficeClickToRun.exe giao việc sửa cho dịch vụ Click-to-Run rồi thoát ngay, nên mã thoát 0 chỉ có nghĩa
+# là đã gửi lệnh sửa; Office tiếp tục sửa ngầm vài phút sau đó.
+
+- id: off.quick_repair
+  name: Sửa Office nhanh (Quick Repair)
+  category: Office
+  risk: safe
+  description: >
+    Sửa Office không cần Internet, khoảng 5–10 phút. Dùng khi Word/Excel/Outlook mở lên bị treo,
+    báo lỗi khi mở, mất nút hay add-in lạ. Tool không chạy nếu còn ứng dụng Office đang mở, để không
+    mất bài người dùng chưa lưu.
+  apply:
+    - powershell: |
+        $config = Get-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\Microsoft\Office\ClickToRun\Configuration' -ErrorAction SilentlyContinue
+        if (-not $config) { exit 3 }
+        $open = @(Get-Process -Name WINWORD, EXCEL, POWERPNT, OUTLOOK, MSACCESS, MSPUB, ONENOTE, VISIO, WINPROJ, lync -ErrorAction SilentlyContinue)
+        if ($open) {
+            Write-Output ('Đang mở: ' + (($open | ForEach-Object ProcessName | Select-Object -Unique) -join ', '))
+            exit 4
+        }
+        $folder = $config.ClientFolder
+        if (-not $folder) { $folder = Join-Path $env:CommonProgramFiles 'microsoft shared\ClickToRun' }
+        $client = Join-Path $folder 'OfficeClickToRun.exe'
+        Write-Output "Office $($config.VersionToReport), bản $($config.Platform), ngôn ngữ $($config.ClientCulture)"
+        & $client scenario=Repair "platform=$($config.Platform)" "culture=$($config.ClientCulture)" RepairType=QuickRepair DisplayLevel=False
+        if ($LASTEXITCODE) { exit $LASTEXITCODE }
+        Write-Output 'Đã gửi lệnh sửa. Office sửa ngầm khoảng 5–10 phút, chưa mở lại Office trong lúc này.'
+      timeout: 300
+      messages:
+        3: Máy không có Office bản Click-to-Run. Office cài bằng MSI thì sửa trong Programs and Features, chọn Change rồi Repair
+        4: Hãy lưu bài và đóng các ứng dụng Office rồi chạy lại
+
+- id: off.online_repair
+  name: Sửa Office trực tuyến (Online Repair)
+  category: Office
+  risk: caution
+  description: >
+    Gỡ rồi cài lại Office từ Internet, giữ nguyên bản và license. Lâu hơn (20–60 phút, tải khoảng 3–4GB)
+    và cần Internet. Chỉ dùng khi Quick Repair không được. Tool không chạy nếu còn ứng dụng Office đang mở.
+    Sau khi xong người dùng có thể phải đăng nhập lại Office.
+  apply:
+    - powershell: |
+        $config = Get-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\Microsoft\Office\ClickToRun\Configuration' -ErrorAction SilentlyContinue
+        if (-not $config) { exit 3 }
+        $open = @(Get-Process -Name WINWORD, EXCEL, POWERPNT, OUTLOOK, MSACCESS, MSPUB, ONENOTE, VISIO, WINPROJ, lync -ErrorAction SilentlyContinue)
+        if ($open) {
+            Write-Output ('Đang mở: ' + (($open | ForEach-Object ProcessName | Select-Object -Unique) -join ', '))
+            exit 4
+        }
+        $folder = $config.ClientFolder
+        if (-not $folder) { $folder = Join-Path $env:CommonProgramFiles 'microsoft shared\ClickToRun' }
+        $client = Join-Path $folder 'OfficeClickToRun.exe'
+        Write-Output "Office $($config.VersionToReport), bản $($config.Platform), ngôn ngữ $($config.ClientCulture)"
+        & $client scenario=Repair "platform=$($config.Platform)" "culture=$($config.ClientCulture)" RepairType=FullRepair DisplayLevel=False
+        if ($LASTEXITCODE) { exit $LASTEXITCODE }
+        Write-Output 'Đã gửi lệnh sửa. Office gỡ và cài lại ngầm, mất 20–60 phút. Biểu tượng Office sẽ biến mất rồi hiện lại.'
+      timeout: 300
+      messages:
+        3: Máy không có Office bản Click-to-Run. Office cài bằng MSI thì sửa trong Programs and Features, chọn Change rồi Repair
+        4: Hãy lưu bài và đóng các ứng dụng Office rồi chạy lại
+  undo: none

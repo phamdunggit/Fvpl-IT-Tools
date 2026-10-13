@@ -1,0 +1,196 @@
+# Mạng & Internet. Cách khai báo: xem docs/ACTIONS.md.
+
+- id: net.diagnose
+  name: Chẩn đoán mạng
+  category: Mạng & Internet
+  risk: safe
+  admin: false
+  description: >
+    Chỉ kiểm tra, không đổi gì. Lần lượt xem: card mạng và IP, ping gateway, DNS có tìm được DC không
+    (tức DNS có trỏ về DC không), DC có mở các cổng 53/88/389/445 không, giờ máy có lệch DC không,
+    và có ra được Internet không. Dòng ✔ là đạt, ✖ là lỗi, ⚠ là cần để ý.
+  apply:
+    - powershell: |
+        $cs = Get-CimInstance Win32_ComputerSystem
+        # Card thật, hoặc card ảo có gateway (VPN). Bỏ card ảo nội bộ như vEthernet của Hyper-V.
+        $configs = @(Get-NetIPConfiguration | Where-Object {
+            $_.NetAdapter.Status -eq 'Up' -and $_.IPv4Address -and ($_.NetAdapter.HardwareInterface -or $_.IPv4DefaultGateway)
+        })
+        if (-not $configs) {
+            Write-Bad 'Không có card mạng nào đang kết nối và có địa chỉ IPv4.'
+            Exit-Checks
+        }
+
+        $gateways = @()
+        foreach ($config in $configs) {
+            $ip = ($config.IPv4Address | ForEach-Object IPAddress) -join ', '
+            $dns = ($config.DNSServer | Where-Object AddressFamily -eq 2 | ForEach-Object ServerAddresses) -join ', '
+            $gw = @($config.IPv4DefaultGateway | ForEach-Object NextHop)
+            Write-Output ('{0} ({1}) | IP {2} | gateway {3} | DNS {4}' -f $config.InterfaceAlias,
+                $config.NetAdapter.InterfaceDescription, $ip, ($gw -join ', '), $dns)
+            if ($ip -like '169.254.*') {
+                Write-Bad "$($config.InterfaceAlias) nhận IP tự cấp 169.254.x.x, tức là không xin được IP từ DHCP."
+            }
+            $gateways += $gw
+        }
+
+        $gateways = @($gateways | Where-Object { $_ } | Select-Object -Unique)
+        if (-not $gateways) { Write-Bad 'Không có default gateway nên máy không ra được ngoài mạng nội bộ.' }
+        foreach ($gw in $gateways) {
+            if (Test-Ping $gw) { Write-Ok "Ping được gateway $gw" }
+            else { Write-Warn "Không ping được gateway $gw (một số router chặn ping, xem tiếp phần Internet bên dưới)" }
+        }
+
+        if ($cs.PartOfDomain) {
+            $domain = $cs.Domain
+            $srv = @(Resolve-DnsName -Name "_ldap._tcp.dc._msdcs.$domain" -Type SRV -DnsOnly -ErrorAction SilentlyContinue |
+                Where-Object QueryType -eq 'SRV')
+            if (-not $srv) {
+                Write-Bad "DNS không tìm được DC của domain $domain. DNS của máy có thể không trỏ về DC."
+            }
+            else {
+                Write-Ok "DNS tìm được $($srv.Count) DC của domain $domain"
+                $dc = ($srv | Sort-Object Priority, @{ Expression = 'Weight'; Descending = $true } | Select-Object -First 1).NameTarget
+                if (Test-Ping $dc) { Write-Ok "Ping được DC $dc" } else { Write-Warn "Không ping được DC $dc (có thể DC chặn ping)" }
+                # Hashtable thường: [ordered] lấy số làm vị trí chứ không phải khoá.
+                $ports = @{ 53 = 'DNS'; 88 = 'Kerberos'; 389 = 'LDAP'; 445 = 'SMB, ổ mạng và GPO' }
+                foreach ($port in 53, 88, 389, 445) {
+                    if (Test-Port $dc $port) { Write-Ok "DC mở cổng $port ($($ports[$port]))" }
+                    else { Write-Bad "Không kết nối được cổng $port ($($ports[$port])) của DC $dc" }
+                }
+                $offset = Get-NtpOffset $dc
+                if ($null -eq $offset) { Write-Warn "Không hỏi được giờ của DC $dc (cổng UDP 123)" }
+                elseif ([math]::Abs($offset) -gt 300) {
+                    Write-Bad ('Giờ máy lệch {0:N0} giây so với DC. Lệch quá 5 phút thì đăng nhập domain lỗi, chạy mục Đồng bộ giờ.' -f $offset)
+                }
+                elseif ([math]::Abs($offset) -gt 60) { Write-Warn ('Giờ máy lệch {0:N0} giây so với DC' -f $offset) }
+                else { Write-Ok ('Giờ máy khớp DC (lệch {0:N1} giây)' -f $offset) }
+            }
+        }
+        else {
+            Write-Output 'Máy chưa vào domain, bỏ qua phần kiểm tra DC.'
+        }
+
+        try {
+            [void][System.Net.Dns]::GetHostAddresses('www.microsoft.com')
+            Write-Ok 'Phân giải được tên miền Internet (www.microsoft.com)'
+            if (Test-Port 'www.microsoft.com' 443 3000) { Write-Ok 'Kết nối được Internet qua HTTPS (cổng 443)' }
+            else { Write-Bad 'Không kết nối thẳng được Internet qua cổng 443 (mạng bị chặn hoặc bắt buộc đi qua proxy)' }
+        }
+        catch { Write-Bad 'Không phân giải được www.microsoft.com, DNS không ra được Internet' }
+
+        $settings = "Registry::HKEY_USERS\$TargetUserSid\Software\Microsoft\Windows\CurrentVersion\Internet Settings"
+        $proxy = Get-ItemProperty -LiteralPath $settings -ErrorAction SilentlyContinue
+        if ($proxy.ProxyEnable -eq 1 -and $proxy.ProxyServer) { Write-Warn "Người dùng đang đặt proxy $($proxy.ProxyServer)" }
+        if ($proxy.AutoConfigURL) { Write-Warn "Người dùng đang dùng file cấu hình proxy $($proxy.AutoConfigURL)" }
+        Exit-Checks
+      timeout: 180
+      messages:
+        2: Có mục kiểm tra không đạt, xem các dòng ✖ ở trên
+
+- id: net.flush_dns
+  name: Xoá cache DNS
+  category: Mạng & Internet
+  risk: safe
+  description: >
+    Xoá bộ nhớ đệm phân giải tên miền. Dùng khi vào web hoặc ổ mạng bị trỏ sai
+    địa chỉ, ví dụ sau khi đổi IP server hay đổi bản ghi DNS.
+  apply:
+    - cmd: ipconfig /flushdns
+
+- id: net.renew_ip
+  name: Xin lại IP
+  category: Mạng & Internet
+  risk: safe
+  description: >
+    Trả IP rồi xin IP mới từ DHCP cho các card mạng thật đang kết nối (bỏ qua card ảo, VPN và
+    card đặt IP tĩnh). Mạng sẽ mất vài giây. Dùng khi máy nhận IP 169.254.x.x hoặc IP sai dải.
+  apply:
+    - powershell: |
+        $physical = @(Get-NetAdapter -Physical | Where-Object Status -eq 'Up' | ForEach-Object Name)
+        $dhcp = @(Get-NetIPInterface -AddressFamily IPv4 -Dhcp Enabled -ErrorAction SilentlyContinue |
+            Where-Object { $physical -contains $_.InterfaceAlias } | ForEach-Object InterfaceAlias)
+        if (-not $dhcp) {
+            Write-Output 'Không có card mạng đang kết nối nào dùng DHCP (máy đặt IP tĩnh?), không cần xin lại IP.'
+            exit 0
+        }
+        $failed = 0
+        foreach ($name in $dhcp) {
+            Write-Output "Xin lại IP cho $name…"
+            ipconfig /release $name | Out-Null
+            ipconfig /renew $name
+            if ($LASTEXITCODE) { $failed++ }
+        }
+        if ($failed) { exit 2 }
+      timeout: 180
+      messages:
+        2: Không xin được IP từ DHCP cho một số card mạng
+
+- id: net.reset_proxy
+  name: Xoá proxy của người dùng
+  category: Mạng & Internet
+  risk: safe
+  scope: user
+  admin: false
+  description: >
+    Tắt proxy và bỏ file cấu hình proxy (PAC) trong Internet Options của người dùng, đưa về
+    "Tự nhận thiết lập". Dùng khi trình duyệt báo lỗi proxy, thường do phần mềm lạ hoặc VPN cũ để lại.
+    Nếu công ty đặt proxy bằng GPO thì mục này bị khoá; GPO sẽ áp lại proxy ở lần gpupdate sau.
+  gpo:
+    - { key: 'HKCU\Software\Policies\Microsoft\Internet Explorer\Control Panel', name: Proxy }
+    - { key: 'HKLM\Software\Policies\Microsoft\Windows\CurrentVersion\Internet Settings', name: ProxySettingsPerUser }
+  apply:
+    - registry: { key: 'HKCU\Software\Microsoft\Windows\CurrentVersion\Internet Settings', name: ProxyEnable, type: DWORD, value: 0 }
+    - registry: { key: 'HKCU\Software\Microsoft\Windows\CurrentVersion\Internet Settings', name: ProxyServer, delete: true }
+    - registry: { key: 'HKCU\Software\Microsoft\Windows\CurrentVersion\Internet Settings', name: AutoConfigURL, delete: true }
+    # Bản lưu nhị phân của thiết lập proxy. Xoá đi thì Windows tạo lại theo mặc định.
+    - registry: { key: 'HKCU\Software\Microsoft\Windows\CurrentVersion\Internet Settings\Connections', name: DefaultConnectionSettings, delete: true }
+    - registry: { key: 'HKCU\Software\Microsoft\Windows\CurrentVersion\Internet Settings\Connections', name: SavedLegacySettings, delete: true }
+  undo: auto
+
+- id: net.reset_winhttp_proxy
+  name: Xoá proxy hệ thống (WinHTTP)
+  category: Mạng & Internet
+  risk: safe
+  description: >
+    Xoá proxy mà các dịch vụ Windows dùng (Windows Update, Defender, Office cập nhật...), khác với proxy
+    trong trình duyệt. Proxy cũ được in ra log trước khi xoá, cần đặt lại thì dùng
+    netsh winhttp set proxy <proxy>.
+  apply:
+    - cmd: netsh winhttp show proxy
+    - cmd: netsh winhttp reset proxy
+
+- id: net.restart_adapters
+  name: Khởi động lại card mạng
+  category: Mạng & Internet
+  risk: safe
+  description: >
+    Tắt rồi bật lại các card mạng thật (LAN, Wi-Fi), bỏ qua card đang bị tắt có chủ ý. Mạng mất
+    khoảng 5–10 giây, Wi-Fi tự kết nối lại. Dùng khi card mạng "Connected" mà không vào được mạng.
+  apply:
+    - powershell: |
+        $adapters = @(Get-NetAdapter -Physical | Where-Object Status -ne 'Disabled')
+        if (-not $adapters) { Write-Output 'Không có card mạng nào đang bật.'; exit 0 }
+        foreach ($adapter in $adapters) {
+            Write-Output "Khởi động lại $($adapter.Name) ($($adapter.InterfaceDescription))…"
+            Restart-NetAdapter -InputObject $adapter -Confirm:$false
+        }
+      timeout: 120
+
+- id: net.reset_winsock
+  name: Reset Winsock và TCP/IP
+  category: Mạng & Internet
+  risk: caution
+  reboot: true
+  description: >
+    Đưa Winsock và TCP/IP về mặc định. Dùng khi các cách khác không được: có IP mà không vào được
+    mạng, lỗi sau khi gỡ VPN hoặc phần mềm diệt virus. Card đặt IP tĩnh sẽ trở về DHCP:
+    cấu hình hiện tại được in ra log trước để đặt lại. Cần khởi động lại máy.
+  apply:
+    - cmd: ipconfig /all
+    - cmd: netsh winsock reset
+    # Thường in vài dòng "Access is denied" cho khoá chỉ SYSTEM mới đổi được và trả mã 1,
+    # phần còn lại vẫn reset xong (xem docs/HANDOFF.md, phần chưa kiểm chứng).
+    - cmd: netsh int ip reset
+      ok_codes: [0, 1]
+  undo: none

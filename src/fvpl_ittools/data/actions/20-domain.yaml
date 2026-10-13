@@ -1,0 +1,131 @@
+# Domain & đăng nhập. Cách khai báo: xem docs/ACTIONS.md.
+
+- id: dom.check_dc
+  name: Kiểm tra kết nối với domain
+  category: Domain & đăng nhập
+  risk: safe
+  requires_domain: true
+  description: >
+    Chỉ kiểm tra, không đổi gì: DNS có tìm được DC không, có DC nào trả lời không, kênh bảo mật
+    (secure channel) giữa máy và domain còn tốt không, giờ máy có lệch DC không.
+    Dùng khi người dùng không đăng nhập được, không vào được ổ mạng hoặc GPO không áp.
+  apply:
+    - powershell: |
+        $domain = (Get-CimInstance Win32_ComputerSystem).Domain
+        Write-Output "Domain của máy: $domain"
+        $srv = @(Resolve-DnsName -Name "_ldap._tcp.dc._msdcs.$domain" -Type SRV -DnsOnly -ErrorAction SilentlyContinue |
+            Where-Object QueryType -eq 'SRV')
+        if ($srv) { Write-Ok ("DNS tìm được {0} DC: {1}" -f $srv.Count, (($srv | ForEach-Object NameTarget) -join ', ')) }
+        else { Write-Bad 'DNS không tìm được DC nào. Kiểm tra DNS của card mạng có trỏ về DC không.' }
+
+        nltest /dsgetdc:$domain
+        if ($LASTEXITCODE) { Write-Bad 'Không có DC nào trả lời (nltest /dsgetdc).' }
+        else { Write-Ok 'Có DC đang trả lời' }
+
+        try {
+            if (Test-ComputerSecureChannel) { Write-Ok 'Kênh bảo mật giữa máy và domain bình thường' }
+            else { Write-Bad 'Kênh bảo mật giữa máy và domain bị hỏng (lỗi trust relationship). Chạy mục Sửa lỗi trust relationship.' }
+        }
+        catch { Write-Bad "Không kiểm tra được kênh bảo mật: $($_.Exception.Message)" }
+
+        if ($srv) {
+            $dc = ($srv | Sort-Object Priority, @{ Expression = 'Weight'; Descending = $true } | Select-Object -First 1).NameTarget
+            $offset = Get-NtpOffset $dc
+            if ($null -eq $offset) { Write-Warn "Không hỏi được giờ của DC $dc (cổng UDP 123)" }
+            elseif ([math]::Abs($offset) -gt 300) {
+                Write-Bad ('Giờ máy lệch {0:N0} giây so với DC. Lệch quá 5 phút thì đăng nhập domain lỗi, chạy mục Đồng bộ giờ.' -f $offset)
+            }
+            elseif ([math]::Abs($offset) -gt 60) { Write-Warn ('Giờ máy lệch {0:N0} giây so với DC' -f $offset) }
+            else { Write-Ok ('Giờ máy khớp DC (lệch {0:N1} giây)' -f $offset) }
+        }
+        Write-Output 'Nguồn giờ hiện tại của máy:'
+        w32tm /query /source
+        Exit-Checks
+      timeout: 180
+      messages:
+        2: Có mục kiểm tra không đạt, xem các dòng ✖ ở trên
+
+- id: dom.repair_trust
+  name: Sửa lỗi trust relationship
+  category: Domain & đăng nhập
+  risk: caution
+  requires_domain: true
+  needs_credential: domain
+  description: >
+    Sửa lỗi "The trust relationship between this workstation and the primary domain failed" mà không
+    cần gỡ ra rồi join lại domain: đặt lại mật khẩu của máy với DC. Đăng nhập máy bằng tài khoản admin
+    cục bộ, cắm mạng công ty rồi chạy. Tool hỏi một tài khoản domain có quyền reset computer account
+    (tài khoản join máy là đủ). Xong thì đăng xuất và đăng nhập lại bằng tài khoản domain.
+  apply:
+    - powershell: |
+        Write-Output "Đặt lại mật khẩu máy với domain bằng tài khoản $($Credential.UserName)…"
+        if (-not (Test-ComputerSecureChannel -Repair -Credential $Credential)) { exit 2 }
+        Write-Output '✔ Đã sửa xong kênh bảo mật với domain.'
+      timeout: 180
+      messages:
+        2: Không sửa được. Kiểm tra máy có kết nối được DC không và tài khoản có quyền reset computer account không
+  undo: none
+
+- id: dom.time_sync
+  name: Đồng bộ giờ
+  category: Domain & đăng nhập
+  risk: safe
+  description: >
+    Lấy lại giờ từ nguồn giờ của máy: DC với máy trong domain, time.windows.com với máy ngoài domain.
+    Giờ lệch quá 5 phút thì đăng nhập domain, vào ổ mạng và Windows Update đều lỗi.
+    Dịch vụ Windows Time đang dừng thì tool bật lại.
+  apply:
+    - powershell: |
+        $service = Get-Service -Name w32time
+        if ($service.StartType -eq 'Disabled') { exit 3 }
+        if ($service.Status -ne 'Running') {
+            Write-Output 'Dịch vụ Windows Time đang dừng, bật lại…'
+            Start-Service -Name w32time
+            Start-Sleep -Seconds 2
+        }
+        Write-Output ('Giờ trước khi đồng bộ: {0:dd/MM/yyyy HH:mm:ss}' -f (Get-Date))
+        w32tm /resync /rediscover
+        $code = $LASTEXITCODE
+        Write-Output ('Giờ sau khi đồng bộ: {0:dd/MM/yyyy HH:mm:ss}' -f (Get-Date))
+        w32tm /query /source
+        exit $code
+      timeout: 120
+      messages:
+        3: Dịch vụ Windows Time đang bị tắt (Disabled), có thể do GPO
+        0x800705B4: Nguồn giờ không trả lời, kiểm tra kết nối tới DC hoặc Internet
+        0x80070426: Dịch vụ Windows Time chưa chạy
+
+- id: dom.gpupdate
+  name: Cập nhật Group Policy
+  category: Domain & đăng nhập
+  risk: safe
+  requires_domain: true
+  description: >
+    Chạy gpupdate /force để áp lại GPO cho máy và người dùng. Một số policy (cài phần mềm, chuyển thư mục)
+    chỉ áp khi khởi động lại hoặc đăng nhập lại; tool tự trả lời "không" khi gpupdate hỏi đăng xuất.
+    Nếu mở tool bằng tài khoản IT khác, phần người dùng sẽ áp cho tài khoản IT chứ không phải người dùng.
+  apply:
+    - cmd: echo n| gpupdate /force
+      timeout: 900
+
+- id: dom.gpresult
+  name: Báo cáo GPO đang áp
+  category: Domain & đăng nhập
+  risk: safe
+  requires_domain: true
+  description: >
+    Xuất báo cáo GPO (gpresult) của máy và người đang đăng nhập ra file HTML rồi mở lên.
+    Dùng để xem GPO nào đang áp, GPO nào bị lọc và lỗi khi áp. File lưu trong thư mục reports của tool.
+  apply:
+    - powershell: |
+        $file = Join-Path $ReportDir ('gpresult_{0}_{1:yyyyMMdd_HHmmss}.html' -f $env:COMPUTERNAME, (Get-Date))
+        gpresult /user $TargetUserName /h $file /f
+        if ($LASTEXITCODE) {
+            Write-Output 'Không lấy được phần người dùng, chỉ xuất phần máy.'
+            gpresult /scope computer /h $file /f
+            if ($LASTEXITCODE) { exit $LASTEXITCODE }
+        }
+        Write-Output "Đã lưu: $file"
+        # Mở qua explorer.exe để trình duyệt chạy bằng quyền người dùng, không phải quyền admin của tool.
+        Start-Process -FilePath (Join-Path $env:SystemRoot 'explorer.exe') -ArgumentList "`"$file`""
+      timeout: 300

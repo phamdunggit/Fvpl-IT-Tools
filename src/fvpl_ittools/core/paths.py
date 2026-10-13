@@ -65,6 +65,13 @@ def logs_dir() -> Path:
     return folder
 
 
+def reports_dir() -> Path:
+    """Báo cáo tool tạo ra (gpresult, thông tin máy xuất HTML...)."""
+    folder = state_dir() / "reports"
+    folder.mkdir(parents=True, exist_ok=True)
+    return folder
+
+
 def undo_journal_path() -> Path:
     folder = state_dir() / "undo"
     folder.mkdir(parents=True, exist_ok=True)

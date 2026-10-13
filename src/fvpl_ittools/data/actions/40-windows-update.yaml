@@ -1,0 +1,55 @@
+# Windows Update. Cách khai báo: xem docs/ACTIONS.md.
+
+- id: wu.reset
+  name: Reset Windows Update
+  category: Windows Update
+  risk: caution
+  description: >
+    Dừng các dịch vụ cập nhật, đổi tên thư mục SoftwareDistribution và catroot2 thành .old (bản .old
+    cũ hơn sẽ bị xoá), rồi chạy lại dịch vụ. Dùng khi Windows Update kẹt ở một %, báo lỗi lặp lại hoặc
+    không tìm được bản cập nhật. Lịch sử cập nhật trong Settings sẽ trống, lần quét sau lâu hơn bình
+    thường. Nên khởi động lại máy rồi mới quét cập nhật.
+  apply:
+    - powershell: |
+        $services = 'wuauserv', 'bits', 'cryptsvc', 'msiserver', 'usosvc'
+        function Stop-UpdateServices {
+            foreach ($name in $services) {
+                $service = Get-Service -Name $name -ErrorAction SilentlyContinue
+                if ($service -and $service.Status -ne 'Stopped') {
+                    Write-Output "Dừng dịch vụ $name…"
+                    try { Stop-Service -Name $name -Force -ErrorAction Stop }
+                    catch { Write-Output "⚠ Không dừng được $($name): $($_.Exception.Message)" }
+                }
+            }
+        }
+
+        Stop-UpdateServices
+        try {
+            $folders = (Join-Path $env:SystemRoot 'SoftwareDistribution'), (Join-Path $env:SystemRoot 'System32\catroot2')
+            foreach ($folder in $folders) {
+                if (-not (Test-Path -LiteralPath $folder)) { continue }
+                $backup = "$folder.old"
+                if (Test-Path -LiteralPath $backup) {
+                    Write-Output "Xoá bản cũ $backup…"
+                    Remove-Item -LiteralPath $backup -Recurse -Force
+                }
+                # Windows hay tự bật lại dịch vụ cập nhật sau vài giây, nên thử lại vài lần.
+                for ($try = 1; ; $try++) {
+                    try { Rename-Item -LiteralPath $folder -NewName (Split-Path $backup -Leaf) -ErrorAction Stop; break }
+                    catch {
+                        if ($try -ge 5) { throw }
+                        Start-Sleep -Seconds 2
+                        Stop-UpdateServices
+                    }
+                }
+                Write-Output "✔ Đã đổi tên $folder thành $backup"
+            }
+        }
+        finally {
+            foreach ($name in 'cryptsvc', 'bits', 'wuauserv') {
+                Write-Output "Chạy lại dịch vụ $name…"
+                Start-Service -Name $name -ErrorAction SilentlyContinue
+            }
+        }
+      timeout: 600
+  undo: none

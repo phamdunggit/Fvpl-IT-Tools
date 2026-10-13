@@ -1,0 +1,37 @@
+# Gói sửa nhanh: nút trên đầu trang Sửa lỗi. Chạy lần lượt các mục, một mục lỗi thì dừng.
+# Mục bị khoá (chưa vào domain, thiếu quyền admin...) được bỏ qua và gói chạy tiếp.
+# Cách khai báo: xem docs/ACTIONS.md, phần "Gói sửa nhanh".
+
+- id: pack.network
+  name: Sửa mạng
+  description: >
+    Các bước nhẹ, không cần khởi động lại: xoá cache DNS, xoá proxy, xin lại IP, rồi chẩn đoán
+    lại để xem còn lỗi gì.
+  actions: [net.flush_dns, net.reset_proxy, net.reset_winhttp_proxy, net.renew_ip, net.diagnose]
+
+- id: pack.network_reset
+  name: Reset mạng toàn bộ
+  description: >
+    Khi "Sửa mạng" không được: thêm reset Winsock và TCP/IP. Card đặt IP tĩnh sẽ về DHCP.
+    Cần khởi động lại máy.
+  actions: [net.flush_dns, net.reset_proxy, net.reset_winhttp_proxy, net.reset_winsock]
+
+- id: pack.printer
+  name: Sửa máy in
+  description: >
+    Xoá lệnh in bị kẹt (có khởi động lại Print Spooler), rồi liệt kê máy in và trạng thái để kiểm tra.
+  actions: [prn.clear_queue, prn.list]
+
+- id: pack.windows_update
+  name: Sửa Windows Update
+  description: >
+    Đồng bộ giờ (giờ sai thì Windows Update lỗi kết nối), rồi reset Windows Update.
+    Nên khởi động lại máy sau khi xong.
+  actions: [dom.time_sync, wu.reset]
+
+- id: pack.domain
+  name: Sửa domain
+  description: >
+    Đồng bộ giờ với DC, kiểm tra kết nối với domain, rồi cập nhật Group Policy. Nếu bước kiểm tra
+    báo lỗi trust relationship thì chạy riêng mục "Sửa lỗi trust relationship".
+  actions: [dom.time_sync, dom.check_dc, dom.gpupdate]

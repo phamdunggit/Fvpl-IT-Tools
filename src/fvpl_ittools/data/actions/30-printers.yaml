@@ -1,0 +1,65 @@
+# Máy in. Cách khai báo: xem docs/ACTIONS.md.
+
+- id: prn.list
+  name: Liệt kê máy in và lệnh in đang chờ
+  category: Máy in
+  risk: safe
+  admin: false
+  description: >
+    Chỉ xem: tên máy in, cổng, driver, trạng thái và số lệnh in đang chờ của từng máy in.
+    Máy in share kết nối theo từng người dùng, nên nếu mở tool bằng tài khoản IT khác thì sẽ không thấy
+    máy in share của người dùng.
+  apply:
+    - powershell: |
+        $printers = @(Get-Printer | Sort-Object Name)
+        if (-not $printers) { Write-Output 'Máy chưa có máy in nào.'; exit 0 }
+        foreach ($printer in $printers) {
+            $jobs = @(Get-PrintJob -PrinterName $printer.Name -ErrorAction SilentlyContinue).Count
+            $line = '{0} | cổng {1} | driver {2} | {3} | {4} lệnh in đang chờ' -f $printer.Name, $printer.PortName,
+                $printer.DriverName, $printer.PrinterStatus, $jobs
+            if ($printer.PrinterStatus -ne 'Normal' -or $jobs) { Write-Output "⚠ $line" } else { Write-Output "✔ $line" }
+        }
+        $spooler = Get-Service -Name Spooler
+        Write-Output "Dịch vụ Print Spooler: $($spooler.Status)"
+      timeout: 120
+
+- id: prn.clear_queue
+  name: Xoá lệnh in bị kẹt
+  category: Máy in
+  risk: safe
+  description: >
+    Dừng Print Spooler, xoá các lệnh in đang kẹt rồi chạy lại Spooler. Dùng khi lệnh in đứng mãi,
+    không xoá được trong hàng đợi, hoặc máy in không nhận lệnh mới. Mọi lệnh in đang chờ trên máy
+    này (của mọi người dùng) đều bị xoá.
+  apply:
+    - powershell: |
+        $spool = (Get-ItemProperty -LiteralPath 'HKLM:\SYSTEM\CurrentControlSet\Control\Print\Printers' -ErrorAction SilentlyContinue).DefaultSpoolDirectory
+        if (-not $spool) { $spool = Join-Path $env:SystemRoot 'System32\spool\PRINTERS' }
+        $spool = [Environment]::ExpandEnvironmentVariables($spool)
+        Write-Output "Thư mục lệnh in: $spool"
+        Write-Output 'Dừng Print Spooler…'
+        Stop-Service -Name Spooler -Force
+        try {
+            # Chỉ xoá file lệnh in (.SPL, .SHD), phòng khi thư mục spool bị đặt nhầm sang chỗ khác.
+            $jobs = @(Get-ChildItem -LiteralPath $spool -File -Force -ErrorAction SilentlyContinue |
+                Where-Object { $_.Extension -in '.spl', '.shd' })
+            $jobs | Remove-Item -Force -ErrorAction SilentlyContinue
+            $left = @($jobs | Where-Object { Test-Path -LiteralPath $_.FullName }).Count
+            Write-Output ('Đã xoá {0} file lệnh in.' -f ($jobs.Count - $left))
+            if ($left) { Write-Output "⚠ Còn $left file không xoá được." }
+        }
+        finally {
+            Write-Output 'Chạy lại Print Spooler…'
+            Start-Service -Name Spooler
+        }
+      timeout: 120
+
+- id: prn.restart_spooler
+  name: Khởi động lại Print Spooler
+  category: Máy in
+  risk: safe
+  description: >
+    Khởi động lại dịch vụ in. Dùng khi không thêm được máy in, cửa sổ máy in bị treo hoặc báo
+    "Print Spooler service is not running". Lệnh in đang chờ vẫn giữ nguyên.
+  apply:
+    - service: { name: Spooler, action: restart }

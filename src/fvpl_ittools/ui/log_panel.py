@@ -10,7 +10,7 @@ from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QPlainTextEdit, QPush
 
 from ..core import paths
 from ..core.executor import Level, LogEvent
-from .theme import LOG_COLORS
+from .theme import LOG_COLORS, OUTPUT_MARK_COLORS
 from .widgets import open_path
 
 MAX_LINES = 5000
@@ -49,6 +49,9 @@ class LogPanel(QFrame):
 
     def append(self, event: LogEvent) -> None:
         color = LOG_COLORS.get(event.level, "#e2e8f0")
+        if event.level is Level.OUTPUT:
+            # Script chẩn đoán in ✔ / ✖ / ⚠ đầu dòng; chỉ dùng để tô màu, không dùng để quyết định kết quả.
+            color = OUTPUT_MARK_COLORS.get(event.text.lstrip()[:1], color)
         weight = "font-weight:600;" if event.level is Level.HEADER else ""
         text = html.escape(event.text).replace("  ", "&nbsp; ")
         line = (

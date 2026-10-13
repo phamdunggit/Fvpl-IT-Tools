@@ -24,6 +24,7 @@ from .model import (
     BuiltinStep,
     CmdStep,
     GpoRef,
+    Pack,
     PowerShellStep,
     RegistryCheck,
     RegistryStep,
@@ -35,14 +36,15 @@ from .model import (
 )
 
 ACTIONS_DIR = paths.DATA_DIR / "actions"
+PACKS_FILE = paths.DATA_DIR / "packs.yaml"
 
 _ID_PATTERN = re.compile(r"^[a-z0-9_]+(\.[a-z0-9_]+)+$")
 _ACTION_KEYS = {
     "id", "name", "category", "page", "risk", "scope", "admin", "reboot", "os",
-    "description", "check", "apply", "undo", "after", "gpo", "needs_credential",
+    "description", "check", "apply", "undo", "after", "gpo", "needs_credential", "requires_domain",
 }
 _STEP_KINDS = ("cmd", "powershell", "registry", "service", "builtin")
-_STEP_COMMON = {"timeout", "ok_codes", "reboot_codes"}
+_STEP_COMMON = {"timeout", "ok_codes", "reboot_codes", "messages"}
 _SHELL_KEYS = {"encoding"}
 _CREDENTIAL_KINDS = ("domain",)
 
@@ -102,6 +104,7 @@ def parse_action(raw: Any, source: str = "") -> Action:
     scope = Scope(_choice(raw, "scope", [item.value for item in Scope], Scope.MACHINE.value))
     admin = _flag(raw, "admin", True)
     reboot = _flag(raw, "reboot", False)
+    requires_domain = _flag(raw, "requires_domain", False)
     min_build, max_build = _parse_os(raw.get("os"))
     description = _optional_text(raw, "description")
 
@@ -149,6 +152,7 @@ def parse_action(raw: Any, source: str = "") -> Action:
         after=after,
         gpo=gpo,
         needs_credential=needs_credential,
+        requires_domain=requires_domain,
         source=source,
     )
 
@@ -205,6 +209,17 @@ def _codes(raw: Any, default: tuple[int, ...], where: str, key: str) -> tuple[in
     return tuple(raw)
 
 
+def _messages(raw: Any, where: str) -> tuple[tuple[int, str], ...]:
+    if raw is None:
+        return ()
+    if not isinstance(raw, dict) or not all(
+        isinstance(code, int) and not isinstance(code, bool) and isinstance(text, str) and text.strip()
+        for code, text in raw.items()
+    ):
+        raise ActionError(f"{where}: 'messages' phải có dạng {{ mã: \"giải thích\" }}, ví dụ {{ 3: \"Ổ đĩa có lỗi\" }}")
+    return tuple((code, text.strip()) for code, text in raw.items())
+
+
 def _parse_step(raw: Any, where: str) -> Step:
     if not isinstance(raw, dict):
         raise ActionError(f"{where}: mỗi bước phải là một khối 'khoá: giá trị'")
@@ -224,6 +239,7 @@ def _parse_step(raw: Any, where: str) -> Step:
         "timeout": float(timeout) if timeout is not None else None,
         "ok_codes": _codes(raw.get("ok_codes"), DEFAULT_OK_CODES, where, "ok_codes"),
         "reboot_codes": _codes(raw.get("reboot_codes"), DEFAULT_REBOOT_CODES, where, "reboot_codes"),
+        "messages": _messages(raw.get("messages"), where),
     }
     body = raw[kind]
 
@@ -363,3 +379,69 @@ def _check_scope(scope: Scope, keys: list[str]) -> None:
             raise ActionError(f"mục áp cho người dùng (scope: user) chỉ được ghi HKCU, gặp {key}")
         if scope is Scope.MACHINE and hive == "HKCU":
             raise ActionError(f"khoá {key} thuộc HKCU nên mục này phải khai báo scope: user")
+
+
+# ---------------------------------------------------------------- gói sửa nhanh
+
+_PACK_KEYS = {"id", "name", "description", "actions"}
+
+
+def load_builtin_packs(actions: Iterable[Action]) -> tuple[list[Pack], list[str]]:
+    return load_pack_file(PACKS_FILE, actions)
+
+
+def load_pack_file(file: Path, actions: Iterable[Action]) -> tuple[list[Pack], list[str]]:
+    """Nạp gói sửa nhanh. Gói nhắc tới mục không có (hoặc mục bị loại vì khai báo sai) thì bị bỏ."""
+    known = {action.id for action in actions}
+    if not file.exists():
+        return [], []
+    try:
+        data = yaml.safe_load(file.read_text(encoding="utf-8")) or []
+    except (OSError, yaml.YAMLError) as exc:
+        return [], [f"{file.name}: không đọc được file ({exc})"]
+    if not isinstance(data, list):
+        return [], [f"{file.name}: file phải là danh sách các gói, mỗi gói bắt đầu bằng '- id: …'"]
+    packs: list[Pack] = []
+    errors: list[str] = []
+    seen: set[str] = set()
+    for index, raw in enumerate(data, start=1):
+        label = f"{file.name} gói {index}"
+        if isinstance(raw, dict) and isinstance(raw.get("id"), str):
+            label += f" ({raw['id']})"
+        try:
+            pack = parse_pack(raw, known, source=file.name)
+        except ActionError as exc:
+            errors.append(f"{label}: {exc}")
+            continue
+        if pack.id in seen:
+            errors.append(f"{label}: trùng id")
+            continue
+        seen.add(pack.id)
+        packs.append(pack)
+    return packs, errors
+
+
+def parse_pack(raw: Any, known: set[str], source: str = "") -> Pack:
+    if not isinstance(raw, dict):
+        raise ActionError("mỗi gói phải là một khối 'khoá: giá trị'")
+    unknown = sorted(set(raw) - _PACK_KEYS)
+    if unknown:
+        raise ActionError(f"không hiểu khoá {', '.join(unknown)}")
+    pack_id = _required_text(raw, "id")
+    if not _ID_PATTERN.match(pack_id):
+        raise ActionError("id phải có dạng nhom.ten, ví dụ pack.network")
+    items = raw.get("actions")
+    if not isinstance(items, list) or len(items) < 2 or not all(isinstance(item, str) for item in items):
+        raise ActionError("'actions' phải là danh sách id của ít nhất 2 mục")
+    if len(set(items)) != len(items):
+        raise ActionError("'actions' có mục bị lặp")
+    missing = [item for item in items if item not in known]
+    if missing:
+        raise ActionError(f"không có mục {', '.join(missing)} (sai id hoặc mục đó khai báo sai)")
+    return Pack(
+        id=pack_id,
+        name=_required_text(raw, "name"),
+        description=_optional_text(raw, "description"),
+        actions=tuple(items),
+        source=source,
+    )

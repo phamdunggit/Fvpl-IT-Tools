@@ -252,11 +252,27 @@ def powershell_exe() -> str:
     return os.path.join(system_dir(), "WindowsPowerShell", "v1.0", "powershell.exe")
 
 
-def build_powershell_script(script: str, with_credential: bool = False) -> str:
+_PS_VARIABLE_NAME = re.compile(r"^[A-Za-z][A-Za-z0-9_]*$")
+
+
+def ps_variable_lines(variables: dict[str, str]) -> str:
+    """Các dòng `$Ten = 'giá trị'` để đặt sẵn biến cho script."""
+    lines = []
+    for name, value in variables.items():
+        if not _PS_VARIABLE_NAME.match(name):
+            raise ValueError(f"Tên biến PowerShell không hợp lệ: {name!r}")
+        lines.append(f"${name} = {ps_quote(value)}\n")
+    return "".join(lines)
+
+
+def build_powershell_script(
+    script: str, with_credential: bool = False, variables: dict[str, str] | None = None
+) -> str:
     """Bọc script: dừng ngay khi gặp lỗi, output UTF-8, trả mã thoát của lệnh native cuối cùng."""
     return (
         _PS_PRELUDE
         + (_PS_CREDENTIAL if with_credential else "")
+        + ps_variable_lines(variables or {})
         + "try {\n& {\n"
         + script
         + "\n}\nif ($LASTEXITCODE) { exit $LASTEXITCODE }\nexit 0\n}\ncatch {\n"
@@ -264,14 +280,20 @@ def build_powershell_script(script: str, with_credential: bool = False) -> str:
     )
 
 
-def run_powershell(script: str, *, credential: tuple[str, str] | None = None, **kwargs) -> ShellResult:
+def run_powershell(
+    script: str,
+    *,
+    credential: tuple[str, str] | None = None,
+    variables: dict[str, str] | None = None,
+    **kwargs,
+) -> ShellResult:
     """Chạy script bằng Windows PowerShell 5.1 có sẵn trên mọi máy Win10/11.
 
     Script truyền bằng -EncodedCommand nên không bị Execution Policy (kể cả do GPO đặt) chặn.
     Tài khoản (nếu có) đi qua stdin, không nằm trên dòng lệnh, nên không lộ trong danh sách tiến trình.
-    Trong script dùng biến $Credential.
+    Trong script dùng biến $Credential. `variables` đặt sẵn các biến chuỗi khác cho script.
     """
-    wrapped = build_powershell_script(script, with_credential=credential is not None)
+    wrapped = build_powershell_script(script, with_credential=credential is not None, variables=variables)
     encoded = base64.b64encode(wrapped.encode("utf-16-le")).decode("ascii")
     if len(encoded) > MAX_COMMAND_LINE:
         raise ValueError("Script PowerShell quá dài để truyền qua dòng lệnh, hãy tách nhỏ.")

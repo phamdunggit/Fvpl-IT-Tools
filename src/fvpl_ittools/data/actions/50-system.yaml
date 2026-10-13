@@ -1,0 +1,83 @@
+# Hệ thống. Cách khai báo: xem docs/ACTIONS.md.
+
+- id: sys.sfc_dism
+  name: Quét và sửa file hệ thống (DISM + SFC)
+  category: Hệ thống
+  risk: safe
+  description: >
+    Sửa kho thành phần Windows bằng DISM /RestoreHealth (tải file sạch từ Windows Update), rồi chạy
+    sfc /scannow để thay file hệ thống hỏng. Mất 10–40 phút, máy vẫn dùng được trong lúc chạy.
+    Dùng khi Windows lỗi lạ, Start/Settings không mở, cập nhật lỗi liên tục. Kết luận của SFC nằm ở
+    dòng cuối trong log; chi tiết ở C:\Windows\Logs\CBS\CBS.log.
+  apply:
+    - cmd: DISM /Online /Cleanup-Image /RestoreHealth
+      timeout: 3600
+      messages:
+        0x800F081F: DISM không tìm được nguồn file sạch. Máy dùng WSUS thường bị lỗi này, cần nguồn install.wim cùng bản Windows
+        0x800F0906: DISM không tải được file từ Windows Update, kiểm tra Internet hoặc proxy
+        0x800F0907: GPO đang chặn DISM tải file từ Windows Update
+    - cmd: sfc /scannow
+      timeout: 3600
+
+- id: sys.chkdsk_scan
+  name: Kiểm tra ổ đĩa hệ thống
+  category: Hệ thống
+  risk: safe
+  description: >
+    Chạy chkdsk /scan trên ổ hệ thống khi Windows đang chạy, không cần khởi động lại, không khoá ổ.
+    Nếu thấy lỗi thì chạy mục "Hẹn sửa ổ đĩa khi khởi động lại".
+  apply:
+    - cmd: chkdsk %SystemDrive% /scan
+      timeout: 3600
+      ok_codes: [0, 1, 2]
+      messages:
+        3: Ổ đĩa có lỗi chưa sửa được khi Windows đang chạy. Chạy mục Hẹn sửa ổ đĩa khi khởi động lại
+
+- id: sys.chkdsk_schedule
+  name: Hẹn sửa ổ đĩa khi khởi động lại
+  category: Hệ thống
+  risk: caution
+  reboot: true
+  description: >
+    Đánh dấu ổ hệ thống để lần khởi động tới Windows chạy chkdsk /f sửa lỗi trước khi vào màn hình
+    đăng nhập. Mất từ vài phút đến hơn một giờ tuỳ ổ đĩa; không được tắt máy giữa chừng.
+    Muốn huỷ trước khi khởi động lại thì chạy chkntfs /x %SystemDrive%.
+  apply:
+    - cmd: fsutil dirty set %SystemDrive%
+    - cmd: fsutil dirty query %SystemDrive%
+  undo: none
+
+- id: sys.restart_explorer
+  name: Khởi động lại Explorer
+  category: Hệ thống
+  risk: safe
+  admin: false
+  description: >
+    Tắt và mở lại Explorer (taskbar, desktop, cửa sổ thư mục). Dùng khi taskbar bị treo,
+    icon không hiện, Start không bấm được. Các cửa sổ thư mục đang mở sẽ bị đóng.
+  apply:
+    - builtin: restart_explorer
+
+- id: sys.rebuild_icon_cache
+  name: Xây lại cache icon và thumbnail
+  category: Hệ thống
+  risk: safe
+  scope: user
+  admin: false
+  description: >
+    Xoá cache icon và ảnh thu nhỏ của người đang đăng nhập rồi mở lại Explorer, Windows tự tạo lại cache.
+    Dùng khi icon trên desktop/taskbar bị trắng, sai hình, hoặc ảnh thu nhỏ không hiện.
+    Các cửa sổ thư mục đang mở sẽ bị đóng; icon có thể hiện chậm trong vài phút đầu.
+  apply:
+    - builtin: rebuild_icon_cache
+
+- id: sys.fix_audio
+  name: Sửa mất âm thanh
+  category: Hệ thống
+  risk: safe
+  description: >
+    Khởi động lại hai dịch vụ âm thanh của Windows (Audio Endpoint Builder và Windows Audio).
+    Dùng khi biểu tượng loa có dấu X, báo "No audio output device is installed" dù thiết bị vẫn cắm.
+  apply:
+    - service: { name: AudioEndpointBuilder, action: restart }
+    - service: { name: Audiosrv, action: start }

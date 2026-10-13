@@ -11,7 +11,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from .actions import loader
-from .actions.model import Action
+from .actions.model import Action, Pack
 from .core import config, paths, session, sysinfo, winapi
 from .core.executor import Env
 from .core.journal import UndoJournal
@@ -24,6 +24,7 @@ class AppContext:
     machine: sysinfo.MachineInfo
     env: Env
     actions: list[Action]
+    packs: list[Pack]
     load_errors: list[str]
     journal: UndoJournal
     site: config.SiteConfig
@@ -47,8 +48,11 @@ def build_context(log_file: Path | None = None) -> AppContext:
         build=machine.build,
         process_user=process_user,
         target_user=session_user,
+        joined_domain=machine.joined_domain,
     )
     actions, errors = loader.load_builtin_actions()
+    packs, pack_errors = loader.load_builtin_packs(actions)
+    errors += pack_errors
     for error in errors:
         log.warning("Bỏ qua mục khai báo sai: %s", error)
     site = config.load_site_config()
@@ -63,6 +67,7 @@ def build_context(log_file: Path | None = None) -> AppContext:
         machine=machine,
         env=env,
         actions=actions,
+        packs=packs,
         load_errors=errors,
         journal=UndoJournal(paths.undo_journal_path()),
         site=site,

@@ -57,10 +57,13 @@ class RunController(QObject):
         for line in executor.preview(actions, self.app.env):
             self.say(Level.INFO, line)
 
-    def run(self, actions: list[Action]) -> None:
+    def run(self, actions: list[Action], credential: tuple[str, str] | None = None,
+            stop_on_error: bool = False) -> None:
+        """Chạy ở thread nền. `credential` chỉ sống trong lượt chạy này, không lưu lại."""
         if actions:
             ctx = self._context()
-            self._start(lambda: executor.run_batch(actions, ctx))
+            ctx.credential = credential
+            self._start(lambda: executor.run_batch(actions, ctx, stop_on_error=stop_on_error))
 
     def run_undo_steps(self, action: Action) -> None:
         ctx = self._context()
