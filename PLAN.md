@@ -194,27 +194,27 @@ Mỗi nhóm có một **gói sửa nhanh** (*Sửa mạng*, *Sửa máy in*, *S�
 
 ### 5.4 Tối ưu và dọn dẹp
 
-**Dọn rác.** Quét trước, hiện dung lượng từng loại, người dùng tick chọn rồi mới xoá (học PC Manager).
+**Dọn rác.** Quét trước, hiện dung lượng từng loại, người dùng tick chọn rồi mới xoá (học PC Manager). Dấu ✔: đã làm ở GĐ3 (trang Tối ưu & dọn dẹp).
 
 | Mục | Rủi ro | Ưu tiên |
 |---|---|---|
-| Temp của người dùng + Windows Temp | An toàn | P1 |
-| Cache Windows Update (`SoftwareDistribution\Download`) | An toàn | P1 |
-| Cache Delivery Optimization | An toàn | P1 |
-| Crash dump, Windows Error Reporting | An toàn | P1 |
-| Thumbnail cache | An toàn | P2 |
-| Thùng rác (hiện dung lượng, hỏi lại trước khi xoá) | Cẩn thận | P2 |
-| `Windows.old` / bản cài cũ (xoá thì mất đường quay về bản Windows trước) | Cẩn thận | P2 |
+| Temp của người dùng + Windows Temp ✔ | An toàn | P1 |
+| Cache Windows Update (`SoftwareDistribution\Download`) ✔ | An toàn | P1 |
+| Cache Delivery Optimization ✔ | An toàn | P1 |
+| Crash dump, Windows Error Reporting ✔ | An toàn | P1 |
+| Thumbnail cache ✔ (mục "Xây lại cache icon và thumbnail" ở trang Sửa lỗi) | An toàn | P2 |
+| Thùng rác (hiện dung lượng, hỏi lại trước khi xoá) ✔ | Cẩn thận | P2 |
+| `Windows.old` / bản cài cũ (xoá thì mất đường quay về bản Windows trước) ✔ dọn bằng Disk Cleanup | Cẩn thận | P2 |
 | Tìm file và thư mục lớn trên ổ C | An toàn | P2 |
 
 **Khởi động và hiệu năng**
 
 | Mục | Ghi chú | Rủi ro | Ưu tiên |
 |---|---|---|---|
-| Tắt Fast Startup | Có sẵn trong wizard cài máy mới | An toàn | P1 |
-| Quản lý startup | Đọc Run keys (HKLM/HKCU), thư mục Startup, task chạy lúc đăng nhập. Bật/tắt kiểu Task Manager (`StartupApproved`) nên hoàn tác được | An toàn | P2 |
-| Power plan | Balanced / High performance; máy bàn thì tắt USB selective suspend | An toàn | P2 |
-| Tắt hibernation trên máy bàn | Giải phóng `hiberfil.sys` | Cẩn thận | P2 |
+| Tắt Fast Startup ✔ | Ở trang Cấu hình, nhóm Cấu hình chuẩn | An toàn | P1 |
+| Quản lý startup ✔ | Đọc Run keys (HKLM/HKCU), thư mục Startup (task chạy lúc đăng nhập: chưa làm). Bật/tắt kiểu Task Manager (`StartupApproved`) nên hoàn tác được | An toàn | P2 |
+| Power plan ✔ | Balanced / High performance; máy bàn thì tắt USB selective suspend | An toàn | P2 |
+| Tắt hibernation trên máy bàn ✔ | Giải phóng `hiberfil.sys` | Cẩn thận | P2 |
 | Hiệu ứng hình ảnh tối ưu hiệu năng | Dành cho máy yếu | An toàn | P3 |
 | Chuyển một số service sang Manual | Chỉ những service trong danh sách đã chọn lọc | Nâng cao | P3 |
 
@@ -222,10 +222,10 @@ Mỗi nhóm có một **gói sửa nhanh** (*Sửa mạng*, *Sửa máy in*, *S�
 
 | Mục | Ghi chú | Rủi ro | Ưu tiên |
 |---|---|---|---|
-| Gỡ app cài sẵn | Xbox, Clipchamp, Solitaire, News... Gỡ cho mọi user và gỡ cả bản *provisioned* để user mới không bị cài lại. Có danh sách giữ lại: Calculator, Photos, Snipping Tool, Store... | Cẩn thận | P2 |
-| Tắt quảng cáo và gợi ý | Gợi ý trong Start, tips, quảng cáo màn hình khoá, consumer features (tự cài game) | An toàn | P2 |
-| Tắt Bing trong Start, Widgets, Copilot | Tắt bằng policy | An toàn | P2 |
-| Telemetry về mức thấp nhất mà bản Pro cho phép | | An toàn | P2 |
+| Gỡ app cài sẵn ✔ | Xbox, Clipchamp, Solitaire, News... Gỡ cho mọi user và gỡ cả bản *provisioned* để user mới không bị cài lại. Có danh sách giữ lại: Calculator, Photos, Snipping Tool, Store... | Cẩn thận | P2 |
+| Tắt quảng cáo và gợi ý ✔ | Gợi ý trong Start, tips, quảng cáo màn hình khoá, consumer features (tự cài game) | An toàn | P2 |
+| Tắt Bing trong Start, Widgets, Copilot ✔ | Tắt bằng policy | An toàn | P2 |
+| Telemetry về mức thấp nhất mà bản Pro cho phép ✔ | | An toàn | P2 |
 | Chặn app "đồng hành" của driver tự cài | | An toàn | P3 |
 
 > Phần lớn các mục ở trên nên đặt bằng **GPO cho cả domain** nếu được. Tool chỉ là phương án cho từng máy, và sẽ không ghi đè những gì GPO đang quản lý.
@@ -334,13 +334,13 @@ IT Tools/
 │   │   └── state.py           # (sẽ có, GĐ2) trạng thái wizard để chạy tiếp sau restart
 │   ├── software/              # danh mục + profile (catalog), phát hiện đã cài (detect), lệnh cài (install), quét (scan)
 │   ├── newpc/                 # Cài máy mới: precheck (bước 0); các bước wizard còn lại (sẽ có)
-│   ├── features/              # (sẽ có) cleanup, startup...
+│   ├── cleanup/               # dọn rác (junk) và chương trình khởi động (startup)
 │   ├── ui/
 │   │   ├── main_window.py     # thanh trên cùng + sidebar + vùng trang + khung log
 │   │   ├── controller.py      # chạy executor ở thread nền, đẩy log về giao diện
 │   │   ├── credential_dialog.py  # hỏi tài khoản domain cho mục needs_credential
 │   │   ├── log_panel.py, theme.py, widgets.py, text.py
-│   │   └── pages/             # overview, actions_page (Sửa lỗi/Tối ưu/Cấu hình), software, newpc, utilities, history
+│   │   └── pages/             # overview, actions_page (Sửa lỗi/Cấu hình), optimize, software, newpc, utilities, history
 │   └── data/
 │       ├── actions/NN-*.yaml  # các fix/tweak; số đầu tên file quyết định thứ tự nhóm trong cây
 │       ├── packs.yaml         # gói sửa nhanh
@@ -496,7 +496,7 @@ Repo để public nên **tên domain, tên server, đường dẫn share, OU, ti
 | **0. Nền móng** ✔ 08/10/2026 | Khung PySide6 (sidebar, khung log, thanh trạng thái); kiểm tra quyền admin; runner chạy nền có nút huỷ; nạp và kiểm tra YAML; log ra file; restore point và nhật ký hoàn tác; build exe | Exe chạy được trên VM Win10 và Win11 sạch (không có Python), chạy được 3 mục mẫu, có log, hoàn tác được 1 tweak registry |
 | **1. Tổng quan + Sửa lỗi** ◐ code xong 13/10/2026 | Trang Tổng quan (copy và xuất thông tin); toàn bộ fix P1 (mạng, domain, máy in, Windows Update, hệ thống, Office); gói sửa nhanh (làm 5 gói: thêm "Reset mạng toàn bộ"); mở nhanh panel; công cụ mạng | IT dùng hằng ngày thay cho gõ lệnh tay; mục nào cũng có ⓘ và copy lệnh |
 | **2. Cài máy mới** ◔ đã có trang Phần mềm và bước 0 Kiểm tra trước | Wizard 7 bước; đổi tên + join + chạy tiếp sau restart; danh mục phần mềm (winget + share) và profile; sửa winget; Office ODT; cấu hình chuẩn; báo cáo | Từ một VM Windows sạch: vào được domain, cài đủ phần mềm theo profile, có báo cáo trên share. IT chỉ phải chọn phòng ban và nhập mật khẩu join |
-| **3. Tối ưu & dọn dẹp** | Dọn rác có quét trước; quản lý startup; debloat và quyền riêng tư; power; các fix P2 | Thấy được dung lượng trước khi xoá; mọi tweak hoàn tác được |
+| **3. Tối ưu & dọn dẹp** ◑ đã có dọn rác, startup, debloat, power | Dọn rác có quét trước; quản lý startup; debloat và quyền riêng tư; power; các fix P2 | Thấy được dung lượng trước khi xoá; mọi tweak hoàn tác được |
 | **4. Tiện ích & hoàn thiện** | Các tiện ích; gửi kiểm kê lên share; báo bản mới; ký số; hướng dẫn sử dụng; các mục P3 | Bản 1.0 có trên share |
 | **Để sau** | Điều khiển nhiều máy từ xa, bản rút gọn cho nhân viên tự sửa lỗi, giao diện tối | |
 

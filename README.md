@@ -3,7 +3,7 @@
 Công cụ cho IT: cài máy mới, join domain, sửa lỗi thường gặp, tối ưu Windows.
 Viết bằng Python 3.13 + PySide6, đóng gói thành exe chạy portable từ USB hoặc share.
 
-- Trạng thái: **GĐ1 (Tổng quan + Sửa lỗi) xong phần code, phiên bản 0.2.0.** Trang Tổng quan, 24 mục sửa lỗi, 5 gói sửa nhanh, trang Tiện ích. **GĐ2 đang làm:** đã có trang Phần mềm (danh mục, profile, cài qua winget và share). Các mục đổi hệ thống chưa chạy thật bằng quyền admin, xem [docs/HANDOFF.md](docs/HANDOFF.md).
+- Trạng thái: **GĐ1 (Tổng quan + Sửa lỗi) xong phần code, phiên bản 0.2.0.** Trang Tổng quan, 24 mục sửa lỗi, 5 gói sửa nhanh, trang Tiện ích. **GĐ2 đang làm:** đã có trang Phần mềm (danh mục, profile, cài qua winget và share), bước Kiểm tra trước và cấu hình chuẩn; wizard join domain chờ thông tin công ty. **GĐ3:** đã có dọn rác có quét trước, quản lý khởi động, tối ưu và quyền riêng tư. Các mục đổi hệ thống chưa chạy thật bằng quyền admin, xem [docs/HANDOFF.md](docs/HANDOFF.md).
 
 | Tài liệu | Nội dung |
 |---|---|
@@ -81,6 +81,8 @@ src/fvpl_ittools/
 ├── core/              chạy lệnh (shell, pslib), registry, executor, thông tin máy (inventory),
 │                      nhật ký hoàn tác, restore point, log
 ├── software/          danh mục phần mềm, phát hiện đã cài, lệnh cài (winget, share)
+├── newpc/             Cài máy mới: kiểm tra trước
+├── cleanup/           dọn rác, chương trình khởi động cùng Windows
 ├── ui/                PySide6: cửa sổ chính, các trang, khung log, hộp thoại tài khoản
 └── data/
     ├── actions/       các mục sửa lỗi / tweak (YAML)

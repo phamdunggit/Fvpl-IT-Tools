@@ -1,8 +1,14 @@
 # Nhật ký thay đổi
 
-## Chưa phát hành: GĐ2, Cài máy mới
+## Chưa phát hành: GĐ2 (Cài máy mới) và GĐ3 (Tối ưu & dọn dẹp)
 
 ### Thêm
+
+- Trang **Tối ưu & dọn dẹp** (GĐ3), ba tab:
+  - **Dọn rác**: quét trước 7 loại (Temp người dùng, Temp Windows, bản cập nhật đã tải, cache Delivery Optimization, dump và báo cáo lỗi, thùng rác, Windows.old), hiện dung lượng và số file, tick rồi mới xoá. File Temp sửa trong 24 giờ được giữ; không đi theo junction/symlink; file đang khoá thì bỏ qua. Windows.old và Delivery Optimization dọn bằng Disk Cleanup.
+  - **Khởi động cùng Windows**: danh sách từ khoá Run và thư mục Startup, bật/tắt kiểu Task Manager (StartupApproved), có nhật ký và hoàn tác.
+  - **Tối ưu & quyền riêng tư**: tắt quảng cáo và gợi ý, Bing trong Start, Widgets, Copilot, ID quảng cáo, giảm telemetry; power plan High performance, tắt ngủ đông, tắt USB selective suspend; gỡ app cài sẵn theo danh sách chọn lọc (kèm mục liệt kê để xem trước); gói "Tắt quảng cáo và theo dõi".
+- Cột trạng thái của mục có phần kiểm tra hiện "✔ Đã áp dụng" / "Chưa áp dụng" thay cho "Đang bật" / "Đang tắt".
 
 - Trang **Phần mềm**:
   - Danh mục `apps.yaml` (winget, share MSI/EXE/portable) và profile phòng ban kế thừa nhau. Bản trên `<share_root>\config\apps.yaml` được ưu tiên; bản đóng gói kèm tool là danh sách gợi ý, chưa chốt. Cách khai báo: [docs/SOFTWARE.md](docs/SOFTWARE.md).

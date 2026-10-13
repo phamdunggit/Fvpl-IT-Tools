@@ -9,7 +9,7 @@ Cập nhật lần cuối: 13/10/2026, sau khi xong trang Phần mềm (phần �
 | Giai đoạn | **GĐ1 (Tổng quan + Sửa lỗi) xong phần code.** Còn chạy thử các mục đổi hệ thống bằng quyền admin (danh sách bên dưới) rồi mới coi là xong. **GĐ2 đang làm:** đã có trang Phần mềm; wizard Cài máy mới chưa làm |
 | Nhánh | Code mới làm trên `featured`. Chỉ merge về `main` khi được duyệt |
 | Phiên bản | 0.2.0, xem [CHANGELOG.md](../CHANGELOG.md) (trang Phần mềm nằm ở mục "Chưa phát hành") |
-| Test | 172 test pytest, tất cả đều qua (khoảng 25 giây) |
+| Test | 203 test pytest, tất cả đều qua (khoảng 25 giây) |
 | Bản exe | `python packaging\build.py`: thư mục 64MB, zip 27MB. `--test` chạy selftest trên exe, gồm cả đọc thông tin máy |
 
 Đã có:
@@ -18,7 +18,8 @@ Cập nhật lần cuối: 13/10/2026, sau khi xong trang Phần mềm (phần �
 - Trang **Cấu hình**: 1 mục mẫu (Hiện đuôi file). Trang **Tiện ích**: mở nhanh 29 công cụ quản trị, công cụ mạng.
 - Trang **Phần mềm**: danh mục `apps.yaml` (share hoặc bản đóng gói), profile phòng ban, đánh dấu đã cài, cài lần lượt qua winget / MSI / EXE / portable. Cách khai báo: [SOFTWARE.md](SOFTWARE.md).
 - Trang **Cài máy mới**: mới có bước 0 "Kiểm tra trước" (`newpc/precheck.py`); các bước 1–7 của wizard chưa làm.
-- Trang **Nhật ký**: hoàn tác thay đổi registry. Trang Tối ưu: chưa làm (GĐ3).
+- Trang **Tối ưu & dọn dẹp** (GĐ3): dọn rác có quét trước (`cleanup/junk.py`), chương trình khởi động cùng Windows (`cleanup/startup.py`), tối ưu / quyền riêng tư / nguồn điện / gỡ app cài sẵn (`75-optimize.yaml`).
+- Trang **Nhật ký**: hoàn tác thay đổi registry.
 
 ## Bắt đầu
 
@@ -113,6 +114,14 @@ Trang Cấu hình (mục mới). Trạng thái bật/tắt đã đọc đúng tr
 - [ ] Restore point tạo được ngay cả khi vừa tạo một điểm trong 24 giờ (mục tạm đặt `SystemRestorePointCreationFrequency = 0` rồi trả lại).
 - [ ] Menu chuột phải kiểu cũ: bật rồi Hoàn tác, menu Win11 quay lại (hoàn tác xoá cả khoá CLSID, không chỉ giá trị).
 - [ ] End task, căn trái taskbar, hiện file ẩn: có hiệu lực sau khi Explorer khởi động lại; Run as different user thì đổi đúng người dùng.
+
+Trang Tối ưu & dọn dẹp (GĐ3). Quét rác, danh sách khởi động, liệt kê app cài sẵn đã chạy thật trên máy dev (chỉ đọc); **chưa xoá / đổi thật gì**:
+- [ ] **Dọn rác** bằng quyền admin trên VM có rác thật: Temp, SoftwareDistribution\Download (dịch vụ Windows Update dừng rồi chạy lại), dump. Dung lượng sau khi dọn khớp với số tool báo.
+- [ ] **Windows.old** (VM vừa nâng cấp Windows) và **Delivery Optimization**: `cleanmgr /sagerun:4242` chạy xong, tool xoá lại thiết lập `StateFlags4242`. Xem cleanmgr có hiện cửa sổ chờ người bấm không.
+- [ ] **Thùng rác**: chỉ xoá của người đang đăng nhập (`$Recycle.Bin\<SID>` trên mọi ổ cứng), Explorer hiện thùng rác trống.
+- [ ] **Khởi động cùng Windows**: tắt một mục rồi đăng xuất / đăng nhập, mục không chạy; Task Manager cũng hiện Disabled; hoàn tác ở trang Nhật ký thì bật lại.
+- [ ] **Tối ưu**: gói "Tắt quảng cáo và theo dõi" rồi xem Start, Settings, taskbar; Widgets tắt bằng policy `Dsh\AllowNewsAndInterests`; power plan High performance trên laptop Modern Standby (có thể Windows không cho).
+- [ ] **Gỡ app cài sẵn**: chạy "Liệt kê" rồi "Gỡ" trên VM; tài khoản mới tạo sau đó không bị cài lại; các app trong danh sách giữ vẫn còn.
 
 ## Việc tiếp theo
 
