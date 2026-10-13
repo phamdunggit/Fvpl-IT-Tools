@@ -42,8 +42,9 @@ apps:
 | `group` | mọi ứng dụng | Nhóm trong cây, mặc định "Khác". |
 | `source` | mọi ứng dụng | `winget` hoặc `share`. |
 | `winget_id` | winget | ID gói, đúng chữ hoa/thường như `winget search` hiện. Tool chỉ lấy từ nguồn `winget` (không dùng Microsoft Store). |
-| `installer` | share | File cài (`.msi` hoặc `.exe`). Với `type: portable` thì là thư mục, viết `path:` cũng được. |
-| `type` | share | `msi` / `exe` / `portable`. Bỏ trống thì tự đoán theo đuôi file. |
+| `installer` | share | File cài (`.msi`, `.exe` hoặc file `.iso`). Với `type: portable` thì là thư mục, viết `path:` cũng được. |
+| `type` | share | `msi` / `exe` / `iso` / `portable`. Bỏ trống thì tự đoán theo đuôi file. |
+| `setup` | iso | File chạy bên trong ISO, mặc định `setup.exe` (ví dụ `x64\setup.exe`). |
 | `args` | share | Tham số thêm. MSI: thêm sau `/qn /norestart` (ví dụ `ALLUSERS=1 TRANSFORMS=x.mst`). EXE: **toàn bộ** tham số cài im lặng, phải tự tìm cho từng bộ cài (ví dụ `/S`, `/VERYSILENT /NORESTART`). Thiếu tham số im lặng thì bộ cài hiện cửa sổ và đứng chờ tới hết `timeout`. |
 | `exe`, `folder`, `autostart` | portable | `exe`: file chạy chính. `folder`: tên thư mục trong Program Files (mặc định = `id`). `autostart: true`: tạo shortcut trong Startup chung để chạy cùng Windows với mọi người dùng. |
 | `detect` | mọi ứng dụng | Cách nhận biết đã cài. `uninstall_name`: mẫu tên trong Programs and Features, `*` thay cho chữ bất kỳ, nhiều mẫu cách nhau bằng `\|`. `file`: có file này là đã cài. Mặc định: tên ứng dụng + `*` (portable: `{programfiles}\<folder>\<exe>`). |
@@ -77,11 +78,43 @@ Bấm **Chọn theo profile** trên trang Phần mềm sẽ tick các ứng dụ
 | winget | `winget install --id <id> --exact --source winget --silent --accept-package-agreements --accept-source-agreements --disable-interactivity` | Mã 0, hoặc báo đã cài sẵn / không có bản mới. Mã lỗi thường gặp được giải thích bằng tiếng Việt. |
 | MSI | `msiexec /i "<file>" /qn /norestart /l*v "<log>" <args>` | Mã 0; 3010/1641 là xong nhưng cần khởi động lại. Mã 1618 (đang có bộ cài khác) thì chờ 30 giây, thử lại tối đa 3 lần. Log MSI nằm trong thư mục logs của tool. |
 | EXE | `"<file>" <args>`, thư mục làm việc là thư mục chứa bộ cài | Như MSI. |
+| ISO | Mount ISO, chạy `<setup> <args>` bên trong, tháo ISO ra kể cả khi lỗi. ISO đang được mount sẵn thì dùng luôn và để nguyên | Như MSI. |
 | portable | chép thư mục vào `Program Files\<folder>` (robocopy), tạo shortcut Start Menu (và Startup nếu `autostart`) | Chép được và có file `exe`. |
 
 Các ứng dụng cài **lần lượt**; một ứng dụng lỗi thì vẫn cài tiếp ứng dụng sau. Xong lượt, tool kiểm tra lại phần mềm đã cài và hỏi khởi động lại nếu có bộ cài cần. Nút **Thử lại mục lỗi** cài lại các ứng dụng vừa lỗi.
 
 Ứng dụng bị khoá (hiện "Không cài được", rê chuột lên để xem lý do) khi: tool không có quyền admin; máy chưa có winget; chưa khai báo `share_root`, không vào được share hoặc không thấy bộ cài; ứng dụng `scope: user` mà tool chạy bằng tài khoản khác.
+
+## Office bản volume (MSI) và phần mềm diệt virus
+
+Office 2010 / 2013 / 2016 bản volume (ISO `SW_DVD5_Office_..._MLF`) cài bằng `setup.exe /config <file xml>`. Khai báo kiểu `iso`, tool tự mount ISO:
+
+```yaml
+  - id: office2016
+    name: Microsoft Office Standard 2016 (64-bit)
+    group: Văn phòng
+    source: share
+    installer: '{share}\Installers\Office\SW_DVD5_Office_2016_64Bit_English_MLF_X20-42479.ISO'
+    args: '/config "{share}\config\office\office2016-standard.xml"'
+    detect: { uninstall_name: 'Microsoft Office Standard 2016*' }
+    timeout: 3600
+```
+
+File xml cài im lặng (đặt trên share, **không** đưa lên git nếu có key):
+
+```xml
+<Configuration Product="Standard">  <!-- Product: tên thư mục *.WW trong ISO, ví dụ Standard, ProPlus -->
+  <Display Level="none" CompletionNotice="no" SuppressModal="yes" AcceptEula="yes" />
+  <Logging Type="standard" Path="%temp%" Template="Office Setup(*).txt" />
+  <!-- <PIDKEY Value="XXXXX-XXXXX-XXXXX-XXXXX-XXXXX" /> -->   <!-- key MAK nếu công ty dùng MAK -->
+  <Setting Id="AUTO_ACTIVATE" Value="1" />
+  <Setting Id="SETUP_REBOOT" Value="Never" />
+</Configuration>
+```
+
+Office 2019 trở đi không có bộ cài MSI: cài bằng Office Deployment Tool (`setup.exe /configure config.xml`). ISO có thư mục `WacServer.WW` là **Office Online Server** (bản chạy trên máy chủ cho SharePoint), không cài lên máy nhân viên.
+
+Symantec Endpoint Protection: gói client là file tự giải nén. Giải nén ra thư mục (7-Zip) rồi khai báo `Sep64.msi` với `args: 'SYMREBOOT=ReallySuppress'`. Gói "All Clients" tải về là bản unmanaged; muốn client báo về SEPM thì chép đè `SyLink.xml` xuất từ SEPM vào thư mục đó, hoặc xuất gói cài managed từ SEPM. Nhận biết đã cài dùng đúng tên `Symantec Endpoint Protection` (không có `*`), để không nhầm với máy chủ "Symantec Endpoint Protection Manager".
 
 ## Lưu ý
 

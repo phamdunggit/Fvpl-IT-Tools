@@ -21,7 +21,7 @@ BUNDLED_FILE = paths.DATA_DIR / "apps.yaml"
 SHARE_RELATIVE = Path("config") / "apps.yaml"
 
 SOURCES = ("winget", "share")
-SHARE_TYPES = ("msi", "exe", "portable")
+SHARE_TYPES = ("msi", "exe", "iso", "portable")
 SCOPES = ("machine", "user")
 PLACEHOLDERS = ("share", "programfiles", "programfiles_x86")
 
@@ -29,7 +29,7 @@ _ID = re.compile(r"^[a-z0-9][a-z0-9_\-]*$")
 _WINGET_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9.\-_+]*$")
 _PLACEHOLDER = re.compile(r"\{([a-z_0-9]+)\}")
 _APP_KEYS = {
-    "id", "name", "group", "source", "winget_id", "type", "installer", "path", "args", "exe", "folder",
+    "id", "name", "group", "source", "winget_id", "type", "installer", "path", "setup", "args", "exe", "folder",
     "autostart", "detect", "scope", "description", "timeout",
 }
 _PROFILE_KEYS = {"name", "extends", "apps", "description"}
@@ -46,8 +46,9 @@ class App:
     group: str
     source: str                        # winget | share
     winget_id: str = ""
-    type: str = ""                     # share: msi | exe | portable
-    installer: str = ""                # share msi/exe: file cài; portable: thư mục nguồn
+    type: str = ""                     # share: msi | exe | iso | portable
+    installer: str = ""                # share msi/exe/iso: file cài; portable: thư mục nguồn
+    setup: str = ""                    # iso: file chạy bên trong ISO (mặc định setup.exe)
     args: str = ""                     # tham số thêm cho bộ cài
     exe: str = ""                      # portable: file chạy chính (để tạo shortcut và nhận biết đã cài)
     folder: str = ""                   # portable: tên thư mục trong Program Files (mặc định = id)
@@ -247,7 +248,7 @@ def parse_app(raw: Any) -> App:
         "detect_file": detect_file,
     }
     if source == "winget":
-        extra = sorted({"type", "installer", "path", "exe", "folder", "autostart"} & set(raw))
+        extra = sorted({"type", "installer", "path", "setup", "exe", "folder", "autostart"} & set(raw))
         if extra:
             raise CatalogError(f"ứng dụng winget không dùng khoá {', '.join(extra)}")
         winget_id = _text(raw, "winget_id", required=True)
@@ -263,9 +264,17 @@ def parse_app(raw: Any) -> App:
         raise CatalogError("ứng dụng share cần 'installer' (file cài) hoặc 'path' (thư mục, với type: portable)")
     _check_placeholders(installer, "installer")
     if not kind:
-        kind = "msi" if installer.lower().endswith(".msi") else "exe"
+        suffix = installer.lower().rsplit(".", 1)[-1]
+        kind = suffix if suffix in ("msi", "iso") else "exe"
     if kind not in SHARE_TYPES:
         raise CatalogError(f"'type' chỉ nhận {', '.join(SHARE_TYPES)}")
+    setup = _text(raw, "setup")
+    if kind == "iso":
+        setup = setup or "setup.exe"
+        if setup.startswith(("\\", "/")) or ":" in setup or ".." in setup.replace("/", "\\").split("\\"):
+            raise CatalogError("'setup' là đường dẫn bên trong ISO, ví dụ setup.exe hoặc x64\\setup.exe")
+    elif setup:
+        raise CatalogError("'setup' chỉ dùng cho type: iso")
     exe = _text(raw, "exe")
     folder = _text(raw, "folder")
     if kind == "portable":
@@ -277,7 +286,7 @@ def parse_app(raw: Any) -> App:
             values["detect_file"] = f"{{programfiles}}\\{folder or app_id}\\{exe}"
     elif exe or folder or autostart:
         raise CatalogError("'exe', 'folder', 'autostart' chỉ dùng cho type: portable")
-    return App(type=kind, installer=installer, exe=exe, folder=folder, autostart=autostart, **values)
+    return App(type=kind, installer=installer, setup=setup, exe=exe, folder=folder, autostart=autostart, **values)
 
 
 def parse_profile(profile_id: str, raw: Any, known_apps: set[str]) -> Profile:

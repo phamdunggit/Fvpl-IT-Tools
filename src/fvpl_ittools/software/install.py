@@ -38,6 +38,7 @@ SHARE_REBOOT = (3010, 1641)
 SHARE_MESSAGES = {
     20: "Không thấy bộ cài trên share (sai đường dẫn trong apps.yaml hoặc không vào được share)",
     21: "Đã chép nhưng không thấy file chạy chính, kiểm tra 'exe' trong apps.yaml",
+    22: "Mount ISO được nhưng không thấy ổ đĩa của ISO; thử chép ISO về máy hoặc giải nén ra thư mục",
     1603: "Bộ cài báo lỗi nghiêm trọng (1603), xem file log MSI trong thư mục logs",
     1618: "Đang có bộ cài khác chạy, đã thử lại 3 lần",
     1619: "Không mở được file cài (1619)",
@@ -127,6 +128,34 @@ def exe_script(app: App, share_root: str) -> str:
     )
 
 
+def iso_script(app: App, share_root: str) -> str:
+    """Mount ISO, chạy bộ cài bên trong, rồi tháo ISO ra (kể cả khi bộ cài lỗi)."""
+    indented = "".join(f"        {line}\n" for line in _RUN_INSTALLER.splitlines())
+    return (
+        f"$image = {shell.ps_quote(expand(app.installer, share_root))}\n"
+        "if (-not (Test-Path -LiteralPath $image -PathType Leaf)) { exit 20 }\n"
+        "# ISO đang được mount sẵn (IT tự mở) thì dùng luôn và để nguyên khi xong.\n"
+        "$mountedBefore = [bool](Get-DiskImage -ImagePath $image).Attached\n"
+        "if (-not $mountedBefore) { Write-Output \"Mount $image…\"; Mount-DiskImage -ImagePath $image | Out-Null }\n"
+        "$code = 0\n"
+        "try {\n"
+        "    $letter = (Get-DiskImage -ImagePath $image | Get-Volume).DriveLetter\n"
+        "    if (-not $letter) { $code = 22 }\n"
+        "    else {\n"
+        "        $folder = \"${letter}:\\\"\n"
+        f"        $program = Join-Path $folder {shell.ps_quote(app.setup)}\n"
+        f"        $arguments = {shell.ps_quote(expand(app.args, share_root))}\n"
+        "        Write-Output \"$program $arguments\"\n"
+        + indented
+        + "    }\n"
+        "}\n"
+        "finally {\n"
+        "    if (-not $mountedBefore) { Dismount-DiskImage -ImagePath $image | Out-Null }\n"
+        "}\n"
+        "exit $code"
+    )
+
+
 def portable_script(app: App, share_root: str) -> str:
     links = [f"(Join-Path $programs {shell.ps_quote(_safe_file_name(app.name) + '.lnk')})"]
     if app.autostart:
@@ -167,7 +196,8 @@ def install_action(app: App, share_root: str) -> Action:
             messages=tuple((SHARE_MESSAGES | ROBOCOPY_MESSAGES).items()),
         )
     else:
-        script = msi_script(app, share_root) if app.type == "msi" else exe_script(app, share_root)
+        builders = {"msi": msi_script, "iso": iso_script}
+        script = builders.get(app.type, exe_script)(app, share_root)
         step = PowerShellStep(
             script=script, timeout=timeout, ok_codes=(0,), reboot_codes=SHARE_REBOOT,
             messages=tuple(SHARE_MESSAGES.items()),

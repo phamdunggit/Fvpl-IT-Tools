@@ -126,6 +126,23 @@ def test_share_type_inferred_and_portable_detect_default():
     assert catalog.uses_share(share_app()) and not catalog.uses_share(winget_app())
 
 
+def test_iso_type():
+    app = share_app(installer=r"{share}\Office\SW_DVD5_Office_2016.ISO", args=r'/config "{share}\Office\o16.xml"')
+    assert app.type == "iso" and app.setup == "setup.exe"
+    assert share_app(installer=r"{share}\x.iso", setup=r"x64\setup.exe").setup == r"x64\setup.exe"
+    for bad in (r"..\setup.exe", r"C:\setup.exe", r"\setup.exe"):
+        with pytest.raises(CatalogError, match="bên trong ISO"):
+            share_app(installer=r"{share}\x.iso", setup=bad)
+    with pytest.raises(CatalogError, match="chỉ dùng cho type: iso"):
+        share_app(setup="setup.exe")
+    script = install.install_action(app, SHARE).apply[0].script
+    assert f"$image = '{SHARE}\\Office\\SW_DVD5_Office_2016.ISO'" in script
+    assert "Mount-DiskImage" in script and "Dismount-DiskImage" in script
+    assert "$program = Join-Path $folder 'setup.exe'" in script
+    assert f"$arguments = '/config \"{SHARE}\\Office\\o16.xml\"'" in script
+    assert script.index("finally") < script.index("exit $code")
+
+
 def test_expand_placeholders(monkeypatch):
     monkeypatch.setenv("ProgramW6432", r"C:\Program Files")
     assert catalog.expand(r"{share}\a.msi", SHARE + "\\") == SHARE + r"\a.msi"
@@ -239,7 +256,8 @@ def test_generated_scripts_parse(env, tmp_path):
     from .test_scripts import _PARSE
     loaded = catalog.load_catalog_file(catalog.BUNDLED_FILE)
     extra = [share_app(id="m", installer=r"{share}\a b\x.msi"),
-             share_app(id="p", type="portable", installer=r"{share}\P", exe="p.exe", autostart=True, args="")]
+             share_app(id="p", type="portable", installer=r"{share}\P", exe="p.exe", autostart=True, args=""),
+             share_app(id="i", installer=r"{share}\Office 2016.ISO", setup=r"x64\setup.exe")]
     scripts = []
     for app in loaded.apps + extra:
         step = install.install_action(app, SHARE).apply[0]
