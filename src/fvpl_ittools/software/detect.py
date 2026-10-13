@@ -90,6 +90,15 @@ def detect(app: App, entries: list[InstalledEntry], share_root: str = "") -> Det
     return Detection(True, best.version, best.name)
 
 
+def conflicts(app: App, entries: list[InstalledEntry]) -> list[str]:
+    """Tên phần mềm đang cài (hiện trong Programs and Features) khớp mẫu `conflicts` của ứng dụng."""
+    patterns = [pattern.lower() for pattern in app.conflict_names]
+    if not patterns:
+        return []
+    return sorted({entry.name for entry in entries
+                   if not entry.hidden and any(fnmatch.fnmatchcase(entry.name.lower(), pattern) for pattern in patterns)})
+
+
 def _version_in_name(entry: InstalledEntry) -> bool:
     """Một số phần mềm (như .NET) có hai dòng cùng tên, một dòng mang số phiên bản nội bộ của MSI.
     Ưu tiên dòng có DisplayVersion khớp với số phiên bản ghi trong tên."""

@@ -9,7 +9,7 @@ Cập nhật lần cuối: 13/10/2026, sau khi xong wizard Cài máy mới (GĐ2
 | Giai đoạn | **GĐ1, GĐ2 (wizard Cài máy mới), phần lớn GĐ3 xong phần code.** Còn chạy thử các mục đổi hệ thống bằng quyền admin trên VM (danh sách bên dưới) rồi mới coi là xong |
 | Nhánh | Code mới làm trên `featured`. Chỉ merge về `main` khi được duyệt |
 | Phiên bản | 0.2.0, xem [CHANGELOG.md](../CHANGELOG.md) (trang Phần mềm nằm ở mục "Chưa phát hành") |
-| Test | 293 test pytest, tất cả đều qua (khoảng 35 giây) |
+| Test | 294 test pytest, tất cả đều qua (khoảng 35 giây) |
 | Bản exe | `python packaging\build.py`: thư mục 64MB, zip 27MB. `--test` chạy selftest trên exe, gồm cả đọc thông tin máy |
 
 Đã có:
@@ -99,6 +99,8 @@ Trang Phần mềm (GĐ2). Danh mục và phát hiện đã cài đã chạy th�
 - [ ] **EXE từ share:** `ExitCode` đọc được sau `WaitForExit` (đã giữ `$process.Handle` để tránh lỗi PowerShell trả ExitCode rỗng).
 - [ ] **Portable (UniKey):** chép vào Program Files, có shortcut Start Menu và Startup chung, đăng nhập tài khoản khác thấy UniKey tự chạy.
 - [ ] **Office bằng ODT:** cần file `setup.exe` và `config.xml` thật trên share; xem có bị timeout 3600 giây không.
+- [ ] **Office 2016 từ ISO trên máy Dell / Lenovo mới có Microsoft 365 cài sẵn:** trang Phần mềm báo "Không cài được: máy đang có Microsoft 365…"; mục **Gỡ Microsoft 365 / Office cài sẵn** gỡ im lặng thật không (`DisplayLevel=False` thêm vào lệnh gỡ trong Programs and Features), chờ đúng tới khi mục biến mất; khởi động lại rồi cài Office 2016 được. Đã chạy thật trên máy dev (chỉ đọc): máy có Office 2013 nên Office 2016 / 2010 bị khoá đúng.
+- [ ] **Kích hoạt Office (MAK):** cài khi chưa có Internet rồi chạy mục Kích hoạt Office; Office 2010 đọc trạng thái qua `OfficeSoftwareProtectionProduct`. Phần đọc trạng thái đã chạy thật trên máy dev (Office 2013 MAK, đã kích hoạt).
 - [ ] **Run as different user:** ứng dụng `scope: user` (Zalo) bị khoá; phần mềm cài riêng cho người dùng (HKU\<SID>\…\Uninstall) vẫn được nhận là đã cài.
 - [ ] **Sửa / cài lại winget:** tài khoản mới đăng nhập lần đầu chưa có winget → mục đăng ký lại được; xoá App Installer của tài khoản (`Get-AppxPackage Microsoft.DesktopAppInstaller | Remove-AppxPackage`) → mục cài lại từ `<share>\Installers\winget\`. Phần kiểm tra `winget --version` đã chạy thật trên máy dev.
 - [ ] **Máy chưa vào domain:** trang báo "Không vào được share", danh mục quay về bản đóng gói; không bị treo lâu khi share không trả lời (quét chạy ở thread nền, nhưng `os.path.isdir` trên UNC có thể chờ 20–60 giây).

@@ -10,6 +10,8 @@ Cập nhật: 13/10/2026. File này được cập nhật trước mỗi commit.
 
 | Giai đoạn | Đã có |
 |---|---|
+| Cài phần mềm công ty | **Office 2010 / 2013 / 2016** bản volume cài im lặng từ ISO (key MAK trong file XML), chặn khi máy có Microsoft 365 cài sẵn + mục gỡ nó, mục **kích hoạt Office** và xem trạng thái; **Symantec Endpoint Protection** (MSI im lặng, managed qua SEPM bằng SyLink.xml); UniKey, UltraViewer, ứng dụng winget; profile phòng ban. Cách dùng: [HUONG-DAN-SU-DUNG.md](HUONG-DAN-SU-DUNG.md) mục 4–6 |
+| Hướng dẫn sử dụng | [HUONG-DAN-SU-DUNG.md](HUONG-DAN-SU-DUNG.md): chuẩn bị kho bộ cài, wizard, cài Office / Symantec, các trang, khi có lỗi |
 | LAPS, BitLocker | [Hướng dẫn GPO, Windows LAPS, BitLocker](BITLOCKER-LAPS-GPO.md) (từng bước, lộ trình 4 tuần). Trong tool: tab **LAPS & BitLocker** ở trang Tiện ích (tra mật khẩu LAPS, bắt đổi, tra khoá BitLocker của máy khác; không ghi vào log); mục Kiểm tra Windows LAPS, Bật BitLocker (chỉ khi đủ điều kiện an toàn), Tạm dừng BitLocker |
 | Kiểm kê | Nút "Lưu kiểm kê" (trang Tổng quan, wizard bước 7): `Inventory\` cạnh tool trên USB / SSD, file tổng hợp `KiemKe.xlsx` một dòng một máy (đã thử mở bằng Excel) |
 | GĐ0 Nền móng | Khung app, chạy lệnh nền, YAML, log, hoàn tác, restore point, đóng gói exe |
@@ -25,7 +27,7 @@ Cập nhật: 13/10/2026. File này được cập nhật trước mỗi commit.
 | # | Việc | Ghi chú |
 |---|---|---|
 | 1 | Startup: task chạy lúc đăng nhập; P3: hiệu ứng hình ảnh, service Manual, chặn app "đồng hành" driver | |
-| 2 | GĐ4: sao lưu driver, xem event log, sửa HOSTS/PATH, file bị khoá, mật khẩu Wi-Fi, chuyển dữ liệu máy cũ, báo bản mới, ký số exe, hướng dẫn sử dụng, bản 1.0 | |
+| 2 | GĐ4: sao lưu driver, xem event log, sửa HOSTS/PATH, file bị khoá, mật khẩu Wi-Fi, chuyển dữ liệu máy cũ, báo bản mới, ký số exe, bản 1.0 | |
 
 ## Bồ cần làm
 

@@ -11,7 +11,7 @@ from dataclasses import dataclass, field
 from ..app import AppContext
 from . import catalog as catalog_module
 from .catalog import Catalog, expand
-from .detect import Detection, InstalledEntry, detect, installed_programs, winget_path
+from .detect import Detection, InstalledEntry, conflicts, detect, installed_programs, winget_path
 from .install import SoftwareEnv
 
 
@@ -31,6 +31,12 @@ def scan(app: AppContext) -> SoftwareState:
         item.id for item in catalog.apps
         if item.source == "share" and share_ok and not os.path.exists(expand(item.installer, share_root))
     )
+    entries = installed_programs(app.env.target_user.sid)
+    detections = {item.id: detect(item, entries, share_root) for item in catalog.apps}
+    found_conflicts = tuple(
+        (item.id, ", ".join(names)) for item in catalog.apps
+        if not detections[item.id].installed and (names := conflicts(item, entries))
+    )
     senv = SoftwareEnv(
         is_admin=app.env.is_admin,
         runs_as_other_user=app.runs_as_other_user,
@@ -38,7 +44,6 @@ def scan(app: AppContext) -> SoftwareState:
         share_root=share_root,
         share_ok=share_ok,
         missing=missing,
+        conflicts=found_conflicts,
     )
-    entries = installed_programs(app.env.target_user.sid)
-    detections = {item.id: detect(item, entries, share_root) for item in catalog.apps}
     return SoftwareState(catalog=catalog, senv=senv, entries=entries, detections=detections)

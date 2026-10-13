@@ -5,8 +5,15 @@ Viết bằng Python 3.13 + PySide6, đóng gói thành exe chạy portable từ
 
 - Trạng thái: **GĐ1 (Tổng quan + Sửa lỗi) xong phần code, phiên bản 0.2.0.** Trang Tổng quan, các mục sửa lỗi và gói sửa nhanh, trang Tiện ích. **GĐ2 xong phần code:** wizard Cài máy mới (đặt tên theo phòng ban, join domain, tự làm tiếp sau khi khởi động lại, báo cáo), trang Phần mềm (winget, share, ISO), cấu hình chuẩn. **GĐ3:** đã có dọn rác có quét trước, quản lý khởi động, tối ưu và quyền riêng tư. **Trang Máy in:** thêm / gỡ máy in, sửa lỗi share máy in giữa Win11 và Win10. Các mục đổi hệ thống chưa chạy thật bằng quyền admin, xem [docs/HANDOFF.md](docs/HANDOFF.md).
 
+Chức năng chính:
+- **Cài máy mới**: wizard đặt tên theo phòng ban, join domain, tự làm tiếp sau khi khởi động lại, cài phần mềm, cấu hình chuẩn, driver hãng, báo cáo; mẫu cho từng loại máy.
+- **Cài phần mềm**: Office 2010 / 2013 / 2016 bản volume từ ISO (key MAK, kích hoạt, gỡ Microsoft 365 cài sẵn), Symantec Endpoint Protection (managed qua SEPM), UniKey, ứng dụng winget; theo profile phòng ban.
+- **Sửa lỗi**: mạng, domain, máy in (share Win11 ↔ Win10), Windows Update, hệ thống, Office, bảo mật; gói sửa nhanh.
+- **Tối ưu & dọn dẹp**, **kiểm kê** ra USB/SSD (`KiemKe.xlsx`), **LAPS & BitLocker** (tra mật khẩu, khoá khôi phục).
+
 | Tài liệu | Nội dung |
 |---|---|
+| [docs/HUONG-DAN-SU-DUNG.md](docs/HUONG-DAN-SU-DUNG.md) | **Hướng dẫn sử dụng:** chuẩn bị kho bộ cài, cài máy mới, **cài Office, Symantec**, các trang |
 | [docs/TIEN-DO.md](docs/TIEN-DO.md) | **Xem nhanh:** đã làm tới đâu, còn lại gì |
 | [docs/HANDOFF.md](docs/HANDOFF.md) | **Đọc đầu tiên:** trạng thái, quy tắc, luồng chạy, việc chưa kiểm, việc tiếp theo |
 | [PLAN.md](PLAN.md) | Kế hoạch tổng: chức năng, kiến trúc, lộ trình, câu hỏi còn mở |

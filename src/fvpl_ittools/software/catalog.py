@@ -30,7 +30,7 @@ _WINGET_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9.\-_+]*$")
 _PLACEHOLDER = re.compile(r"\{([a-z_0-9]+)\}")
 _APP_KEYS = {
     "id", "name", "group", "source", "winget_id", "type", "installer", "path", "setup", "args", "exe", "folder",
-    "autostart", "detect", "scope", "description", "timeout",
+    "autostart", "detect", "scope", "description", "timeout", "conflicts",
 }
 _PROFILE_KEYS = {"name", "extends", "apps", "description"}
 
@@ -55,6 +55,7 @@ class App:
     autostart: bool = False            # portable: chạy cùng Windows cho mọi người dùng
     detect_names: tuple[str, ...] = ()  # mẫu tên trong Programs and Features, ví dụ "Microsoft 365*"
     detect_file: str = ""              # có file này nghĩa là đã cài
+    conflict_names: tuple[str, ...] = ()  # máy có phần mềm khớp mẫu này (ví dụ "Microsoft 365*") thì không cài
     scope: str = "machine"             # user: bộ cài chỉ cài cho tài khoản đang chạy nó
     description: str = ""
     timeout: int = 1800
@@ -233,9 +234,15 @@ def parse_app(raw: Any) -> App:
         detect_file = _text(detect, "file")
         _check_placeholders(detect_file, "detect.file")
 
+    conflicts = raw.get("conflicts")
+    if conflicts is not None and not isinstance(conflicts, str):
+        raise CatalogError("'conflicts' là mẫu tên trong Programs and Features, ví dụ 'Microsoft 365*|Microsoft Office Professional*'")
+    conflict_names = tuple(part.strip() for part in (conflicts or "").split("|") if part.strip())
+
     args = _text(raw, "args")
     _check_placeholders(args, "args")
     values: dict[str, Any] = {
+        "conflict_names": conflict_names,
         "id": app_id,
         "name": _text(raw, "name", required=True),
         "group": _text(raw, "group") or "Khác",

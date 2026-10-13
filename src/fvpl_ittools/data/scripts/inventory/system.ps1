@@ -27,6 +27,12 @@ $data.licenses = @(Safe {
             [ordered]@{ product = $kind; name = $_.Name; status = [int]$_.LicenseStatus; channel = $_.ProductKeyChannel }
         }
 })
+# Office 2010 không dùng dịch vụ cấp phép của Windows mà dịch vụ OSPP riêng (lớp chỉ có khi máy cài Office 2010).
+$data.licenses += @(Safe {
+    Get-CimInstance OfficeSoftwareProtectionProduct -ErrorAction Stop -Filter (
+        "PartialProductKey IS NOT NULL AND ApplicationID='59a52881-a989-479d-af46-f275c6370663'") |
+        ForEach-Object { [ordered]@{ product = 'office'; name = $_.Name; status = [int]$_.LicenseStatus; channel = '' } }
+})
 $c2r = Safe { Get-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\Microsoft\Office\ClickToRun\Configuration' -ErrorAction Stop }
 $data.office = $null
 if ($c2r) { $data.office = [ordered]@{ products = $c2r.ProductReleaseIds; version = $c2r.VersionToReport; platform = $c2r.Platform } }

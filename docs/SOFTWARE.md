@@ -50,6 +50,7 @@ apps:
 | `detect` | mọi ứng dụng | Cách nhận biết đã cài. `uninstall_name`: mẫu tên trong Programs and Features, `*` thay cho chữ bất kỳ, nhiều mẫu cách nhau bằng `\|`. `file`: có file này là đã cài. Mặc định: tên ứng dụng + `*` (portable: `{programfiles}\<folder>\<exe>`). |
 | `scope` | mọi ứng dụng | `user` nếu bộ cài chỉ cài cho tài khoản đang chạy nó (ví dụ Zalo). Khi IT mở tool bằng tài khoản khác, ứng dụng này bị khoá để không cài nhầm vào tài khoản IT. |
 | `timeout` | mọi ứng dụng | Số giây tối đa, mặc định 1800. |
+| `conflicts` | mọi ứng dụng | Mẫu tên (giống `detect.uninstall_name`) của phần mềm không cài chung được. Máy đang có phần mềm khớp mẫu (chỉ tính mục hiện trong Programs and Features) thì ứng dụng bị khoá kèm lý do. Ví dụ Office bản volume: `'Microsoft 365*\|Microsoft Office Professional*'`. |
 | `description` | mọi ứng dụng | Hiện khi rê chuột lên tên ứng dụng. |
 
 Chỗ giữ chỗ trong đường dẫn và tham số: `{share}` (= `share_root` trong site.yaml), `{programfiles}`, `{programfiles_x86}`.
@@ -83,7 +84,7 @@ Bấm **Chọn theo profile** trên trang Phần mềm sẽ tick các ứng dụ
 
 Các ứng dụng cài **lần lượt**; một ứng dụng lỗi thì vẫn cài tiếp ứng dụng sau. Xong lượt, tool kiểm tra lại phần mềm đã cài và hỏi khởi động lại nếu có bộ cài cần. Nút **Thử lại mục lỗi** cài lại các ứng dụng vừa lỗi.
 
-Ứng dụng bị khoá (hiện "Không cài được", rê chuột lên để xem lý do) khi: tool không có quyền admin; máy chưa có winget; chưa khai báo `share_root`, không vào được share hoặc không thấy bộ cài; ứng dụng `scope: user` mà tool chạy bằng tài khoản khác.
+Ứng dụng bị khoá (hiện "Không cài được", rê chuột lên để xem lý do) khi: tool không có quyền admin; máy đang có phần mềm khớp `conflicts`; máy chưa có winget; chưa khai báo `share_root`, không vào được share hoặc không thấy bộ cài; ứng dụng `scope: user` mà tool chạy bằng tài khoản khác.
 
 ## Office bản volume (MSI) và phần mềm diệt virus
 
@@ -97,8 +98,14 @@ Office 2010 / 2013 / 2016 bản volume (ISO `SW_DVD5_Office_..._MLF`) cài bằn
     installer: '{share}\Installers\Office\SW_DVD5_Office_2016_64Bit_English_MLF_X20-42479.ISO'
     args: '/config "{share}\config\office\office2016-standard.xml"'
     detect: { uninstall_name: 'Microsoft Office Standard 2016*' }
+    # Máy mới hay có Microsoft 365 cài sẵn: không cài chung được, trang Phần mềm báo và chỉ cách gỡ.
+    conflicts: 'Microsoft 365*|Microsoft Office 365*|Microsoft Office Home*|Microsoft Office Professional*|Microsoft Office Standard 2013*|Microsoft Office Standard 2010*'
     timeout: 3600
 ```
+
+Cài xong mà chưa kích hoạt (máy chưa có Internet lúc cài): mục **Kích hoạt Office bản volume (MAK)** ở trang Sửa lỗi.
+Gỡ Microsoft 365 cài sẵn: mục **Gỡ Microsoft 365 / Office cài sẵn (Click-to-Run)**. Cách dùng từng bước:
+[HUONG-DAN-SU-DUNG.md](HUONG-DAN-SU-DUNG.md) mục 4–5.
 
 File xml cài im lặng (đặt trên share, **không** đưa lên git nếu có key):
 

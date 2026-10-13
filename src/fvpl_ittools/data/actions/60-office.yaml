@@ -122,3 +122,100 @@
       timeout: 300
       messages:
         3: Không tìm thấy thư mục profile của người dùng
+
+# ---- Office bản volume (2010 / 2013 / 2016 cài từ ISO ở trang Phần mềm). Hướng dẫn: docs/HUONG-DAN-SU-DUNG.md.
+
+- id: off.remove_c2r
+  name: Gỡ Microsoft 365 / Office cài sẵn (Click-to-Run)
+  category: Office
+  risk: caution
+  undo: none
+  description: >
+    Máy Dell, Lenovo mới hay có sẵn Microsoft 365 / Office bản dùng thử (Click-to-Run). Office 2010 / 2013 / 2016 bản
+    volume không cài chung được với nó (trang Phần mềm báo "Không cài được: máy đang có Microsoft 365…"). Mục này gỡ
+    im lặng mọi Office Click-to-Run trên máy, kể cả Office 2019 / 2021 / 365 đang dùng thật, rồi chờ tới khi gỡ xong
+    (có thể 5–15 phút). Đóng các ứng dụng Office trước khi chạy.
+  apply:
+    - powershell: |
+        $open = @(Get-Process -Name WINWORD, EXCEL, POWERPNT, OUTLOOK, MSACCESS, MSPUB, ONENOTE, VISIO, WINPROJ, lync -ErrorAction SilentlyContinue)
+        if ($open) {
+            Write-Output ('Đang mở: ' + (($open | ForEach-Object ProcessName | Select-Object -Unique) -join ', '))
+            exit 4
+        }
+        $roots = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall', 'HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall'
+        $products = @(foreach ($root in $roots) {
+            Get-ChildItem -LiteralPath $root -ErrorAction SilentlyContinue | ForEach-Object {
+                $item = Get-ItemProperty -LiteralPath $_.PSPath
+                $command = [string]$item.UninstallString
+                if ($command -match 'OfficeClickToRun\.exe' -and $command -match 'productstoremove=') { $item }
+            }
+        })
+        if (-not $products) { Write-Output 'Máy không có Office / Microsoft 365 bản Click-to-Run, không cần gỡ.'; exit 0 }
+        foreach ($product in $products) {
+            if ([string]$product.UninstallString -notmatch '^\s*"([^"]+)"\s*(.*)$') {
+                Write-Output ('Không đọc được lệnh gỡ của {0}.' -f $product.DisplayName)
+                exit 5
+            }
+            $client = $Matches[1]
+            $arguments = $Matches[2] + ' DisplayLevel=False'
+            Write-Output ('Gỡ {0}…' -f $product.DisplayName)
+            $process = Start-Process -FilePath $client -ArgumentList $arguments -PassThru
+            $null = $process.Handle
+            $process.WaitForExit()
+            # OfficeClickToRun.exe giao việc cho dịch vụ rồi thoát: chờ tới khi mục gỡ cài đặt biến mất (tối đa 30 phút).
+            $deadline = (Get-Date).AddMinutes(30)
+            while ((Test-Path -LiteralPath $product.PSPath) -and (Get-Date) -lt $deadline) { Start-Sleep -Seconds 10 }
+            if (Test-Path -LiteralPath $product.PSPath) { Write-Output ('Sau 30 phút vẫn chưa gỡ xong {0}.' -f $product.DisplayName); exit 6 }
+            Write-Output ('Đã gỡ {0}.' -f $product.DisplayName)
+        }
+        Write-Output 'Xong. Khởi động lại máy trước khi cài Office bản volume.'
+        exit 10
+      timeout: 2400
+      reboot_codes: [10]
+      messages:
+        4: Hãy lưu bài và đóng các ứng dụng Office rồi chạy lại
+        5: Không đọc được lệnh gỡ trong Programs and Features, gỡ bằng tay trong Settings > Apps
+        6: Office chưa gỡ xong, xem Settings > Apps hoặc chạy lại
+
+- id: off.activate_volume
+  name: Kích hoạt Office bản volume (MAK) và xem trạng thái
+  category: Office
+  risk: safe
+  description: >
+    Dùng sau khi cài Office 2010 / 2013 / 2016 bản volume ở trang Phần mềm (key MAK điền sẵn trong file XML của kho
+    bộ cài). Chạy ospp.vbs /act để kích hoạt qua Internet, rồi hiện trạng thái kích hoạt từng sản phẩm Office. Máy
+    không có Internet thì kích hoạt sau, hoặc kích hoạt qua điện thoại (ospp.vbs /dinstid). Office Microsoft 365
+    kích hoạt bằng tài khoản người dùng, không dùng mục này.
+  apply:
+    - powershell: |
+        $scripts = @()
+        foreach ($root in @($env:ProgramFiles, ${env:ProgramFiles(x86)})) {
+            if (-not $root) { continue }
+            foreach ($version in 'Office16', 'Office15', 'Office14') {
+                $path = Join-Path $root ('Microsoft Office\{0}\OSPP.VBS' -f $version)
+                if (Test-Path -LiteralPath $path) { $scripts += $path }
+            }
+        }
+        if (-not $scripts) {
+            Write-Bad 'Không thấy OSPP.VBS: máy chưa cài Office bản volume 2010 / 2013 / 2016.'
+            exit 3
+        }
+        foreach ($ospp in $scripts) {
+            Write-Line ('Kích hoạt bằng {0}' -f $ospp)
+            $output = & cscript.exe //nologo $ospp /act
+            foreach ($line in @($output)) { if ("$line".Trim() -and "$line" -notmatch '^-+$') { Write-Line ('    ' + "$line".Trim()) } }
+        }
+        $products = @()
+        try { $products += @(Get-CimInstance SoftwareLicensingProduct -ErrorAction Stop -Filter "ApplicationID='0ff1ce15-a989-479d-af46-f275c6370663' AND PartialProductKey IS NOT NULL") } catch { }
+        try { $products += @(Get-CimInstance OfficeSoftwareProtectionProduct -ErrorAction Stop -Filter "ApplicationID='59a52881-a989-479d-af46-f275c6370663' AND PartialProductKey IS NOT NULL") } catch { }
+        if (-not $products) { Write-Bad 'Không thấy key Office nào: điền key MAK vào file XML trong kho bộ cài rồi cài lại, hoặc nhập key bằng ospp.vbs /inpkey:<key>.' }
+        $labels = @{ 0 = 'CHƯA kích hoạt'; 1 = 'đã kích hoạt'; 2 = 'đang dùng thử, CHƯA kích hoạt'; 3 = 'hết hạn, đang ân hạn'; 4 = 'không chính hãng'; 5 = 'cần kích hoạt lại'; 6 = 'ân hạn mở rộng' }
+        foreach ($product in $products) {
+            $text = '{0} (key …{1}): {2}' -f $product.Name, $product.PartialProductKey, $labels[[int]$product.LicenseStatus]
+            if ([int]$product.LicenseStatus -eq 1) { Write-Ok $text } else { Write-Bad $text }
+        }
+        Exit-Checks
+      timeout: 300
+      messages:
+        2: Office chưa kích hoạt được, xem các dòng ✖ ở trên (cần Internet; key MAK có thể đã hết lượt)
+        3: Máy chưa cài Office bản volume

@@ -192,6 +192,23 @@ def test_detect_by_file(tmp_path):
     assert not detect.detect(share_app(detect={"file": str(tmp_path / "khong.exe")}), []).installed
 
 
+def test_conflicts_block_install():
+    from fvpl_ittools.software.detect import InstalledEntry
+    app = share_app(id="office2016", installer=r"{share}\Office2016.iso", args="",
+                    detect={"uninstall_name": "Microsoft Office Standard 2016*"},
+                    conflicts="Microsoft 365*|Microsoft Office Standard 2013*")
+    assert app.conflict_names == ("Microsoft 365*", "Microsoft Office Standard 2013*")
+    entries = [InstalledEntry("Microsoft 365 - en-us", "16.0"), InstalledEntry("7-Zip 24.08"),
+               InstalledEntry("Microsoft 365 Hidden Part", hidden=True)]
+    assert detect.conflicts(app, entries) == ["Microsoft 365 - en-us"]  # mục ẩn không tính
+    assert detect.conflicts(share_app(), entries) == []
+    reason = install.blocked_reason(app, senv(conflicts=(("office2016", "Microsoft 365 - en-us"),)))
+    assert "Microsoft 365 - en-us" in reason and "Gỡ Microsoft 365" in reason
+    assert install.blocked_reason(app, senv()) is None
+    with pytest.raises(catalog.CatalogError, match="conflicts"):
+        share_app(conflicts=["Microsoft 365*"])
+
+
 def test_installed_programs_reads_this_machine():
     entries = detect.installed_programs()
     assert entries and all(entry.name for entry in entries)

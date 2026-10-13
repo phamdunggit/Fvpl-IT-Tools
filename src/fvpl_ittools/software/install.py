@@ -56,11 +56,16 @@ class SoftwareEnv:
     share_root: str
     share_ok: bool
     missing: frozenset[str] = frozenset()  # id ứng dụng share không thấy bộ cài
+    conflicts: tuple[tuple[str, str], ...] = ()  # (id ứng dụng, tên phần mềm đang cài không cài chung được)
 
 
 def blocked_reason(app: App, senv: SoftwareEnv) -> str | None:
     if not senv.is_admin:
         return "Cần mở tool bằng quyền admin"
+    conflict = dict(senv.conflicts).get(app.id)
+    if conflict:
+        return (f"Máy đang có {conflict}, không cài chung được: gỡ trước (Office cài sẵn thì chạy mục "
+                "Gỡ Microsoft 365 / Office cài sẵn ở trang Sửa lỗi), rồi bấm Kiểm tra lại")
     if app.source == "winget" and not senv.winget:
         return "Chưa có winget cho tài khoản đang chạy tool: chạy mục Sửa / cài lại winget ở trang Sửa lỗi"
     if app.source == "share":
