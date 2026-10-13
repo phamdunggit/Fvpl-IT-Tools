@@ -1,0 +1,144 @@
+# Danh mục phần mềm MẶC ĐỊNH, đóng gói kèm tool. Cách khai báo: docs/SOFTWARE.md.
+#
+# Bản thật của công ty đặt ở <share_root>\config\apps.yaml (share_root khai báo trong site.yaml). Tool đọc
+# bản trên share trước, không vào được share mới dùng file này. Danh sách dưới là gợi ý ở PLAN.md mục 5.5,
+# chưa chốt; phần mềm riêng của công ty (kế toán, hoá đơn, chữ ký số) khai báo trong bản trên share.
+#
+# Ứng dụng nguồn "share" chỉ chạy được khi đã có share_root và đúng đường dẫn bộ cài.
+
+apps:
+  # ---- Trình duyệt
+  - id: chrome
+    name: Google Chrome
+    group: Trình duyệt
+    source: winget
+    winget_id: Google.Chrome
+  - id: firefox
+    name: Mozilla Firefox
+    group: Trình duyệt
+    source: winget
+    winget_id: Mozilla.Firefox
+
+  # ---- Văn phòng
+  - id: office
+    name: Microsoft Office
+    group: Văn phòng
+    source: share
+    installer: '{share}\Installers\Office\setup.exe'
+    args: '/configure "{share}\Installers\Office\config-van-phong.xml"'
+    detect: { uninstall_name: 'Microsoft 365*|Microsoft Office*' }
+    timeout: 3600
+    description: >
+      Cài bằng Office Deployment Tool với file cấu hình trên share, dùng license của công ty.
+  - id: foxit
+    name: Foxit PDF Reader
+    group: Văn phòng
+    source: winget
+    winget_id: Foxit.FoxitReader
+  - id: adobe-reader
+    name: Adobe Acrobat Reader
+    group: Văn phòng
+    source: winget
+    winget_id: Adobe.Acrobat.Reader.64-bit
+    detect: { uninstall_name: 'Adobe Acrobat*' }
+
+  # ---- Gõ tiếng Việt
+  - id: unikey
+    name: UniKey
+    group: Gõ tiếng Việt
+    source: share
+    type: portable
+    path: '{share}\Installers\UniKey'
+    exe: UniKeyNT.exe
+    autostart: true
+    description: >
+      Chép thư mục UniKey vào Program Files, tạo shortcut trong Start Menu và cho chạy cùng Windows.
+
+  # ---- Liên lạc và hỗ trợ từ xa
+  - id: zalo
+    name: Zalo
+    group: Liên lạc
+    source: winget
+    winget_id: VNGCorp.Zalo
+    scope: user
+    description: >
+      Zalo cài vào tài khoản đang chạy bộ cài. Mở tool bằng chính tài khoản của người dùng (bấm Yes ở UAC
+      nếu họ là admin) để cài đúng người.
+  - id: ultraviewer
+    name: UltraViewer
+    group: Hỗ trợ từ xa
+    source: winget
+    winget_id: DucFabulous.UltraViewer
+  - id: teamviewer
+    name: TeamViewer
+    group: Hỗ trợ từ xa
+    source: winget
+    winget_id: TeamViewer.TeamViewer
+  - id: anydesk
+    name: AnyDesk
+    group: Hỗ trợ từ xa
+    source: winget
+    winget_id: AnyDesk.AnyDesk
+
+  # ---- Tiện ích
+  - id: 7zip
+    name: 7-Zip
+    group: Tiện ích
+    source: winget
+    winget_id: 7zip.7zip
+  - id: notepadpp
+    name: Notepad++
+    group: Tiện ích
+    source: winget
+    winget_id: Notepad++.Notepad++
+  - id: vlc
+    name: VLC media player
+    group: Tiện ích
+    source: winget
+    winget_id: VideoLAN.VLC
+
+  # ---- Thư viện chạy ứng dụng
+  - id: vcredist
+    name: Visual C++ Redistributable 2015-2022 (x64)
+    group: Thư viện
+    source: winget
+    winget_id: Microsoft.VCRedist.2015+.x64
+    detect: { uninstall_name: 'Microsoft Visual C++ 2015-20* Redistributable (x64)*' }
+  - id: dotnet8-desktop
+    name: .NET 8 Desktop Runtime
+    group: Thư viện
+    source: winget
+    winget_id: Microsoft.DotNet.DesktopRuntime.8
+    detect: { uninstall_name: 'Microsoft Windows Desktop Runtime - 8.*' }
+
+  # ---- Công cụ IT
+  - id: putty
+    name: PuTTY
+    group: Công cụ IT
+    source: winget
+    winget_id: PuTTY.PuTTY
+  - id: winscp
+    name: WinSCP
+    group: Công cụ IT
+    source: winget
+    winget_id: WinSCP.WinSCP
+  - id: wireshark
+    name: Wireshark
+    group: Công cụ IT
+    source: winget
+    winget_id: WiresharkFoundation.Wireshark
+
+profiles:
+  van-phong:
+    name: Văn phòng
+    apps: [chrome, office, foxit, unikey, zalo, ultraviewer, 7zip, vlc, vcredist, dotnet8-desktop]
+  ke-toan:
+    name: Kế toán
+    extends: van-phong
+    apps: [adobe-reader]
+    description: >
+      Thêm phần mềm thuế, hoá đơn, chữ ký số trong danh mục trên share.
+  it:
+    name: IT
+    extends: van-phong
+    apps: [notepadpp, putty, winscp, wireshark, anydesk, teamviewer, firefox]

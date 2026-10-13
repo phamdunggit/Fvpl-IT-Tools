@@ -29,6 +29,7 @@ from .pages.actions_page import ActionsPage
 from .pages.history import HistoryPage
 from .pages.overview import OverviewPage
 from .pages.placeholder import PlaceholderPage
+from .pages.software import SoftwarePage
 from .pages.utilities import UtilitiesPage
 from .widgets import chip
 
@@ -91,12 +92,7 @@ def _pages(app: AppContext, controller: RunController) -> list[tuple[str, QWidge
             "Chưa có mục nào. Phần này làm ở GĐ3: dọn rác (quét trước rồi mới xoá), quản lý startup, "
             "gỡ app cài sẵn, tắt quảng cáo, power plan.", app, controller,
         )),
-        ("Phần mềm", PlaceholderPage(
-            "Phần mềm", "Cài, cập nhật, gỡ phần mềm từ winget và thư mục share nội bộ.", "GĐ2",
-            ["Danh mục phần mềm đọc từ share, có tìm kiếm và đánh dấu đã cài",
-             "Cài theo profile phòng ban, hàng đợi cài có log từng app",
-             "Sửa / cài lại winget, cài Office bằng Office Deployment Tool"],
-        )),
+        ("Phần mềm", SoftwarePage(app, controller)),
         ("Cấu hình", ActionsPage(
             "config", "Cấu hình", "Tuỳ chọn Windows hay dùng. Mỗi mục hiện trạng thái hiện tại và hoàn tác được.",
             "Chưa có mục cấu hình nào.", app, controller,
@@ -139,6 +135,8 @@ class MainWindow(QMainWindow):
             self.stack.addWidget(page)
             if isinstance(page, OverviewPage):
                 self.overview = page
+            if isinstance(page, SoftwarePage):
+                self.software = page
         self.overview.alerts_changed.connect(self.header.set_alerts)
 
         self.log_panel = LogPanel()

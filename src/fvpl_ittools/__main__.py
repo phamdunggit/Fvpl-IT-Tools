@@ -60,20 +60,25 @@ def _ask_elevate(args: list[str]) -> bool:
 def _selftest(window, app_ctx, out_dir: Path) -> int:
     from PySide6.QtWidgets import QApplication
 
+    def wait_loaded(page) -> None:
+        # Trang đọc nền (Tổng quan, Phần mềm): chờ đọc xong, kiểm tra luôn script và dữ liệu đã được đóng gói đủ.
+        deadline = time.monotonic() + 120
+        while getattr(page, "loading", False) and time.monotonic() < deadline:
+            QApplication.processEvents()
+            time.sleep(0.05)
+
     out_dir.mkdir(parents=True, exist_ok=True)
     window.show()
-    # Chờ trang Tổng quan đọc xong: kiểm tra luôn các script PowerShell đã được đóng gói đủ.
-    deadline = time.monotonic() + 120
-    while window.overview.loading and time.monotonic() < deadline:
-        QApplication.processEvents()
-        time.sleep(0.05)
     shots = []
     for row in range(window.sidebar.count()):
         window.sidebar.setCurrentRow(row)
         QApplication.processEvents()
+        wait_loaded(window.stack.currentWidget())
         file = out_dir / f"page-{row}.png"
         window.grab().save(str(file))
         shots.append(file.name)
+    software = window.software.state
+    software_errors = software.catalog.errors if software is not None else ["chưa quét xong"]
     report = {
         "version": __version__,
         "frozen": bool(getattr(sys, "frozen", False)),
@@ -84,11 +89,14 @@ def _selftest(window, app_ctx, out_dir: Path) -> int:
         "is_admin": app_ctx.env.is_admin,
         "overview_loaded": not window.overview.loading,
         "overview_errors": window.overview.failed,
+        "software_catalog": software.catalog.source if software is not None else None,
+        "software_errors": software_errors,
         "screenshots": shots,
     }
     (out_dir / "selftest.json").write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
     window.overview.stop()
-    ok = app_ctx.actions and not app_ctx.load_errors and not window.overview.loading and not window.overview.failed
+    ok = (app_ctx.actions and not app_ctx.load_errors and not window.overview.loading
+          and not window.overview.failed and not software_errors)
     return 0 if ok else 1
 
 

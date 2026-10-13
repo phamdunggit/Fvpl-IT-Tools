@@ -196,6 +196,7 @@ def ps_variables(env: Env) -> dict[str, str]:
         "TargetUserSid": env.target_user.sid,
         "TargetUserProfile": env.target_user.profile_path or "",
         "ReportDir": str(paths.reports_dir()),
+        "LogDir": str(paths.logs_dir()),
     }
 
 

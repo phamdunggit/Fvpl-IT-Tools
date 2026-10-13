@@ -30,6 +30,18 @@ def window(qt_app, monkeypatch):
              "network": ("network", "dns_checks"), "security": ("security",)}
     monkeypatch.setattr(inventory, "collect_part",
                         lambda part, cancel=None: {key: SAMPLE[key] for key in parts[part]})
+    # Trang Phần mềm: danh mục đóng gói, máy "đã cài" Chrome, chưa có share.
+    from fvpl_ittools.software import catalog, detect, install, scan
+    from fvpl_ittools.software.detect import InstalledEntry
+
+    def fake_scan(app):
+        loaded = catalog.load_catalog_file(catalog.BUNDLED_FILE)
+        senv = install.SoftwareEnv(is_admin=True, runs_as_other_user=False, winget="winget.exe",
+                                   share_root="", share_ok=False)
+        entries = [InstalledEntry("Google Chrome", "130.0")]
+        return scan.SoftwareState(loaded, senv, entries, {item.id: detect.detect(item, entries) for item in loaded.apps})
+
+    monkeypatch.setattr(scan, "scan", fake_scan)
     win = MainWindow(build_context())
     win.show()
     yield win
@@ -88,6 +100,42 @@ def test_utilities_page_opens_shortcuts_and_runs_network_tools(window, monkeypat
     page.network.host.setText("8.8.8.8")
     page.network.run("ping")
     assert runs[0][0].apply[0].command == "ping -n 4 8.8.8.8"
+
+
+def test_software_page_profiles_and_install(window, qt_app, monkeypatch):
+    from fvpl_ittools.core.executor import ActionResult, Status
+    from fvpl_ittools.ui.pages import software as software_module
+    window.select_page("Phần mềm")
+    page = window.software
+    deadline = time.monotonic() + 10
+    while (page.loading or page.state is None) and time.monotonic() < deadline:
+        qt_app.processEvents()
+        time.sleep(0.01)
+    assert page.state is not None
+    assert page._items["chrome"].text(2) == "Đã cài 130.0"
+    assert page._items["office"].text(2) == "Không cài được"  # chưa có share
+    assert "share_root" in page._items["office"].toolTip(2)
+
+    page.profile.setCurrentIndex(page.profile.findData("it"))
+    page.pick_profile()
+    picked = {app.id for app in page.checked_apps()}
+    assert "putty" in picked and "foxit" in picked  # foxit kế thừa từ van-phong
+    assert "chrome" not in picked and "office" not in picked and "unikey" not in picked
+
+    runs, asked = [], []
+    monkeypatch.setattr(window.controller, "run", lambda actions, **kw: runs.append([a.id for a in actions]))
+    monkeypatch.setattr(software_module.QMessageBox, "question",
+                        lambda parent, title, text: asked.append(text) or software_module.QMessageBox.StandardButton.Yes)
+    page._items["office"].setCheckState(0, software_module.Qt.CheckState.Checked)
+    page.install(page.checked_apps())
+    assert runs and "app.putty" in runs[0] and "app.office" not in runs[0]
+    assert "Bỏ qua Microsoft Office" in window.log_panel.plain_text()
+
+    putty = page.state.catalog.app("putty")
+    window.controller.last_results["app.putty"] = ActionResult(software_module.install_action(putty, ""), Status.FAILED, "lỗi")
+    assert [app.id for app in page.failed_apps()] == ["putty"]
+    page.refresh_states()
+    assert page._items["putty"].text(2).startswith("✖ Lỗi")
 
 
 def test_every_page_renders(window, qt_app):
