@@ -130,7 +130,7 @@ Hai bản USB / SSD:
 ## Việc tiếp theo
 
 1. **Chạy danh sách trên** trên VM, sửa những gì sai. Khi đó GĐ1 mới xong.
-2. **GĐ2: phần còn lại** (PLAN mục 5.2, 5.5): wizard Cài máy mới (kiểm tra trước, đổi tên + join domain, chạy tiếp sau restart, cấu hình chuẩn, báo cáo), sửa / cài lại winget từ share. Cần câu trả lời PLAN mục 11 trước: câu 2 (quy ước tên máy), 3 (OU, tài khoản join), 4 (server/share), 5 (phần mềm từng phòng ban, loại license Office). Hộp thoại tài khoản domain, các hàm kiểm tra DC/DNS/giờ (`core/pslib.py`) và trang Phần mềm (`software/`) dùng lại được cho wizard. Lưu ý khi làm bước restart: tool có thể đang chạy từ USB, sau khi khởi động lại USB có thể đã rút; nên chép tool vào `%ProgramData%\FVPL-ITTools\app` trước khi hẹn tự mở lại.
+2. **GĐ2: phần còn lại** (PLAN mục 5.2, 5.5): wizard Cài máy mới (kiểm tra trước, đổi tên + join domain, chạy tiếp sau restart, cấu hình chuẩn, báo cáo), sửa / cài lại winget từ share. Câu hỏi PLAN mục 11 đã được trả lời (13/10/2026): tên `FVPL-<mã phòng><2 chữ số>`, mã phòng ban thêm dần (wizard cho thêm mã mới và lưu lại), một OU chung cho máy trạm, đã có tài khoản join riêng, Office chọn theo từng người (MAK), Symantec managed qua SEPM, định dạng vùng vi-VN, kiểm kê chỉ lưu trên ổ mang theo. Thứ tự việc tiếp theo ở [TIEN-DO.md](TIEN-DO.md). Hộp thoại tài khoản domain, các hàm kiểm tra DC/DNS/giờ (`core/pslib.py`) và trang Phần mềm (`software/`) dùng lại được cho wizard. Lưu ý khi làm bước restart: tool có thể đang chạy từ USB, sau khi khởi động lại USB có thể đã rút; nên chép tool vào `%ProgramData%\FVPL-ITTools\app` trước khi hẹn tự mở lại.
 3. Câu 11 (10 lỗi người dùng hay báo nhất) giúp chọn fix P2 nào làm trước (GĐ3).
 
 ## Bẫy đã gặp

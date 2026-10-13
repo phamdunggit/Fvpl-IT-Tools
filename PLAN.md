@@ -1,7 +1,7 @@
 # FVPL IT Toolkit: kế hoạch
 
 > Tên tạm. Lập ngày 08/10/2026. **Trạng thái: đã duyệt 08/10/2026. GĐ0 xong; GĐ1 xong phần code (13/10/2026), còn chạy thử bằng quyền admin. Nhánh `featured`.**
-> Những điểm chưa rõ nằm ở [mục 11, Câu hỏi còn mở](#11-câu-hỏi-còn-mở).
+> Câu trả lời cho các điểm chưa rõ nằm ở [mục 11](#11-câu-hỏi-đã-trả-lời-13102026).
 
 ---
 
@@ -529,20 +529,26 @@ Làm Sửa lỗi (GĐ1) trước Cài máy mới (GĐ2) vì hai lý do. Thứ nh
 - **Windows để chế độ tối** làm Qt lấy bảng màu tối, ô tick và dòng chọn lệch màu với stylesheet. App luôn ép giao diện sáng.
 - **YAML 1.1** hiểu `on`/`off`/`yes`/`no` là true/false, kể cả khi dùng làm tên khoá. Đường dẫn registry có `\` thì để trong ngoặc đơn hoặc không ngoặc, đừng dùng ngoặc kép.
 
-## 11. Câu hỏi còn mở
+## 11. Câu hỏi đã trả lời (13/10/2026)
 
-1. **Tên chính thức** của tool là gì? Tên tạm hiện tại là "FVPL IT Toolkit".
-2. **Quy ước đặt tên máy:** quy ước có phải là `FVPL-<mã phòng><số>` (giống máy IT hiện tại) không? Số có đệm số 0 không (`IT03`)? Danh sách mã phòng ban gồm những mã nào?
-3. **OU trong AD** cho máy trạm: chia theo phòng ban hay để chung? Đã có tài khoản riêng chỉ để join máy chưa?
-4. **Server và thư mục share** để bộ cài và config (ví dụ `\\<server>\IT$\ITTools`)?
-5. **Phần mềm chuẩn** của từng phòng ban là gì? Office dùng license loại nào (Microsoft 365 / Office LTSC volume / OEM)? Đang dùng phần mềm diệt virus nào? Phần mềm kế toán, hoá đơn điện tử, chữ ký số là loại nào?
-6. Công ty có **WSUS** không? GPO hiện đang quản lý những gì (cập nhật, hình nền, máy in, ổ mạng, firewall)?
-7. Công ty đã dùng **Windows LAPS** và **BitLocker** chưa?
-8. **Máy in:** share qua print server hay in thẳng qua IP? Hãng và model chính là gì?
-9. **Máy tính** chủ yếu của hãng nào (Dell / HP / Lenovo / máy lắp ráp)? Để chọn tool cập nhật driver phù hợp.
-10. **Định dạng vùng** chuẩn là vi-VN hay en-US? Lựa chọn này ảnh hưởng dấu thập phân trong Excel và phần mềm kế toán.
-11. **10 lỗi người dùng hay báo nhất** là gì? GĐ1 đã làm đủ các fix P1 trong mục 5.3; danh sách này giúp chọn fix P2 nào làm trước và bổ sung lỗi riêng của công ty.
-12. Có muốn **gửi thông tin máy lên share** để làm danh sách kiểm kê tài sản không?
+| # | Câu hỏi | Trả lời | Ảnh hưởng |
+|---|---|---|---|
+| 1 | Tên chính thức | Giữ **FVPL IT Toolkit** | |
+| 2 | Quy ước tên máy | `FVPL-<mã phòng><2 chữ số>`, ví dụ `FVPL-KT05` | Wizard gợi ý số kế tiếp |
+| 2 | Mã phòng ban | Chưa chốt danh sách: wizard cho IT **thêm mã mới khi gặp và lưu lại** | Lưu trong `site.yaml` cạnh tool |
+| 3 | OU máy trạm | **Chung một OU** cho mọi máy trạm | Khai báo một OU trong `site.yaml` |
+| 3 | Tài khoản join | **Đã có tài khoản riêng chỉ để join** | Hộp thoại tài khoản của GĐ1 dùng lại |
+| 4 | Share | Có share riêng cho IT (đường dẫn chỉ ghi trong `site.yaml`) | Bản USB lấy bộ cài từ đây |
+| 5 | Office | Bản 2010 / 2013 / 2016 Standard từ ISO, **IT chọn bản theo từng người** (không gắn vào profile); kích hoạt **MAK** | Key điền trong file xml trên share / SSD |
+| 5 | Diệt virus | **Symantec Endpoint Protection, managed qua SEPM** | Cần `SyLink.xml` xuất từ SEPM |
+| 5 | Phần mềm khác | Gõ tiếng Việt **UniKey**; hỗ trợ từ xa chỉ **UltraViewer**; chữ ký số **Viettel-CA, VNPT-CA, FPT-CA**; phần mềm kế toán: chưa cần | Bộ cài UniKey, driver token đặt vào kho bộ cài |
+| 6 | WSUS | Không, cập nhật **thẳng từ Microsoft** | .NET 3.5, DISM tải trực tiếp được |
+| 6–7 | GPO, BitLocker, LAPS | **Chưa dùng**; muốn tìm hiểu | Viết hướng dẫn triển khai (GĐ4) |
+| 8 | Máy in | **Lẫn nhiều kiểu**: IP, print server, share từ PC | Ưu tiên sửa lỗi share máy in Win11 → Win10 |
+| 9 | Hãng máy | Chủ yếu **Dell và Lenovo**, đôi khi hãng khác | Dell Command \| Update, Lenovo System Update |
+| 10 | Định dạng vùng | **vi-VN** | Thêm vào Cấu hình chuẩn |
+| 11 | Lỗi hay gặp | **Share máy in từ Win11 sang Win10**, máy in, mạng / ổ mạng / domain, Office / Outlook, máy chậm / đầy ổ | Thứ tự làm tiếp |
+| 12 | Kiểm kê | **Chỉ lưu trên máy / ổ mang theo**, không gửi lên share | Đổi việc "gửi kiểm kê lên share" của GĐ4 |
 
 ## 12. Nguồn tham khảo
 
