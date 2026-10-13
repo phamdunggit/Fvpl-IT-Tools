@@ -1,0 +1,121 @@
+# Cấu hình chuẩn cho máy mới (trang Cấu hình). Bước 5 của wizard Cài máy mới sẽ dùng lại các mục này.
+# Cách khai báo: xem docs/ACTIONS.md.
+
+- id: cfg.timezone_vn
+  name: Múi giờ Việt Nam (UTC+7)
+  category: Cấu hình chuẩn
+  page: config
+  risk: safe
+  description: >
+    Đặt múi giờ "SE Asia Standard Time" (UTC+7, Bangkok, Hà Nội, Jakarta). Máy cài từ bản Windows tiếng Anh
+    thường để múi giờ Mỹ, làm giờ lệch 7 tiếng hoặc hơn và đăng nhập domain lỗi.
+  check:
+    registry: { key: 'HKLM\SYSTEM\CurrentControlSet\Control\TimeZoneInformation', name: TimeZoneKeyName, on_value: SE Asia Standard Time }
+  apply:
+    - cmd: tzutil /s "SE Asia Standard Time"
+
+- id: cfg.disable_fast_startup
+  name: Tắt Fast Startup
+  category: Cấu hình chuẩn
+  page: config
+  risk: safe
+  description: >
+    Khi Fast Startup bật, "Shut down" thực ra là ngủ đông một phần, nên lần bật máy sau Windows không khởi động
+    lại từ đầu: GPO máy, driver và bản cập nhật chờ khởi động lại không được áp. Máy trong domain nên tắt.
+  check:
+    registry: { key: 'HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Power', name: HiberbootEnabled, on_value: 0 }
+  gpo:
+    - { key: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\System', name: HiberbootEnabled }
+  apply:
+    - registry: { key: 'HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Power', name: HiberbootEnabled, type: DWORD, value: 0 }
+  undo: auto
+
+- id: cfg.this_pc_desktop
+  name: Hiện This PC trên desktop
+  category: Cấu hình chuẩn
+  page: config
+  risk: safe
+  scope: user
+  admin: false
+  description: >
+    Hiện biểu tượng This PC (My Computer) trên desktop của người đang đăng nhập. Explorer sẽ được khởi động lại.
+  check:
+    registry:
+      key: HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\HideDesktopIcons\NewStartPanel
+      name: '{20D04FE0-3AEA-1069-A2D8-08002B30309D}'
+      on_value: 0
+  apply:
+    - registry:
+        key: HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\HideDesktopIcons\NewStartPanel
+        name: '{20D04FE0-3AEA-1069-A2D8-08002B30309D}'
+        type: DWORD
+        value: 0
+  undo: auto
+  after: [restart_explorer]
+
+- id: cfg.netfx3
+  name: Cài .NET Framework 3.5
+  category: Cấu hình chuẩn
+  page: config
+  risk: safe
+  description: >
+    Nhiều phần mềm kế toán, thuế cũ cần .NET 3.5. Nếu share có nguồn offline đúng build Windows của máy
+    (<share>\Sources\sxs\<build>, chép từ thư mục sources\sxs của file ISO) thì cài từ đó; không có thì tải
+    từ Windows Update. Máy dùng WSUS thường không tải được (lỗi 0x800F0954), khi đó cần nguồn offline.
+  check:
+    registry: { key: 'HKLM\SOFTWARE\Microsoft\NET Framework Setup\NDP\v3.5', name: Install, on_value: 1 }
+  apply:
+    - powershell: |
+        $source = $null
+        if ($ShareRoot) {
+            $build = [Environment]::OSVersion.Version.Build
+            $candidate = Join-Path $ShareRoot "Sources\sxs\$build"
+            if (Test-Path -LiteralPath $candidate) { $source = $candidate }
+            else { Write-Output "Không có nguồn offline $candidate" }
+        }
+        if ($source) {
+            Write-Output "Cài từ nguồn offline $source"
+            DISM /Online /Enable-Feature /FeatureName:NetFx3 /All /LimitAccess "/Source:$source" /NoRestart
+        }
+        else {
+            Write-Output 'Tải từ Windows Update'
+            DISM /Online /Enable-Feature /FeatureName:NetFx3 /All /NoRestart
+        }
+      timeout: 1800
+      reboot_codes: [3010]
+      messages:
+        0x800F0954: Máy dùng WSUS nên không tải được từ Windows Update. Chép thư mục sxs cùng build Windows vào <share>\Sources\sxs\<build>
+        0x800F081F: Không tìm thấy file nguồn. Thư mục sxs trên share phải cùng build Windows với máy
+        0x800F0906: Không tải được từ Windows Update, kiểm tra Internet hoặc proxy
+
+- id: cfg.system_protection
+  name: Bật System Protection và tạo restore point
+  category: Cấu hình chuẩn
+  page: config
+  risk: safe
+  description: >
+    Bật System Protection cho ổ hệ thống (dành tối đa 5% dung lượng) và tạo restore point "Sau khi cài máy",
+    để sau này có đường quay lại. Windows thường chỉ cho tạo 1 restore point mỗi 24 giờ; mục này tạm bỏ giới
+    hạn đó trong lúc tạo rồi trả lại như cũ.
+  gpo:
+    - { key: 'HKLM\SOFTWARE\Policies\Microsoft\Windows NT\SystemRestore', name: DisableSR }
+    - { key: 'HKLM\SOFTWARE\Policies\Microsoft\Windows NT\SystemRestore', name: DisableConfig }
+  apply:
+    - powershell: |
+        $drive = "$env:SystemDrive\"
+        Enable-ComputerRestore -Drive $drive
+        vssadmin resize shadowstorage "/for=$env:SystemDrive" "/on=$env:SystemDrive" /maxsize=5% | Out-Null
+        if ($LASTEXITCODE) { Write-Output "⚠ Không đặt được dung lượng tối đa 5% (vssadmin trả mã $LASTEXITCODE), dùng mặc định." }
+        $key = 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\SystemRestore'
+        $old = (Get-ItemProperty -LiteralPath $key -ErrorAction SilentlyContinue).SystemRestorePointCreationFrequency
+        Set-ItemProperty -LiteralPath $key -Name SystemRestorePointCreationFrequency -Value 0 -Type DWord
+        try {
+            Checkpoint-Computer -Description 'FVPL IT Toolkit: sau khi cài máy' -RestorePointType MODIFY_SETTINGS
+            Write-Output '✔ Đã tạo restore point "FVPL IT Toolkit: sau khi cài máy".'
+        }
+        finally {
+            if ($null -eq $old) { Remove-ItemProperty -LiteralPath $key -Name SystemRestorePointCreationFrequency -ErrorAction SilentlyContinue }
+            else { Set-ItemProperty -LiteralPath $key -Name SystemRestorePointCreationFrequency -Value $old -Type DWord }
+        }
+        exit 0
+      timeout: 600

@@ -1,4 +1,5 @@
-# Tuỳ chọn hay dùng (trang Cấu hình). Cách khai báo: xem PLAN.md mục 6.3.
+# Tuỳ chọn hay dùng (trang Cấu hình). Mỗi mục hiện trạng thái hiện tại và hoàn tác được.
+# Cách khai báo: xem docs/ACTIONS.md.
 
 - id: ui.show_file_ext
   name: Hiện đuôi file
@@ -23,3 +24,107 @@
         value: 0
   undo: auto
   after: [restart_explorer]
+
+- id: cfg.show_hidden_files
+  name: Hiện file ẩn
+  category: Tuỳ chọn hay dùng
+  page: config
+  risk: safe
+  scope: user
+  admin: false
+  description: >
+    Hiện file và thư mục ẩn (như AppData) trong File Explorer của người đang đăng nhập. File hệ thống quan trọng
+    vẫn được giấu. Explorer sẽ được khởi động lại.
+  check:
+    registry: { key: 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced', name: Hidden, on_value: 1 }
+  apply:
+    - registry: { key: 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced', name: Hidden, type: DWORD, value: 1 }
+  undo: auto
+  after: [restart_explorer]
+
+- id: cfg.classic_context_menu
+  name: Menu chuột phải kiểu cũ (Win11)
+  category: Tuỳ chọn hay dùng
+  page: config
+  risk: safe
+  scope: user
+  admin: false
+  os: { min_build: 22000 }
+  description: >
+    Win11 rút gọn menu chuột phải, phải bấm "Show more options" mới thấy đủ lệnh (7-Zip, Foxit, UniKey...).
+    Mục này cho hiện thẳng menu đầy đủ như Win10. Áp cho người đang đăng nhập; Explorer sẽ được khởi động lại.
+  check:
+    registry:
+      key: HKCU\Software\Classes\CLSID\{86ca1aa0-34aa-4e8b-a509-50c905bae2a2}\InprocServer32
+      name: ''
+      on_value: ''
+  apply:
+    - registry:
+        key: HKCU\Software\Classes\CLSID\{86ca1aa0-34aa-4e8b-a509-50c905bae2a2}\InprocServer32
+        name: ''
+        type: SZ
+        value: ''
+  # Phải xoá cả khoá: chỉ xoá giá trị thì khoá rỗng vẫn làm Win11 hiện menu kiểu cũ.
+  undo:
+    - powershell: |
+        $key = "Registry::HKEY_USERS\$TargetUserSid\Software\Classes\CLSID\{86ca1aa0-34aa-4e8b-a509-50c905bae2a2}"
+        if (Test-Path -LiteralPath $key) { Remove-Item -LiteralPath $key -Recurse -Force; Write-Output "Đã xoá $key" }
+        else { Write-Output 'Khoá vốn không có, không cần xoá.' }
+  after: [restart_explorer]
+
+- id: cfg.taskbar_end_task
+  name: Thêm "End task" khi chuột phải trên taskbar (Win11)
+  category: Tuỳ chọn hay dùng
+  page: config
+  risk: safe
+  scope: user
+  admin: false
+  os: { min_build: 22631 }
+  description: >
+    Chuột phải vào ứng dụng trên taskbar có thêm lệnh End task để tắt ứng dụng bị treo, không cần mở
+    Task Manager. Có từ Win11 23H2. Áp cho người đang đăng nhập; Explorer sẽ được khởi động lại.
+  check:
+    registry:
+      key: HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced\TaskbarDeveloperSettings
+      name: TaskbarEndTask
+      on_value: 1
+  apply:
+    - registry:
+        key: HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced\TaskbarDeveloperSettings
+        name: TaskbarEndTask
+        type: DWORD
+        value: 1
+  undo: auto
+  after: [restart_explorer]
+
+- id: cfg.taskbar_left
+  name: Căn trái taskbar (Win11)
+  category: Tuỳ chọn hay dùng
+  page: config
+  risk: safe
+  scope: user
+  admin: false
+  os: { min_build: 22000 }
+  description: >
+    Đưa nút Start và các biểu tượng taskbar về bên trái như Win10, cho người dùng quen cách cũ.
+    Áp cho người đang đăng nhập; Explorer sẽ được khởi động lại.
+  check:
+    registry: { key: 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced', name: TaskbarAl, on_value: 0 }
+  apply:
+    - registry: { key: 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced', name: TaskbarAl, type: DWORD, value: 0 }
+  undo: auto
+  after: [restart_explorer]
+
+- id: cfg.long_paths
+  name: Cho phép đường dẫn dài hơn 260 ký tự
+  category: Tuỳ chọn hay dùng
+  page: config
+  risk: safe
+  description: >
+    Bật Long Paths cho cả máy. Dùng khi giải nén hoặc chép thư mục có cây thư mục sâu bị lỗi "path too long".
+    Chỉ có tác dụng với ứng dụng có hỗ trợ (Explorer đời cũ vẫn giới hạn 260 ký tự).
+  check:
+    registry: { key: 'HKLM\SYSTEM\CurrentControlSet\Control\FileSystem', name: LongPathsEnabled, on_value: 1 }
+  apply:
+    - registry: { key: 'HKLM\SYSTEM\CurrentControlSet\Control\FileSystem', name: LongPathsEnabled, type: DWORD, value: 1 }
+  undo: auto

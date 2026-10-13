@@ -88,8 +88,10 @@ def _pages(app: AppContext, controller: RunController) -> list[tuple[str, QWidge
         )),
         ("Phần mềm", SoftwarePage(app, controller)),
         ("Cấu hình", ActionsPage(
-            "config", "Cấu hình", "Tuỳ chọn Windows hay dùng. Mỗi mục hiện trạng thái hiện tại và hoàn tác được.",
-            "Chưa có mục cấu hình nào.", app, controller,
+            "config", "Cấu hình",
+            "Cấu hình chuẩn cho máy mới và các tuỳ chọn Windows hay dùng. Mục có cột trạng thái cho biết "
+            "đang bật hay tắt; mục đổi registry hoàn tác được.",
+            "Chưa có mục cấu hình nào.", app, controller, packs=app.packs,
         )),
         ("Tiện ích", UtilitiesPage(app, controller)),
         ("Nhật ký", HistoryPage(app, controller)),

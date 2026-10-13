@@ -1,4 +1,5 @@
-# Gói sửa nhanh: nút trên đầu trang Sửa lỗi. Chạy lần lượt các mục, một mục lỗi thì dừng.
+# Gói: nút trên đầu trang (page: fixes mặc định, hoặc config). Chạy lần lượt các mục; gói sửa nhanh dừng khi
+# một mục lỗi, gói có stop_on_error: false thì làm tiếp.
 # Mục bị khoá (chưa vào domain, thiếu quyền admin...) được bỏ qua và gói chạy tiếp.
 # Cách khai báo: xem docs/ACTIONS.md, phần "Gói sửa nhanh".
 
@@ -28,6 +29,16 @@
     Đồng bộ giờ (giờ sai thì Windows Update lỗi kết nối), rồi reset Windows Update.
     Nên khởi động lại máy sau khi xong.
   actions: [dom.time_sync, wu.reset]
+
+- id: pack.standard_config
+  name: Cấu hình chuẩn máy mới
+  page: config
+  stop_on_error: false
+  description: >
+    Múi giờ UTC+7, tắt Fast Startup, hiện đuôi file và This PC, cài .NET 3.5, rồi bật System Protection và tạo
+    restore point "sau khi cài máy". Mục nào lỗi thì vẫn làm tiếp mục sau.
+  actions: [cfg.timezone_vn, cfg.disable_fast_startup, ui.show_file_ext, cfg.this_pc_desktop, cfg.netfx3,
+            cfg.system_protection]
 
 - id: pack.domain
   name: Sửa domain

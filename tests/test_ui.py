@@ -213,6 +213,22 @@ def test_pack_bar_runs_pack_with_stop_on_error(window, monkeypatch):
     assert calls == [(list(pack.actions), {"credential": None, "stop_on_error": True})]
 
 
+def test_config_page_pack_keeps_going_on_error(window, monkeypatch):
+    from fvpl_ittools.ui.pages import actions_page
+    window.select_page("Cấu hình")
+    page = window.stack.currentWidget()
+    assert list(page.pack_buttons) == ["pack.standard_config"]
+    calls, asked = [], []
+    monkeypatch.setattr(window.controller, "run", lambda actions, **kw: calls.append(kw))
+    monkeypatch.setattr(actions_page.QMessageBox, "question",
+                        lambda parent, title, text: asked.append(text) or actions_page.QMessageBox.StandardButton.Yes)
+    page.run_pack(page.packs[0])
+    assert "vẫn làm tiếp" in asked[0]
+    assert calls == [{"credential": None, "stop_on_error": False}]
+    fixes = window.stack.widget([window.sidebar.item(row).text() for row in range(window.sidebar.count())].index("Sửa lỗi"))
+    assert "pack.standard_config" not in fixes.pack_buttons
+
+
 def test_actions_needing_credential_ask_first(window, monkeypatch):
     from dataclasses import replace
 

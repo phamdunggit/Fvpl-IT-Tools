@@ -123,6 +123,7 @@ def test_pack_validation(tmp_path):
     packs, errors = loader.load_pack_file(file, known)
     assert [pack.id for pack in packs] == ["pack.ok"]
     assert packs[0].actions == ("a.one", "a.two")
+    assert packs[0].page == "fixes" and packs[0].stop_on_error
     assert len(errors) == 3
     assert "không có mục a.three" in errors[0]
     assert "ít nhất 2 mục" in errors[1]

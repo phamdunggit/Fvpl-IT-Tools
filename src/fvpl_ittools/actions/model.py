@@ -142,9 +142,11 @@ class Action:
 
 @dataclass(frozen=True, kw_only=True)
 class Pack:
-    """Gói sửa nhanh: chạy lần lượt nhiều mục, dừng khi một mục lỗi."""
+    """Gói: chạy lần lượt nhiều mục. Gói sửa nhanh dừng khi một mục lỗi; gói cấu hình thì làm tiếp."""
     id: str
     name: str
     description: str
     actions: tuple[str, ...]
+    page: str = "fixes"
+    stop_on_error: bool = True
     source: str = ""

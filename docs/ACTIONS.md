@@ -108,6 +108,8 @@ Biến, có sẵn trong mọi script:
 | `$TargetUserSid` | SID của người đó. Registry của họ: `Registry::HKEY_USERS\$TargetUserSid\...` |
 | `$TargetUserProfile` | Thư mục profile của họ, ví dụ `C:\Users\nva`. |
 | `$ReportDir` | Thư mục `reports` của tool, nơi lưu file báo cáo (gpresult, thông tin máy). |
+| `$LogDir` | Thư mục `logs` của tool (ví dụ log MSI). |
+| `$ShareRoot` | `share_root` trong site.yaml, rỗng nếu chưa khai báo. Ví dụ nguồn .NET 3.5 offline: `$ShareRoot\Sources\sxs\<build>`. |
 | `$Credential` | Chỉ có ở mục `needs_credential`. |
 
 Hàm, khai báo trong `src/fvpl_ittools/core/pslib.py`. Tool chỉ thêm chúng vào script nào có gọi tới; nút "Copy lệnh" copy kèm luôn để chạy tay vẫn đúng.
@@ -137,6 +139,13 @@ Khai báo trong `src/fvpl_ittools/data/packs.yaml`, hiện thành nút trên đ�
 ```
 
 `actions` cần ít nhất 2 mục, không lặp, và mọi id phải có thật (mục khai báo sai bị loại thì gói nhắc tới nó cũng bị loại). Test `test_bundled_packs_load_without_errors` kiểm tra file này.
+
+Hai khoá tuỳ chọn:
+
+| Khoá | Mặc định | Ý nghĩa |
+|---|---|---|
+| `page` | `fixes` | Trang hiện nút gói: `fixes` (Sửa lỗi) hoặc `config` (Cấu hình, nhãn "Làm cả gói"). |
+| `stop_on_error` | `true` | `false`: một mục lỗi thì vẫn làm tiếp mục sau. Dùng cho gói cấu hình, ví dụ `pack.standard_config` (lỗi cài .NET 3.5 không nên chặn việc tạo restore point). |
 
 ## Bẫy hay gặp
 

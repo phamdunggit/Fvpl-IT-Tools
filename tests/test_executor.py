@@ -238,6 +238,12 @@ def test_powershell_gets_target_user_variables(ctx, state_dir):
     assert any(event.text == expected for event in ctx.events)
 
 
+def test_share_root_variable(env):
+    assert executor.ps_variables(env)["ShareRoot"] == ""
+    text = executor.describe_action(ps_action("Join-Path $ShareRoot x"), replace(env, share_root=r"\\srv\IT$"))
+    assert "$ShareRoot = '\\\\srv\\IT$'" in text
+
+
 def test_describe_includes_used_variables_only(env):
     text = executor.describe_action(ps_action("Get-ChildItem $TargetUserProfile"), env)
     assert "$TargetUserProfile = ''" in text

@@ -43,21 +43,22 @@ def build_context(log_file: Path | None = None) -> AppContext:
     if session_user is None:
         log.warning("Không xác định được người đang đăng nhập, thiết lập người dùng sẽ áp cho %s", process_user.name)
         session_user = process_user
+    site = config.load_site_config()
+    for error in site.errors:
+        log.warning("%s", error)
     env = Env(
         is_admin=winapi.is_admin(),
         build=machine.build,
         process_user=process_user,
         target_user=session_user,
         joined_domain=machine.joined_domain,
+        share_root=site.share_root,
     )
     actions, errors = loader.load_builtin_actions()
     packs, pack_errors = loader.load_builtin_packs(actions)
     errors += pack_errors
     for error in errors:
         log.warning("Bỏ qua mục khai báo sai: %s", error)
-    site = config.load_site_config()
-    for error in site.errors:
-        log.warning("%s", error)
     log.info(
         "Máy %s | %s | %s | admin=%s | chạy bằng %s | áp cho %s | %d mục",
         machine.computer_name, machine.domain_label, machine.os_label, env.is_admin,

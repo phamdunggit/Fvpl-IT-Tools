@@ -15,6 +15,11 @@
   - Share, winget, dung lượng ổ hệ thống, laptop có cắm sạc.
   - Mỗi dòng kèm cách xử lý; dòng tóm tắt "sẵn sàng / nên xem / cần xử lý"; Copy kết quả.
   - Domain lấy từ máy (nếu đã join) hoặc `domain` trong site.yaml.
+- Trang **Cấu hình**:
+  - Nhóm "Cấu hình chuẩn" (bước 5 của wizard sẽ dùng lại): múi giờ UTC+7, tắt Fast Startup, hiện This PC trên desktop, cài .NET 3.5 (nguồn offline `<share>\Sources\sxs\<build>` nếu có, không thì Windows Update), bật System Protection và tạo restore point "sau khi cài máy".
+  - Nhóm "Tuỳ chọn hay dùng" thêm: hiện file ẩn, menu chuột phải kiểu cũ (Win11), End task trên taskbar (Win11 23H2+), căn trái taskbar (Win11), Long Paths. Mỗi mục hiện trạng thái đang bật/tắt và hoàn tác được.
+  - Gói "Cấu hình chuẩn máy mới": làm lần lượt, một mục lỗi vẫn làm tiếp.
+- Gói có thêm khoá `page` (hiện ở trang nào) và `stop_on_error`. Script PowerShell có thêm biến `$ShareRoot`, `$LogDir`.
 - `--selftest` chờ trang Phần mềm quét xong và báo lỗi danh mục.
 
 ### Bỏ

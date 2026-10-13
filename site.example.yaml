@@ -8,7 +8,10 @@ domain: corp.example
 # Tên domain kiểu cũ (NetBIOS), dùng cho tài khoản dạng DOMAIN\user
 netbios_domain: CORP
 
-# Thư mục share chứa bộ cài và config dùng chung
+# Thư mục share chứa bộ cài và config dùng chung. Cấu trúc tool đọc:
+#   config\apps.yaml          danh mục phần mềm và profile (docs/SOFTWARE.md)
+#   Installers\...            bộ cài phần mềm nguồn share (đường dẫn khai báo trong apps.yaml)
+#   Sources\sxs\<build>\      nguồn .NET 3.5 offline, chép từ sources\sxs của ISO cùng build (ví dụ 26100)
 share_root: '\\fileserver.corp.example\IT$\ITTools'
 
 # Tiền tố tên máy, ví dụ FVPL- cho FVPL-KT05

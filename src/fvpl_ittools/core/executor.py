@@ -80,6 +80,7 @@ class Env:
     process_user: UserIdentity
     target_user: UserIdentity
     joined_domain: bool = False
+    share_root: str = ""  # từ site.yaml, rỗng nếu chưa khai báo
 
     @property
     def user_hive_sid(self) -> str | None:
@@ -197,6 +198,7 @@ def ps_variables(env: Env) -> dict[str, str]:
         "TargetUserProfile": env.target_user.profile_path or "",
         "ReportDir": str(paths.reports_dir()),
         "LogDir": str(paths.logs_dir()),
+        "ShareRoot": env.share_root,
     }
 
 

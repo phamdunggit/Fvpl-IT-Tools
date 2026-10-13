@@ -9,7 +9,7 @@ Cập nhật lần cuối: 13/10/2026, sau khi xong trang Phần mềm (phần �
 | Giai đoạn | **GĐ1 (Tổng quan + Sửa lỗi) xong phần code.** Còn chạy thử các mục đổi hệ thống bằng quyền admin (danh sách bên dưới) rồi mới coi là xong. **GĐ2 đang làm:** đã có trang Phần mềm; wizard Cài máy mới chưa làm |
 | Nhánh | Code mới làm trên `featured`. Chỉ merge về `main` khi được duyệt |
 | Phiên bản | 0.2.0, xem [CHANGELOG.md](../CHANGELOG.md) (trang Phần mềm nằm ở mục "Chưa phát hành") |
-| Test | 170 test pytest, tất cả đều qua (khoảng 25 giây) |
+| Test | 172 test pytest, tất cả đều qua (khoảng 25 giây) |
 | Bản exe | `python packaging\build.py`: thư mục 64MB, zip 27MB. `--test` chạy selftest trên exe, gồm cả đọc thông tin máy |
 
 Đã có:
@@ -105,6 +105,13 @@ Trang Cài máy mới, bước Kiểm tra trước. Đã chạy thật trên má
 - [ ] Chỉnh giờ VM lệch 10 phút: dòng giờ báo ✖, nút Đồng bộ giờ chạy rồi tự kiểm tra lại.
 - [ ] Laptop rút sạc: dòng Nguồn điện báo ⚠ (đọc bằng `GetSystemPowerStatus`).
 - [ ] Máy vừa cài cập nhật chưa khởi động lại: dòng "Chờ khởi động lại" báo ⚠.
+
+Trang Cấu hình (mục mới). Trạng thái bật/tắt đã đọc đúng trên máy dev; **chưa đổi thật mục nào**:
+- [ ] Gói "Cấu hình chuẩn máy mới" trên VM mới cài: múi giờ, Fast Startup (Control Panel → Power Options → "Turn on fast startup" bỏ tick), This PC, .NET 3.5, restore point mới trong `rstrui`.
+- [ ] .NET 3.5 cả hai đường: có `Sources\sxs\<build>` trên share, và không có (tải từ Windows Update; máy WSUS báo `0x800F0954` kèm hướng dẫn).
+- [ ] Restore point tạo được ngay cả khi vừa tạo một điểm trong 24 giờ (mục tạm đặt `SystemRestorePointCreationFrequency = 0` rồi trả lại).
+- [ ] Menu chuột phải kiểu cũ: bật rồi Hoàn tác, menu Win11 quay lại (hoàn tác xoá cả khoá CLSID, không chỉ giá trị).
+- [ ] End task, căn trái taskbar, hiện file ẩn: có hiệu lực sau khi Explorer khởi động lại; Run as different user thì đổi đúng người dùng.
 
 ## Việc tiếp theo
 

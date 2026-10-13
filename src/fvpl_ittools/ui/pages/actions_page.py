@@ -198,7 +198,8 @@ class ActionsPage(QWidget):
         self.app = app
         self.controller = controller
         self.actions = [action for action in app.actions if action.page == page_key]
-        self.packs = packs or []
+        self.page_key = page_key
+        self.packs = [pack for pack in packs or [] if pack.page == page_key]
         self._items: dict[str, QTreeWidgetItem] = {}
         self._by_id = {action.id: action for action in self.actions}
         self._all_actions = {action.id: action for action in app.actions}
@@ -254,6 +255,7 @@ class ActionsPage(QWidget):
         splitter.addWidget(self.detail)
         splitter.setStretchFactor(0, 3)
         splitter.setStretchFactor(1, 2)
+        splitter.setSizes([620, 400])  # cây rộng hơn để tên mục không bị cắt
         splitter.setChildrenCollapsible(False)
         root.addWidget(splitter, 1)
 
@@ -277,7 +279,7 @@ class ActionsPage(QWidget):
         bar.setObjectName("PackBar")
         layout = QHBoxLayout(bar)
         layout.setContentsMargins(12, 8, 12, 8)
-        label = QLabel("Gói sửa nhanh")
+        label = QLabel("Gói sửa nhanh" if self.page_key == "fixes" else "Làm cả gói")
         label.setObjectName("SectionLabel")
         layout.addWidget(label)
         for pack in self.packs:
@@ -370,14 +372,15 @@ class ActionsPage(QWidget):
         if all(executor.blocked_reason(action, env) for action in actions):
             QMessageBox.information(self, pack.name, "Không bước nào chạy được trên máy này:\n\n" + "\n".join(lines))
             return
-        text = f"{pack.description}\n\nCác bước, chạy lần lượt và dừng nếu một bước lỗi:\n" + "\n".join(lines)
+        how = "dừng nếu một bước lỗi" if pack.stop_on_error else "một bước lỗi thì vẫn làm tiếp bước sau"
+        text = f"{pack.description}\n\nCác bước, chạy lần lượt, {how}:\n" + "\n".join(lines)
         if any(action.risk is not Risk.SAFE for action in actions):
             text += f"\n\n{self._restore_note()}"
         if any(action.reboot for action in actions):
             text += "\nCần khởi động lại máy sau khi xong."
         answer = QMessageBox.question(self, pack.name, text + "\n\nChạy gói này?")
         if answer == QMessageBox.StandardButton.Yes:
-            self._start(actions, stop_on_error=True)
+            self._start(actions, stop_on_error=pack.stop_on_error)
 
     def _start(self, actions: list[Action], stop_on_error: bool) -> None:
         credential = None

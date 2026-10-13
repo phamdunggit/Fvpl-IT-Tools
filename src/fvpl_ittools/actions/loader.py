@@ -383,7 +383,7 @@ def _check_scope(scope: Scope, keys: list[str]) -> None:
 
 # ---------------------------------------------------------------- gói sửa nhanh
 
-_PACK_KEYS = {"id", "name", "description", "actions"}
+_PACK_KEYS = {"id", "name", "description", "actions", "page", "stop_on_error"}
 
 
 def load_builtin_packs(actions: Iterable[Action]) -> tuple[list[Pack], list[str]]:
@@ -443,5 +443,7 @@ def parse_pack(raw: Any, known: set[str], source: str = "") -> Pack:
         name=_required_text(raw, "name"),
         description=_optional_text(raw, "description"),
         actions=tuple(items),
+        page=_choice(raw, "page", PAGES, "fixes"),
+        stop_on_error=_flag(raw, "stop_on_error", True),
         source=source,
     )
