@@ -28,7 +28,7 @@ version = { attr = "fvpl_ittools.__version__" }
 where = ["src"]
 
 [tool.setuptools.package-data]
-fvpl_ittools = ["data/**/*.yaml"]
+fvpl_ittools = ["data/**/*.yaml", "data/**/*.ps1"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

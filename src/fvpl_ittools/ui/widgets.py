@@ -3,10 +3,13 @@
 from __future__ import annotations
 
 import os
+import subprocess
 from pathlib import Path
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QHBoxLayout, QLabel, QLayout, QWidget
+
+from ..core import shell
 
 
 def page_header(layout: QLayout, title: str, subtitle: str) -> None:
@@ -53,3 +56,10 @@ def open_path(path: Path | str | None) -> None:
     """Mở file hoặc thư mục bằng chương trình mặc định của Windows."""
     if path and os.path.exists(path):
         os.startfile(str(path))  # noqa: S606 - chỉ mở đường dẫn do tool tự tạo
+
+
+def open_as_user(path: Path | str) -> None:
+    """Mở file qua explorer.exe: chương trình mở file (trình duyệt...) chạy bằng quyền của người đang
+    đăng nhập, không thừa hưởng quyền admin của tool."""
+    explorer = os.path.join(os.environ.get("SystemRoot", r"C:\Windows"), "explorer.exe")
+    subprocess.Popen([explorer, str(path)], creationflags=shell.CREATE_NO_WINDOW)

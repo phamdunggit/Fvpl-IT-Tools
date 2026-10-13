@@ -18,9 +18,18 @@ def qt_app():
 
 
 @pytest.fixture
-def window(qt_app):
+def window(qt_app, monkeypatch):
     from fvpl_ittools.app import build_context
+    from fvpl_ittools.core import inventory
     from fvpl_ittools.ui.main_window import MainWindow
+
+    from .test_inventory import SAMPLE
+
+    # Trang Tổng quan dùng dữ liệu mẫu thay vì chạy PowerShell thật.
+    parts = {"system": ("os", "licenses", "office", "hardware", "volumes", "system_drive"), "storage": ("disks",),
+             "network": ("network", "dns_checks"), "security": ("security",)}
+    monkeypatch.setattr(inventory, "collect_part",
+                        lambda part, cancel=None: {key: SAMPLE[key] for key in parts[part]})
     win = MainWindow(build_context())
     win.show()
     yield win
@@ -34,6 +43,31 @@ def wait_idle(qt_app, controller, timeout=30):
         time.sleep(0.02)
     qt_app.processEvents()
     assert not controller.busy
+
+
+def test_overview_loads_parts_copies_and_alerts(window, qt_app, state_dir, monkeypatch):
+    from fvpl_ittools.ui.pages import overview as overview_module
+    page = window.overview
+    deadline = time.monotonic() + 10
+    while page.loading and time.monotonic() < deadline:
+        qt_app.processEvents()
+        time.sleep(0.01)
+    assert not page.loading and page.failed == {}
+    assert "Cập nhật lúc" in page.status.text()
+    shown = page.view.toPlainText()
+    assert "Ổ đĩa 1" in shown and "Đang đọc" not in shown
+
+    page.copy_text()
+    copied = QtWidgets.QApplication.clipboard().text()
+    assert copied.startswith("Thông tin máy") and "== Bảo mật ==" in copied
+
+    opened = []
+    monkeypatch.setattr(overview_module, "open_as_user", opened.append)
+    page.export_html()
+    assert opened and opened[0].parent == state_dir / "reports" and opened[0].read_text(encoding="utf-8").startswith("<!doctype")
+
+    page.alerts_changed.emit(["DNS không trỏ về DC"])
+    assert window.header.alerts.count() == 1
 
 
 def test_every_page_renders(window, qt_app):

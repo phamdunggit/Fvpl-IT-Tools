@@ -12,11 +12,9 @@
   apply:
     - powershell: |
         $domain = (Get-CimInstance Win32_ComputerSystem).Domain
-        Write-Output "Domain của máy: $domain"
-        $srv = @(Resolve-DnsName -Name "_ldap._tcp.dc._msdcs.$domain" -Type SRV -DnsOnly -ErrorAction SilentlyContinue |
-            Where-Object QueryType -eq 'SRV')
-        if ($srv) { Write-Ok ("DNS tìm được {0} DC: {1}" -f $srv.Count, (($srv | ForEach-Object NameTarget) -join ', ')) }
-        else { Write-Bad 'DNS không tìm được DC nào. Kiểm tra DNS của card mạng có trỏ về DC không.' }
+        Write-Line "Domain của máy: $domain"
+        $servers = @(Get-ActiveAdapters | ForEach-Object { $_.Dns } | Where-Object { $_ } | Select-Object -Unique)
+        $dnsOk = Test-DomainDns $domain $servers
 
         nltest /dsgetdc:$domain
         if ($LASTEXITCODE) { Write-Bad 'Không có DC nào trả lời (nltest /dsgetdc).' }
@@ -28,17 +26,11 @@
         }
         catch { Write-Bad "Không kiểm tra được kênh bảo mật: $($_.Exception.Message)" }
 
-        if ($srv) {
-            $dc = ($srv | Sort-Object Priority, @{ Expression = 'Weight'; Descending = $true } | Select-Object -First 1).NameTarget
-            $offset = Get-NtpOffset $dc
-            if ($null -eq $offset) { Write-Warn "Không hỏi được giờ của DC $dc (cổng UDP 123)" }
-            elseif ([math]::Abs($offset) -gt 300) {
-                Write-Bad ('Giờ máy lệch {0:N0} giây so với DC. Lệch quá 5 phút thì đăng nhập domain lỗi, chạy mục Đồng bộ giờ.' -f $offset)
-            }
-            elseif ([math]::Abs($offset) -gt 60) { Write-Warn ('Giờ máy lệch {0:N0} giây so với DC' -f $offset) }
-            else { Write-Ok ('Giờ máy khớp DC (lệch {0:N1} giây)' -f $offset) }
+        if ($dnsOk) {
+            $dc = Find-DomainController $domain
+            if ($dc) { Test-DomainController $dc }
         }
-        Write-Output 'Nguồn giờ hiện tại của máy:'
+        Write-Line 'Nguồn giờ hiện tại của máy:'
         w32tm /query /source
         Exit-Checks
       timeout: 180

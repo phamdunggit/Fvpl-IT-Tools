@@ -57,6 +57,18 @@ def test_run_powershell_utf8_and_native_exit_code():
     assert result.output == "Tiếng Việt: đã xong"
 
 
+def test_run_powershell_other_streams_are_plain_text():
+    result = shell.run_powershell("Write-Warning 'cảnh báo'; Write-Host 'dòng host'; Write-Output 'xong'")
+    assert "CLIXML" not in result.output
+    assert result.output.splitlines() == ["WARNING: cảnh báo", "dòng host", "xong"]
+
+
+def test_long_script_is_compacted_to_fit_command_line():
+    body = "\n".join(f"    # chú thích dài {'x' * 80}\n    $a{i} = {i}" for i in range(300))
+    result = shell.run_powershell(body + "\nWrite-Output $a299")
+    assert result.output == "299"
+
+
 def test_run_powershell_error_becomes_exit_code_1():
     result = shell.run_powershell(r"Get-Item 'C:\khong-co-file-nay-dau'")
     assert result.code == 1

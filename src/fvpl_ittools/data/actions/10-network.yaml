@@ -12,29 +12,20 @@
   apply:
     - powershell: |
         $cs = Get-CimInstance Win32_ComputerSystem
-        # Card thật, hoặc card ảo có gateway (VPN). Bỏ card ảo nội bộ như vEthernet của Hyper-V.
-        $configs = @(Get-NetIPConfiguration | Where-Object {
-            $_.NetAdapter.Status -eq 'Up' -and $_.IPv4Address -and ($_.NetAdapter.HardwareInterface -or $_.IPv4DefaultGateway)
-        })
-        if (-not $configs) {
+        $adapters = @(Get-ActiveAdapters)
+        if (-not $adapters) {
             Write-Bad 'Không có card mạng nào đang kết nối và có địa chỉ IPv4.'
             Exit-Checks
         }
-
-        $gateways = @()
-        foreach ($config in $configs) {
-            $ip = ($config.IPv4Address | ForEach-Object IPAddress) -join ', '
-            $dns = ($config.DNSServer | Where-Object AddressFamily -eq 2 | ForEach-Object ServerAddresses) -join ', '
-            $gw = @($config.IPv4DefaultGateway | ForEach-Object NextHop)
-            Write-Output ('{0} ({1}) | IP {2} | gateway {3} | DNS {4}' -f $config.InterfaceAlias,
-                $config.NetAdapter.InterfaceDescription, $ip, ($gw -join ', '), $dns)
-            if ($ip -like '169.254.*') {
-                Write-Bad "$($config.InterfaceAlias) nhận IP tự cấp 169.254.x.x, tức là không xin được IP từ DHCP."
+        foreach ($adapter in $adapters) {
+            Write-Line ('{0} ({1}) | IP {2} | gateway {3} | DNS {4}' -f $adapter.Name, $adapter.Description,
+                ($adapter.IPv4 -join ', '), ($adapter.Gateway -join ', '), ($adapter.Dns -join ', '))
+            if ($adapter.IPv4 -like '169.254.*') {
+                Write-Bad "$($adapter.Name) nhận IP tự cấp 169.254.x.x, tức là không xin được IP từ DHCP."
             }
-            $gateways += $gw
         }
 
-        $gateways = @($gateways | Where-Object { $_ } | Select-Object -Unique)
+        $gateways = @($adapters | ForEach-Object { $_.Gateway } | Where-Object { $_ } | Select-Object -Unique)
         if (-not $gateways) { Write-Bad 'Không có default gateway nên máy không ra được ngoài mạng nội bộ.' }
         foreach ($gw in $gateways) {
             if (Test-Ping $gw) { Write-Ok "Ping được gateway $gw" }
@@ -42,33 +33,14 @@
         }
 
         if ($cs.PartOfDomain) {
-            $domain = $cs.Domain
-            $srv = @(Resolve-DnsName -Name "_ldap._tcp.dc._msdcs.$domain" -Type SRV -DnsOnly -ErrorAction SilentlyContinue |
-                Where-Object QueryType -eq 'SRV')
-            if (-not $srv) {
-                Write-Bad "DNS không tìm được DC của domain $domain. DNS của máy có thể không trỏ về DC."
-            }
-            else {
-                Write-Ok "DNS tìm được $($srv.Count) DC của domain $domain"
-                $dc = ($srv | Sort-Object Priority, @{ Expression = 'Weight'; Descending = $true } | Select-Object -First 1).NameTarget
-                if (Test-Ping $dc) { Write-Ok "Ping được DC $dc" } else { Write-Warn "Không ping được DC $dc (có thể DC chặn ping)" }
-                # Hashtable thường: [ordered] lấy số làm vị trí chứ không phải khoá.
-                $ports = @{ 53 = 'DNS'; 88 = 'Kerberos'; 389 = 'LDAP'; 445 = 'SMB, ổ mạng và GPO' }
-                foreach ($port in 53, 88, 389, 445) {
-                    if (Test-Port $dc $port) { Write-Ok "DC mở cổng $port ($($ports[$port]))" }
-                    else { Write-Bad "Không kết nối được cổng $port ($($ports[$port])) của DC $dc" }
-                }
-                $offset = Get-NtpOffset $dc
-                if ($null -eq $offset) { Write-Warn "Không hỏi được giờ của DC $dc (cổng UDP 123)" }
-                elseif ([math]::Abs($offset) -gt 300) {
-                    Write-Bad ('Giờ máy lệch {0:N0} giây so với DC. Lệch quá 5 phút thì đăng nhập domain lỗi, chạy mục Đồng bộ giờ.' -f $offset)
-                }
-                elseif ([math]::Abs($offset) -gt 60) { Write-Warn ('Giờ máy lệch {0:N0} giây so với DC' -f $offset) }
-                else { Write-Ok ('Giờ máy khớp DC (lệch {0:N1} giây)' -f $offset) }
+            $servers = @($adapters | ForEach-Object { $_.Dns } | Where-Object { $_ } | Select-Object -Unique)
+            if (Test-DomainDns $cs.Domain $servers) {
+                $dc = Find-DomainController $cs.Domain
+                if ($dc) { Test-DomainController $dc }
             }
         }
         else {
-            Write-Output 'Máy chưa vào domain, bỏ qua phần kiểm tra DC.'
+            Write-Line 'Máy chưa vào domain, bỏ qua phần kiểm tra DC.'
         }
 
         try {
@@ -107,9 +79,7 @@
     card đặt IP tĩnh). Mạng sẽ mất vài giây. Dùng khi máy nhận IP 169.254.x.x hoặc IP sai dải.
   apply:
     - powershell: |
-        $physical = @(Get-NetAdapter -Physical | Where-Object Status -eq 'Up' | ForEach-Object Name)
-        $dhcp = @(Get-NetIPInterface -AddressFamily IPv4 -Dhcp Enabled -ErrorAction SilentlyContinue |
-            Where-Object { $physical -contains $_.InterfaceAlias } | ForEach-Object InterfaceAlias)
+        $dhcp = @(Get-ActiveAdapters | Where-Object { $_.Physical -and $_.Dhcp } | ForEach-Object Name)
         if (-not $dhcp) {
             Write-Output 'Không có card mạng đang kết nối nào dùng DHCP (máy đặt IP tĩnh?), không cần xin lại IP.'
             exit 0
@@ -169,13 +139,30 @@
     khoảng 5–10 giây, Wi-Fi tự kết nối lại. Dùng khi card mạng "Connected" mà không vào được mạng.
   apply:
     - powershell: |
-        $adapters = @(Get-NetAdapter -Physical | Where-Object Status -ne 'Disabled')
+        # Card thật đang bật (kể cả chưa cắm dây). Dùng WMI thay cho Restart-NetAdapter vì module đó nạp rất chậm.
+        $adapters = @(Get-CimInstance Win32_NetworkAdapter -Filter 'NetEnabled = True' |
+            Where-Object { $_.PhysicalAdapter -and $_.PNPDeviceID -notmatch '^(ROOT|SWD)\\' })
         if (-not $adapters) { Write-Output 'Không có card mạng nào đang bật.'; exit 0 }
+        $failed = 0
         foreach ($adapter in $adapters) {
-            Write-Output "Khởi động lại $($adapter.Name) ($($adapter.InterfaceDescription))…"
-            Restart-NetAdapter -InputObject $adapter -Confirm:$false
+            Write-Output "Khởi động lại $($adapter.NetConnectionID) ($($adapter.Name))…"
+            $off = Invoke-CimMethod -InputObject $adapter -MethodName Disable
+            Start-Sleep -Seconds 2
+            # Bật lại, thử tối đa 3 lần: card tắt mà không bật lại được thì máy mất mạng.
+            for ($try = 1; $try -le 3; $try++) {
+                $on = Invoke-CimMethod -InputObject $adapter -MethodName Enable
+                if ($on.ReturnValue -eq 0) { break }
+                Start-Sleep -Seconds 2
+            }
+            if ($off.ReturnValue -ne 0 -or $on.ReturnValue -ne 0) {
+                Write-Output "⚠ $($adapter.NetConnectionID): tắt trả mã $($off.ReturnValue), bật trả mã $($on.ReturnValue)"
+                $failed++
+            }
         }
+        if ($failed) { exit 2 }
       timeout: 120
+      messages:
+        2: Có card mạng không khởi động lại được, kiểm tra trong Network Connections
 
 - id: net.reset_winsock
   name: Reset Winsock và TCP/IP

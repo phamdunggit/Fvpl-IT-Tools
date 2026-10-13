@@ -7,7 +7,6 @@ và `cancel` để huỷ giữa chừng.
 from __future__ import annotations
 
 import logging
-import re
 import subprocess
 import threading
 import time
@@ -27,7 +26,7 @@ from ..actions.model import (
     ServiceStep,
     Step,
 )
-from . import paths, registry, safety, shell
+from . import paths, pslib, registry, safety, shell
 from .journal import JournalEntry, RegChange, UndoJournal
 from .log import forget_secret, mask, register_secret
 from .session import UserIdentity
@@ -205,54 +204,9 @@ def _used_variables(script: str, env: Env) -> dict[str, str]:
     return {name: value for name, value in ps_variables(env).items() if f"${name.lower()}" in lowered}
 
 
-# Hàm dựng sẵn cho script chẩn đoán. Chỉ được thêm vào script nào có gọi tới (xem docs/ACTIONS.md).
-PS_CHECK_HELPERS = """\
-$Checks = @{ Failed = 0 }
-function Write-Ok([string]$Text) { Write-Output "✔ $Text" }
-function Write-Bad([string]$Text) { Write-Output "✖ $Text"; $Checks.Failed++ }
-function Write-Warn([string]$Text) { Write-Output "⚠ $Text" }
-function Exit-Checks { if ($Checks.Failed) { exit 2 } }
-function Test-Ping([string]$Target, [int]$Timeout = 1500) {
-    try { return (New-Object System.Net.NetworkInformation.Ping).Send($Target, $Timeout).Status -eq 'Success' }
-    catch { return $false }
-}
-function Test-Port([string]$Target, [int]$Port, [int]$Timeout = 2000) {
-    $client = New-Object System.Net.Sockets.TcpClient
-    try { return $client.ConnectAsync($Target, $Port).Wait($Timeout) -and $client.Connected }
-    catch { return $false }
-    finally { $client.Close() }
-}
-function Get-NtpOffset([string]$Server, [int]$Timeout = 2000) {
-    # Số giây giờ máy này lệch so với $Server (dương = máy này chậm hơn), hoặc $null nếu không hỏi được.
-    $udp = New-Object System.Net.Sockets.UdpClient
-    try {
-        $udp.Client.ReceiveTimeout = $Timeout
-        $udp.Connect($Server, 123)
-        $request = New-Object byte[] 48
-        $request[0] = 0x1B
-        $sent = [DateTime]::UtcNow
-        [void]$udp.Send($request, 48)
-        $remote = New-Object System.Net.IPEndPoint([System.Net.IPAddress]::Any, 0)
-        $reply = $udp.Receive([ref]$remote)
-        $received = [DateTime]::UtcNow
-        $seconds = [BitConverter]::ToUInt32([byte[]]($reply[43], $reply[42], $reply[41], $reply[40]), 0)
-        $fraction = [BitConverter]::ToUInt32([byte[]]($reply[47], $reply[46], $reply[45], $reply[44]), 0)
-        $serverTime = (New-Object DateTime(1900, 1, 1, 0, 0, 0, [DateTimeKind]::Utc)).AddSeconds($seconds + $fraction / 4294967296.0)
-        $localTime = $sent.AddTicks(($received - $sent).Ticks / 2)
-        return ($serverTime - $localTime).TotalSeconds
-    }
-    catch { return $null }
-    finally { $udp.Close() }
-}
-"""
-_PS_HELPER_NAMES = re.compile(r"\b(Write-Ok|Write-Bad|Write-Warn|Exit-Checks|Test-Ping|Test-Port|Get-NtpOffset)\b", re.I)
-
-
 def ps_script_for(step: PowerShellStep) -> str:
     """Script thật sẽ chạy: thêm hàm dựng sẵn nếu script có dùng."""
-    if _PS_HELPER_NAMES.search(step.script):
-        return PS_CHECK_HELPERS + step.script
-    return step.script
+    return pslib.with_helpers(step.script)
 
 
 def describe_step(step: Step, env: Env, full: bool = False) -> str:

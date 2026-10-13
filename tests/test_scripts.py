@@ -10,7 +10,7 @@ import json
 
 from fvpl_ittools.actions import loader
 from fvpl_ittools.actions.model import PowerShellStep
-from fvpl_ittools.core import executor, safety, shell
+from fvpl_ittools.core import executor, inventory, pslib, safety, shell
 
 _PARSE = """\
 $items = Get-Content -LiteralPath $ScriptsFile -Raw -Encoding UTF8 | ConvertFrom-Json
@@ -50,8 +50,8 @@ def _internal_scripts() -> list[dict]:
             executor._ICON_CACHE_BEFORE, executor._ICON_CACHE_WHILE_STOPPED)},
         {"name": "start_explorer_as_user", "script": executor._START_EXPLORER_AS_USER},
         {"name": "restore_point", "script": safety._RESTORE_POINT_SCRIPT.replace("__DESC__", "'x'")},
-        {"name": "check_helpers", "script": executor.PS_CHECK_HELPERS},
-    ]
+        {"name": "check_helpers", "script": pslib.CHECK_HELPERS},
+    ] + [{"name": f"inventory {part}", "script": inventory.part_script(part)} for part in inventory.PARTS]
 
 
 def test_every_powershell_script_parses(env, tmp_path):

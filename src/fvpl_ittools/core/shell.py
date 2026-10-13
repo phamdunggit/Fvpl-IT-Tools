@@ -280,6 +280,21 @@ def build_powershell_script(
     )
 
 
+def _encode(script: str) -> str:
+    return base64.b64encode(script.encode("utf-16-le")).decode("ascii")
+
+
+def compact_powershell(script: str) -> str:
+    """Bỏ dòng trống, dòng chú thích '#' và thụt đầu dòng, để script dài vừa giới hạn dòng lệnh.
+
+    Không dùng được cho script có here-string (@' '@) vì nội dung bên trong sẽ bị đổi.
+    """
+    if "@'" in script or '@"' in script:
+        return script
+    lines = (line.strip() for line in script.splitlines())
+    return "\n".join(line for line in lines if line and not line.startswith("#"))
+
+
 def run_powershell(
     script: str,
     *,
@@ -289,17 +304,22 @@ def run_powershell(
 ) -> ShellResult:
     """Chạy script bằng Windows PowerShell 5.1 có sẵn trên mọi máy Win10/11.
 
-    Script truyền bằng -EncodedCommand nên không bị Execution Policy (kể cả do GPO đặt) chặn.
+    Script được mã hoá base64 và truyền qua -Command kèm đoạn mồi tự giải mã, nên không bị Execution
+    Policy (kể cả do GPO đặt) chặn. Không dùng -EncodedCommand: với cờ đó PowerShell ghi cảnh báo,
+    Write-Host, verbose ra stderr dạng CLIXML thay vì chữ thường.
     Tài khoản (nếu có) đi qua stdin, không nằm trên dòng lệnh, nên không lộ trong danh sách tiến trình.
     Trong script dùng biến $Credential. `variables` đặt sẵn các biến chuỗi khác cho script.
     """
-    wrapped = build_powershell_script(script, with_credential=credential is not None, variables=variables)
-    encoded = base64.b64encode(wrapped.encode("utf-16-le")).decode("ascii")
+    encoded = _encode(build_powershell_script(script, with_credential=credential is not None, variables=variables))
+    if len(encoded) > MAX_COMMAND_LINE:
+        compact = compact_powershell(script)
+        encoded = _encode(build_powershell_script(compact, with_credential=credential is not None, variables=variables))
     if len(encoded) > MAX_COMMAND_LINE:
         raise ValueError("Script PowerShell quá dài để truyền qua dòng lệnh, hãy tách nhỏ.")
+    bootstrap = f"& ([ScriptBlock]::Create([Text.Encoding]::Unicode.GetString([Convert]::FromBase64String('{encoded}'))))"
     argv = [
         powershell_exe(), "-NoLogo", "-NoProfile", "-NonInteractive",
-        "-ExecutionPolicy", "Bypass", "-EncodedCommand", encoded,
+        "-ExecutionPolicy", "Bypass", "-Command", bootstrap,
     ]
     stdin_data = None
     if credential is not None:

@@ -7,6 +7,7 @@ import json
 import logging
 import os
 import sys
+import time
 import traceback
 from pathlib import Path
 
@@ -61,6 +62,11 @@ def _selftest(window, app_ctx, out_dir: Path) -> int:
 
     out_dir.mkdir(parents=True, exist_ok=True)
     window.show()
+    # Chờ trang Tổng quan đọc xong: kiểm tra luôn các script PowerShell đã được đóng gói đủ.
+    deadline = time.monotonic() + 120
+    while window.overview.loading and time.monotonic() < deadline:
+        QApplication.processEvents()
+        time.sleep(0.05)
     shots = []
     for row in range(window.sidebar.count()):
         window.sidebar.setCurrentRow(row)
@@ -72,13 +78,18 @@ def _selftest(window, app_ctx, out_dir: Path) -> int:
         "version": __version__,
         "frozen": bool(getattr(sys, "frozen", False)),
         "actions": [action.id for action in app_ctx.actions],
+        "packs": [pack.id for pack in app_ctx.packs],
         "load_errors": app_ctx.load_errors,
         "computer": app_ctx.machine.computer_name,
         "is_admin": app_ctx.env.is_admin,
+        "overview_loaded": not window.overview.loading,
+        "overview_errors": window.overview.failed,
         "screenshots": shots,
     }
     (out_dir / "selftest.json").write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
-    return 0 if app_ctx.actions and not app_ctx.load_errors else 1
+    window.overview.stop()
+    ok = app_ctx.actions and not app_ctx.load_errors and not window.overview.loading and not window.overview.failed
+    return 0 if ok else 1
 
 
 def main(argv: list[str] | None = None) -> int:

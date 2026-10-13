@@ -48,6 +48,9 @@ class HeaderBar(QFrame):
         layout.addStretch(1)
 
         machine, env = app.machine, app.env
+        self.alerts = QHBoxLayout()
+        self.alerts.setSpacing(8)
+        layout.addLayout(self.alerts)
         layout.addWidget(chip(machine.computer_name))
         layout.addWidget(chip(machine.domain_label, "normal" if machine.joined_domain else "warn"))
         layout.addWidget(chip(f"{machine.os_name} {machine.display_version}".strip()))
@@ -55,11 +58,20 @@ class HeaderBar(QFrame):
             layout.addWidget(chip(f"Chạy bằng {env.process_user.name} · áp cho {env.target_user.short_name}", "warn"))
         layout.addWidget(chip("Admin ✔", "ok") if env.is_admin else chip("Không có quyền admin", "bad"))
 
+    def set_alerts(self, texts: list[str]) -> None:
+        """Cảnh báo phát hiện sau khi đọc thông tin máy, ví dụ DNS không trỏ về DC."""
+        while self.alerts.count():
+            widget = self.alerts.takeAt(0).widget()
+            if widget is not None:
+                widget.deleteLater()
+        for text in texts:
+            self.alerts.addWidget(chip(f"⚠ {text}", "warn"))
+
 
 # (tên trên sidebar, hàm tạo trang)
 def _pages(app: AppContext, controller: RunController) -> list[tuple[str, QWidget]]:
     return [
-        ("Tổng quan", OverviewPage(app)),
+        ("Tổng quan", OverviewPage(app, controller)),
         ("Cài máy mới", PlaceholderPage(
             "Cài máy mới", "Wizard đổi tên, join domain, cài phần mềm và cấu hình chuẩn cho máy mới.", "GĐ2",
             ["Kiểm tra trước: DNS trỏ về DC, giờ lệch, vào được share, winget",
@@ -111,7 +123,8 @@ class MainWindow(QMainWindow):
         outer = QVBoxLayout(central)
         outer.setContentsMargins(0, 0, 0, 0)
         outer.setSpacing(0)
-        outer.addWidget(HeaderBar(app))
+        self.header = HeaderBar(app)
+        outer.addWidget(self.header)
 
         body = QHBoxLayout()
         body.setContentsMargins(0, 0, 0, 0)
@@ -127,6 +140,9 @@ class MainWindow(QMainWindow):
             item.setSizeHint(QSize(0, 38))
             self.sidebar.addItem(item)
             self.stack.addWidget(page)
+            if isinstance(page, OverviewPage):
+                self.overview = page
+        self.overview.alerts_changed.connect(self.header.set_alerts)
 
         self.log_panel = LogPanel()
         splitter = QSplitter(Qt.Orientation.Vertical)
@@ -190,4 +206,5 @@ class MainWindow(QMainWindow):
                 return
             self.controller.cancel()
             self.controller.wait(10)
+        self.overview.stop()
         event.accept()

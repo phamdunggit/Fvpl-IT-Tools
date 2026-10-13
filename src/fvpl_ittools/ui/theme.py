@@ -52,6 +52,12 @@ QPushButton#PackButton:hover { background: #dbe9fb; }
 #SectionLabel { color: #52606d; font-weight: 600; }
 #Note { color: #b45309; }
 #FormKey { color: #52606d; }
+#CardTitle { font-size: 11pt; font-weight: 600; color: #102a43; }
+QLabel[state="ok"] { color: #15803d; }
+QLabel[state="warn"] { color: #b45309; }
+QLabel[state="bad"] { color: #b91c1c; font-weight: 600; }
+QLabel[state="muted"] { color: #7b8794; }
+#InfoView { background: #f4f6f8; border: none; }
 
 QPushButton { padding: 6px 14px; border: 1px solid #c5cfda; border-radius: 6px; background: #ffffff; }
 QPushButton:hover { background: #f0f5fb; }
