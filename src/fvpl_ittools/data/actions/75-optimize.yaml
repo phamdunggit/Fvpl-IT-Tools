@@ -1,0 +1,270 @@
+# Tối ưu, quảng cáo, quyền riêng tư, nguồn điện, gỡ app cài sẵn (trang Tối ưu & dọn dẹp).
+# Cách khai báo: xem docs/ACTIONS.md.
+#
+# Một số mục ghi vào nhánh Policies. Nếu công ty đã đặt cùng thiết lập bằng GPO thì GPO thắng ở lần gpupdate
+# sau; những thiết lập dùng chung cho cả công ty nên đặt bằng GPO (PLAN.md mục 5.4).
+
+# ---------------------------------------------------------------- quảng cáo và gợi ý
+
+- id: opt.disable_ads
+  name: Tắt quảng cáo và gợi ý của Windows
+  category: Quảng cáo và gợi ý
+  page: optimize
+  risk: safe
+  scope: user
+  admin: false
+  description: >
+    Cho người đang đăng nhập: không tự cài app "gợi ý" (game, Spotify...), không hiện gợi ý trong Start, Settings,
+    màn hình khoá, không hiện quảng cáo OneDrive trong Explorer, không nhắc "Hoàn tất cài đặt thiết bị".
+  check:
+    registry: { key: 'HKCU\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager', name: SilentInstalledAppsEnabled, on_value: 0 }
+  apply:
+    - registry: { key: 'HKCU\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager', name: SilentInstalledAppsEnabled, type: DWORD, value: 0 }
+    - registry: { key: 'HKCU\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager', name: SystemPaneSuggestionsEnabled, type: DWORD, value: 0 }
+    - registry: { key: 'HKCU\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager', name: SoftLandingEnabled, type: DWORD, value: 0 }
+    - registry: { key: 'HKCU\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager', name: RotatingLockScreenOverlayEnabled, type: DWORD, value: 0 }
+    - registry: { key: 'HKCU\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager', name: SubscribedContent-310093Enabled, type: DWORD, value: 0 }
+    - registry: { key: 'HKCU\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager', name: SubscribedContent-338387Enabled, type: DWORD, value: 0 }
+    - registry: { key: 'HKCU\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager', name: SubscribedContent-338388Enabled, type: DWORD, value: 0 }
+    - registry: { key: 'HKCU\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager', name: SubscribedContent-338389Enabled, type: DWORD, value: 0 }
+    - registry: { key: 'HKCU\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager', name: SubscribedContent-353694Enabled, type: DWORD, value: 0 }
+    - registry: { key: 'HKCU\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager', name: SubscribedContent-353696Enabled, type: DWORD, value: 0 }
+    - registry: { key: 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced', name: ShowSyncProviderNotifications, type: DWORD, value: 0 }
+    - registry: { key: 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced', name: Start_IrisRecommendations, type: DWORD, value: 0 }
+    - registry: { key: 'HKCU\Software\Microsoft\Windows\CurrentVersion\UserProfileEngagement', name: ScoobeSystemSettingEnabled, type: DWORD, value: 0 }
+  undo: auto
+
+- id: opt.disable_bing_search
+  name: Tắt kết quả Bing khi tìm trong Start
+  category: Quảng cáo và gợi ý
+  page: optimize
+  risk: safe
+  scope: user
+  admin: false
+  description: >
+    Ô tìm kiếm của Start chỉ tìm file, ứng dụng, cài đặt trên máy, không gửi từ khoá lên Bing và không hiện kết
+    quả web. Tìm cũng nhanh hơn. Áp cho người đang đăng nhập; Explorer sẽ được khởi động lại.
+  check:
+    registry: { key: 'HKCU\Software\Policies\Microsoft\Windows\Explorer', name: DisableSearchBoxSuggestions, on_value: 1 }
+  apply:
+    - registry: { key: 'HKCU\Software\Policies\Microsoft\Windows\Explorer', name: DisableSearchBoxSuggestions, type: DWORD, value: 1 }
+    - registry: { key: 'HKCU\Software\Microsoft\Windows\CurrentVersion\Search', name: BingSearchEnabled, type: DWORD, value: 0 }
+  undo: auto
+  after: [restart_explorer]
+
+- id: opt.disable_widgets
+  name: Tắt Widgets / tin tức trên taskbar
+  category: Quảng cáo và gợi ý
+  page: optimize
+  risk: safe
+  description: >
+    Tắt Widgets (Win11) và "News and interests" (Win10) cho cả máy: bỏ thời tiết, tin tức, quảng cáo trên
+    taskbar. Explorer sẽ được khởi động lại.
+  check:
+    registry: { key: 'HKLM\SOFTWARE\Policies\Microsoft\Dsh', name: AllowNewsAndInterests, on_value: 0 }
+  apply:
+    - registry: { key: 'HKLM\SOFTWARE\Policies\Microsoft\Dsh', name: AllowNewsAndInterests, type: DWORD, value: 0 }
+    - registry: { key: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Feeds', name: EnableFeeds, type: DWORD, value: 0 }
+  undo: auto
+  after: [restart_explorer]
+
+- id: opt.disable_copilot
+  name: Tắt nút và thanh Copilot
+  category: Quảng cáo và gợi ý
+  page: optimize
+  risk: safe
+  scope: user
+  admin: false
+  description: >
+    Tắt thanh bên Copilot và nút Copilot trên taskbar của người đang đăng nhập. Bản Copilot dạng ứng dụng (mới)
+    thì gỡ bằng mục "Gỡ app cài sẵn". Explorer sẽ được khởi động lại.
+  check:
+    registry: { key: 'HKCU\Software\Policies\Microsoft\Windows\WindowsCopilot', name: TurnOffWindowsCopilot, on_value: 1 }
+  apply:
+    - registry: { key: 'HKCU\Software\Policies\Microsoft\Windows\WindowsCopilot', name: TurnOffWindowsCopilot, type: DWORD, value: 1 }
+    - registry: { key: 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced', name: ShowCopilotButton, type: DWORD, value: 0 }
+  undo: auto
+  after: [restart_explorer]
+
+# ---------------------------------------------------------------- quyền riêng tư
+
+- id: opt.telemetry_min
+  name: Giảm dữ liệu chẩn đoán gửi Microsoft về mức tối thiểu
+  category: Quyền riêng tư
+  page: optimize
+  risk: safe
+  description: >
+    Đặt dữ liệu chẩn đoán ở mức "Required" (mức thấp nhất bản Pro cho phép; mức tắt hẳn chỉ có trên bản
+    Enterprise/Education). Không ảnh hưởng Windows Update.
+  check:
+    registry: { key: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\DataCollection', name: AllowTelemetry, on_value: 1 }
+  apply:
+    - registry: { key: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\DataCollection', name: AllowTelemetry, type: DWORD, value: 1 }
+  undo: auto
+
+- id: opt.privacy_user
+  name: Tắt ID quảng cáo và quảng cáo theo dữ liệu
+  category: Quyền riêng tư
+  page: optimize
+  risk: safe
+  scope: user
+  admin: false
+  description: >
+    Cho người đang đăng nhập: tắt ID quảng cáo (ứng dụng dùng để hiện quảng cáo theo người), tắt "trải nghiệm
+    theo dữ liệu chẩn đoán", không cho web đọc danh sách ngôn ngữ để chọn nội dung.
+  check:
+    registry: { key: 'HKCU\Software\Microsoft\Windows\CurrentVersion\AdvertisingInfo', name: Enabled, on_value: 0 }
+  apply:
+    - registry: { key: 'HKCU\Software\Microsoft\Windows\CurrentVersion\AdvertisingInfo', name: Enabled, type: DWORD, value: 0 }
+    - registry: { key: 'HKCU\Software\Microsoft\Windows\CurrentVersion\Privacy', name: TailoredExperiencesWithDiagnosticDataEnabled, type: DWORD, value: 0 }
+    - registry: { key: 'HKCU\Control Panel\International\User Profile', name: HttpAcceptLanguageOptOut, type: DWORD, value: 1 }
+  undo: auto
+
+# ---------------------------------------------------------------- nguồn điện
+
+- id: opt.power_high_performance
+  name: Power plan High performance (máy bàn)
+  category: Nguồn điện
+  page: optimize
+  risk: safe
+  description: >
+    Chuyển sang power plan High performance: CPU không hạ xung, ổ đĩa không tắt, phản hồi nhanh hơn. Dành cho máy
+    bàn; laptop sẽ tốn pin. Máy giấu plan này (laptop Modern Standby) thì tool tạo lại. Hoàn tác về Balanced.
+  check:
+    registry: { key: 'HKLM\SYSTEM\CurrentControlSet\Control\Power\User\PowerSchemes', name: ActivePowerScheme, on_value: 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c }
+  gpo:
+    - { key: 'HKLM\SOFTWARE\Policies\Microsoft\Power\PowerSettings', name: ActivePowerScheme }
+  apply:
+    - powershell: |
+        $high = '8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c'
+        powercfg /query $high | Out-Null
+        if ($LASTEXITCODE) {
+            Write-Output 'Máy đang giấu plan High performance, tạo lại…'
+            powercfg /duplicatescheme $high $high | Out-Null
+        }
+        powercfg /setactive $high
+  undo:
+    - cmd: powercfg /setactive 381b4222-f694-41f0-9685-ff5bb260df2e
+
+- id: opt.disable_hibernation
+  name: Tắt ngủ đông (máy bàn)
+  category: Nguồn điện
+  page: optimize
+  risk: caution
+  description: >
+    Tắt hibernation và xoá file hiberfil.sys (thường bằng 40% dung lượng RAM) trên ổ hệ thống. Fast Startup cũng
+    tắt theo. Chỉ dùng cho máy bàn: laptop hết pin khi đang ngủ sẽ mất bài chưa lưu.
+  check:
+    registry: { key: 'HKLM\SYSTEM\CurrentControlSet\Control\Power', name: HibernateEnabled, on_value: 0 }
+  apply:
+    - cmd: powercfg /hibernate off
+  undo:
+    - cmd: powercfg /hibernate on
+
+- id: opt.usb_selective_suspend_off
+  name: Tắt USB selective suspend khi cắm điện
+  category: Nguồn điện
+  page: optimize
+  risk: safe
+  description: >
+    Windows không tự ngắt điện cổng USB khi rảnh (áp cho power plan đang dùng, lúc cắm điện). Sửa lỗi đầu đọc vân
+    tay, token chữ ký số, máy quét, chuột không dây lâu lâu mất kết nối trên máy bàn.
+  apply:
+    - cmd: powercfg /setacvalueindex SCHEME_CURRENT 2a737441-1930-4402-8d77-b2bebba308a3 48e6b7a6-50f5-4782-a5d4-53bb8f07e226 0
+    - cmd: powercfg /setactive SCHEME_CURRENT
+  undo:
+    - cmd: powercfg /setacvalueindex SCHEME_CURRENT 2a737441-1930-4402-8d77-b2bebba308a3 48e6b7a6-50f5-4782-a5d4-53bb8f07e226 1
+    - cmd: powercfg /setactive SCHEME_CURRENT
+
+# ---------------------------------------------------------------- gỡ app cài sẵn
+# Hai mục dưới dùng chung một danh sách. Sửa danh sách thì sửa ở cả hai.
+# Giữ lại: Calculator, Photos, Snipping Tool, Store, Media Player (Microsoft.ZuneMusic), Quick Assist, Notepad,
+# Paint, Terminal, Phone Link, Mail/Outlook, To Do, Teams cho công việc (MSTeams), WhatsApp.
+
+- id: opt.list_bloat_apps
+  name: Liệt kê app cài sẵn có thể gỡ
+  category: Gỡ app cài sẵn
+  page: optimize
+  risk: safe
+  admin: false
+  description: >
+    Chỉ xem: app nào trong danh sách "Gỡ app cài sẵn không cần cho máy công ty" đang có trên máy (cho mọi tài
+    khoản nếu có quyền admin) và app nào đang được cài sẵn cho tài khoản mới.
+  apply:
+    - powershell: |
+        $names = @(
+            'Microsoft.BingNews', 'Microsoft.BingSearch', 'Microsoft.GamingApp', 'Microsoft.XboxApp',
+            'Microsoft.Xbox.TCUI', 'Microsoft.XboxGameOverlay', 'Microsoft.XboxGamingOverlay', 'Microsoft.XboxSpeechToTextOverlay',
+            'Microsoft.MicrosoftSolitaireCollection', 'Clipchamp.Clipchamp', 'Microsoft.ZuneVideo', 'Microsoft.WindowsFeedbackHub',
+            'Microsoft.GetHelp', 'Microsoft.Getstarted', 'Microsoft.MicrosoftOfficeHub', 'Microsoft.People', 'Microsoft.WindowsMaps',
+            'Microsoft.MixedReality.Portal', 'Microsoft.Microsoft3DViewer', 'Microsoft.MSPaint', 'Microsoft.SkypeApp',
+            'MicrosoftTeams', 'MicrosoftCorporationII.MicrosoftFamily', 'Microsoft.549981C3F5F10', 'Microsoft.Windows.DevHome',
+            'Microsoft.Copilot', 'king.com.*', 'SpotifyAB.SpotifyMusic', 'Disney.*', 'AmazonVideo.PrimeVideo', 'Facebook.*',
+            '*.TikTok'
+        )
+        $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole(
+            [Security.Principal.WindowsBuiltInRole]::Administrator)
+        # Gọi Get-AppxPackage một lần rồi lọc: gọi theo từng tên thì mất gần 1 phút.
+        $all = if ($isAdmin) { @(Get-AppxPackage -AllUsers) } else { @(Get-AppxPackage) }
+        $found = 0
+        foreach ($name in $names) {
+            foreach ($package in @($all | Where-Object Name -like $name)) {
+                Write-Output "• $($package.Name) $($package.Version)"
+                $found++
+            }
+        }
+        Write-Output "Có $found gói trong danh sách đang cài$(if (-not $isAdmin) { ' (chỉ xem được của tài khoản đang chạy tool)' })."
+        if ($isAdmin) {
+            $provisioned = @(Get-AppxProvisionedPackage -Online | Where-Object {
+                $display = $_.DisplayName; @($names | Where-Object { $display -like $_ }).Count })
+            foreach ($item in $provisioned) { Write-Output "Cài sẵn cho tài khoản mới: $($item.DisplayName)" }
+        }
+      timeout: 300
+
+- id: opt.remove_bloat_apps
+  name: Gỡ app cài sẵn không cần cho máy công ty
+  category: Gỡ app cài sẵn
+  page: optimize
+  risk: caution
+  description: >
+    Gỡ cho mọi tài khoản và bỏ khỏi danh sách cài sẵn cho tài khoản mới: Xbox và game, Solitaire, Clipchamp,
+    Bing News, Phim & TV, Feedback Hub, Get Help, Tips, Office Hub, People, Maps, Mixed Reality, 3D Viewer,
+    Paint 3D, Skype, Teams cá nhân, Family, Cortana, Dev Home, Copilot, và app quảng cáo tự cài (Candy Crush,
+    Spotify, Disney+, Prime Video, Facebook, TikTok). Giữ: Calculator, Photos, Snipping Tool, Store, Media Player,
+    Quick Assist, Notepad, Paint, Terminal, Phone Link, Outlook, To Do, Teams công việc. Muốn lấy lại thì cài từ
+    Microsoft Store. Chạy "Liệt kê app cài sẵn có thể gỡ" trước để xem.
+  apply:
+    - powershell: |
+        $names = @(
+            'Microsoft.BingNews', 'Microsoft.BingSearch', 'Microsoft.GamingApp', 'Microsoft.XboxApp',
+            'Microsoft.Xbox.TCUI', 'Microsoft.XboxGameOverlay', 'Microsoft.XboxGamingOverlay', 'Microsoft.XboxSpeechToTextOverlay',
+            'Microsoft.MicrosoftSolitaireCollection', 'Clipchamp.Clipchamp', 'Microsoft.ZuneVideo', 'Microsoft.WindowsFeedbackHub',
+            'Microsoft.GetHelp', 'Microsoft.Getstarted', 'Microsoft.MicrosoftOfficeHub', 'Microsoft.People', 'Microsoft.WindowsMaps',
+            'Microsoft.MixedReality.Portal', 'Microsoft.Microsoft3DViewer', 'Microsoft.MSPaint', 'Microsoft.SkypeApp',
+            'MicrosoftTeams', 'MicrosoftCorporationII.MicrosoftFamily', 'Microsoft.549981C3F5F10', 'Microsoft.Windows.DevHome',
+            'Microsoft.Copilot', 'king.com.*', 'SpotifyAB.SpotifyMusic', 'Disney.*', 'AmazonVideo.PrimeVideo', 'Facebook.*',
+            '*.TikTok'
+        )
+        $removed = 0
+        $failed = 0
+        $all = @(Get-AppxPackage -AllUsers)  # một lần rồi lọc, gọi theo từng tên rất chậm
+        foreach ($name in $names) {
+            foreach ($package in @($all | Where-Object Name -like $name)) {
+                Write-Output "Gỡ $($package.Name) $($package.Version)…"
+                try { Remove-AppxPackage -Package $package.PackageFullName -AllUsers -ErrorAction Stop; $removed++ }
+                catch { Write-Output "⚠ Không gỡ được $($package.Name): $($_.Exception.Message)"; $failed++ }
+            }
+        }
+        $provisioned = @(Get-AppxProvisionedPackage -Online | Where-Object {
+            $display = $_.DisplayName; @($names | Where-Object { $display -like $_ }).Count })
+        foreach ($item in $provisioned) {
+            Write-Output "Bỏ cài sẵn cho tài khoản mới: $($item.DisplayName)…"
+            try { Remove-AppxProvisionedPackage -Online -PackageName $item.PackageName -ErrorAction Stop | Out-Null }
+            catch { Write-Output "⚠ Không bỏ được $($item.DisplayName): $($_.Exception.Message)"; $failed++ }
+        }
+        Write-Output "Đã gỡ $removed gói, bỏ cài sẵn $($provisioned.Count) gói, $failed lỗi."
+        if ($failed) { exit 2 }
+      timeout: 1800
+      messages:
+        2: Có gói không gỡ được (xem các dòng ⚠ ở trên), các gói khác đã gỡ xong
+  undo: none

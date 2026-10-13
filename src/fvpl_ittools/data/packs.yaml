@@ -40,6 +40,16 @@
   actions: [cfg.timezone_vn, cfg.disable_fast_startup, ui.show_file_ext, cfg.this_pc_desktop, cfg.netfx3,
             cfg.system_protection]
 
+- id: pack.optimize_company
+  name: Tắt quảng cáo và theo dõi
+  page: optimize
+  stop_on_error: false
+  description: >
+    Tắt quảng cáo và gợi ý, kết quả Bing trong Start, Widgets, Copilot, ID quảng cáo, giảm dữ liệu chẩn đoán.
+    Đều hoàn tác được ở trang Nhật ký. Không gỡ app.
+  actions: [opt.disable_ads, opt.disable_bing_search, opt.disable_widgets, opt.disable_copilot, opt.privacy_user,
+            opt.telemetry_min]
+
 - id: pack.domain
   name: Sửa domain
   description: >

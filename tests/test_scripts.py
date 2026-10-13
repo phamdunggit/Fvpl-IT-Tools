@@ -67,6 +67,17 @@ def test_every_powershell_script_parses(env, tmp_path):
     assert problems == [], "\n".join(f"{p['name']} dòng {p['line']}: {p['message']}" for p in problems)
 
 
+def test_bloat_app_lists_match():
+    """Mục liệt kê và mục gỡ app cài sẵn phải dùng đúng một danh sách."""
+    actions = {action.id: action for action in loader.load_builtin_actions()[0]}
+
+    def names(action_id):
+        script = actions[action_id].apply[0].script
+        return script[script.index("$names = @("):script.index(")\n")]
+
+    assert names("opt.list_bloat_apps") == names("opt.remove_bloat_apps")
+
+
 def test_bundled_actions_have_descriptions_and_explain_risky_steps():
     actions, _ = loader.load_builtin_actions()
     for action in actions:
