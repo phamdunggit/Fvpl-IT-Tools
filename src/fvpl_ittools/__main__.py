@@ -68,6 +68,8 @@ def _selftest(window, app_ctx, out_dir: Path) -> int:
         while getattr(page, "loading", False) and time.monotonic() < deadline:
             QApplication.processEvents()
             time.sleep(0.05)
+        for _ in range(5):  # widget vừa tạo khi đọc xong (ví dụ thẻ chọn Office) cần vài lượt để dàn trang
+            QApplication.processEvents()
 
     out_dir.mkdir(parents=True, exist_ok=True)
     window.show()

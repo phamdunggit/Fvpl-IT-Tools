@@ -576,7 +576,14 @@ def test_newpc_wizard_flow(window, qt_app, monkeypatch, tmp_path):
     # Bước 5, 6, 7.
     page.run_config()
     assert runs[-1][1] == {"stop_on_error": False} and "cfg.region_vn" in [a.id for a in runs[-1][0]]
+    assert page.right.currentWidget() is page.progress and page.progress.title.text() == ""  # chờ lượt chạy
+    from fvpl_ittools.core import progress
+    window.controller.progress.emit(progress.BatchStarted(99, tuple(progress.PlanItem(a.id, a.name) for a in runs[-1][0])))
+    assert page.progress.title.text() == "Cấu hình chuẩn" and len(page.progress.rows) == len(runs[-1][0])
     _finish_batch(window, runs[-1][0], Status.OK)
+    assert page.right.currentWidget() is page.progress  # kết quả vẫn hiện dù bước đã chuyển sang bước 6
+    page.progress.dismissed.emit()
+    assert page.right.currentWidget() is page.stack and page.stack.currentIndex() == 6
     page.record("update", "skipped", "IT bỏ qua")
     jobs = []
     monkeypatch.setattr(window.controller, "run_job", jobs.append)

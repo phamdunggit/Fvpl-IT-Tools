@@ -139,6 +139,8 @@ QProgressBar::chunk { background: #2563eb; border-radius: 4px; }
 #ProgressReason { color: #52606d; font-size: 9pt; }
 #ResultBox { border-radius: 6px; padding: 10px 12px; background: #dcfce7; color: #166534; }
 #ResultBox[kind="warn"] { background: #fef3c7; color: #92400e; }
+#PageScroll { background: transparent; }
+#PageScroll > QWidget > QWidget { background: transparent; }
 #BottomBar { background: #ffffff; border-top: 1px solid #dde3ea; }
 #BottomSummary { font-weight: 600; color: #102a43; }
 #LogPanel #LogProgress { color: #e2e8f0; font-weight: 400; }

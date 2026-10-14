@@ -16,12 +16,14 @@ from PySide6.QtGui import QBrush, QColor, QFont
 from PySide6.QtWidgets import (
     QComboBox,
     QFileDialog,
+    QFrame,
     QHBoxLayout,
     QHeaderView,
     QLabel,
     QLineEdit,
     QMessageBox,
     QPushButton,
+    QScrollArea,
     QStackedWidget,
     QTreeWidget,
     QTreeWidgetItem,
@@ -148,7 +150,13 @@ class SoftwarePage(QWidget):
         self.info.setObjectName("PageSubtitle")
         self.info.setWordWrap(True)
         select_layout.addWidget(self.info)
-        self.views.addWidget(select)
+        # Cửa sổ thấp (màn hình laptop, khung log kéo cao) thì cuộn thay vì đè chữ lên nhau.
+        select_scroll = QScrollArea()
+        select_scroll.setObjectName("PageScroll")
+        select_scroll.setWidgetResizable(True)
+        select_scroll.setFrameShape(QFrame.Shape.NoFrame)
+        select_scroll.setWidget(select)
+        self.views.addWidget(select_scroll)
 
         self.progress = ProgressPanel(controller)
         self.progress.can_retry = True
@@ -263,8 +271,9 @@ class SoftwarePage(QWidget):
         state = self.state
         senv = state.senv
         installed = sum(1 for detection in state.detections.values() if detection.installed)
+        self.info.setToolTip(f"Danh mục: {state.catalog.source}")
         parts = [
-            f"Danh mục: {state.catalog.source} ({len(state.catalog.apps)} ứng dụng, đã cài {installed})",
+            f"{len(state.catalog.apps)} ứng dụng trong danh mục, máy đã có {installed}",
             f"winget: {'có' if senv.winget else 'không có'}",
         ]
         if state.catalog.errors:
