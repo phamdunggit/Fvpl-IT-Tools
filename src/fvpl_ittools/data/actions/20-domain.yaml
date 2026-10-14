@@ -40,6 +40,7 @@
 
 - id: dom.repair_trust
   name: Sửa lỗi trust relationship
+  basic_name: 'Sửa lỗi máy bị domain từ chối (trust relationship)'
   category: Domain & đăng nhập
   keywords: ['trust relationship', 'không đăng nhập được domain', 'secure channel', 'domain']
   risk: caution
@@ -92,6 +93,7 @@
 
 - id: dom.gpupdate
   name: Cập nhật Group Policy
+  basic_name: 'Áp lại chính sách công ty (Group Policy)'
   category: Domain & đăng nhập
   keywords: ['gpo', 'group policy', 'chính sách', 'gpupdate']
   risk: safe
@@ -106,6 +108,7 @@
 
 - id: dom.gpresult
   name: Báo cáo GPO đang áp
+  basic_name: 'Xem chính sách công ty đang áp (GPO)'
   category: Domain & đăng nhập
   keywords: ['gpo', 'group policy', 'gpresult', 'chính sách đang áp']
   risk: safe
@@ -129,6 +132,7 @@
 
 - id: dom.klist_purge
   name: Xoá vé Kerberos
+  basic_name: 'Đăng nhập lại ổ chung (xoá vé Kerberos)'
   category: Domain & đăng nhập
   keywords: ['kerberos', 'klist', 'quyền truy cập', 'ổ chung', 'share']
   risk: safe

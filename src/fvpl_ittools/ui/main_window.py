@@ -24,6 +24,7 @@ from PySide6.QtWidgets import (
     QPushButton,
     QSplitter,
     QStackedWidget,
+    QSystemTrayIcon,
     QTabWidget,
     QVBoxLayout,
     QWidget,
@@ -285,6 +286,7 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.app = app
         self.mode = "basic"
+        self.tray: QSystemTrayIcon | None = None
         self.setWindowTitle(f"{APP_NAME} {__version__}")
         self.resize(1280, 820)
         self.setMinimumSize(1040, 660)
@@ -334,6 +336,7 @@ class MainWindow(QMainWindow):
         self.controller.busy_changed.connect(self.log_panel.set_busy)
         self.log_panel.cancel_requested.connect(self.controller.cancel)
         self.controller.finished.connect(self._finished)
+        self.controller.finished.connect(self._notify_done)
 
         saved = prefs.get(UI_MODE)
         self.set_mode(saved if saved in MODES else "basic", save=False)
@@ -502,13 +505,15 @@ class MainWindow(QMainWindow):
                         "utilities": "Công cụ quản trị, mạng, Event log, LAPS", "history": "Hoàn tác thay đổi"}
         for key, label, icon_name in PAGES:
             entries.append(search.Entry("page", label, f"page:{key}", descriptions.get(key, ""), icon=icon_name))
+        basic = self.mode == "basic"
         for action in self.app.actions:
             if action.page not in PAGE_LABELS:
                 continue
             page_label = PAGE_LABELS[action.page]
             where = page_label if action.category == page_label else f"{page_label} › {action.category}"
             entries.append(search.Entry(
-                "action", action.name, f"action:{action.id}", action.description, where, " ".join(action.keywords),
+                "action", action.title(basic), f"action:{action.id}", action.description, where,
+                " ".join(action.keywords + (action.name, action.basic_name)),
                 advanced=action.risk is Risk.ADVANCED, icon=PAGE_ICONS.get(action.page, "wrench")))
         for pack in self.app.packs:
             entries.append(search.Entry("pack", pack.name, f"pack:{pack.id}", pack.description,
@@ -614,6 +619,28 @@ class MainWindow(QMainWindow):
             )
             self.controller.say(Level.WARN, "Máy sẽ khởi động lại sau 30 giây (huỷ bằng lệnh: shutdown /a).")
 
+    def _notify_done(self, result: object) -> None:
+        """Chạy xong mà IT đang làm việc khác (cửa sổ thu nhỏ / ở sau): báo ở khay hệ thống."""
+        if not isinstance(result, BatchResult) or not result.results or self.isActiveWindow():
+            return
+        if not QSystemTrayIcon.isSystemTrayAvailable():
+            return
+        if self.tray is None:
+            self.tray = QSystemTrayIcon(icons.icon("ok", theme.ACCENT), self)
+            self.tray.setToolTip(APP_NAME)
+            self.tray.messageClicked.connect(self._bring_to_front)
+            self.tray.activated.connect(lambda _reason: self._bring_to_front())
+        self.tray.show()
+        failed = result.count(Status.FAILED)
+        title = "Chạy xong, có mục lỗi" if failed else "Đã chạy xong"
+        kind = QSystemTrayIcon.MessageIcon.Warning if failed else QSystemTrayIcon.MessageIcon.Information
+        self.tray.showMessage(title, self.status_bar.text.text(), kind, 10000)
+
+    def _bring_to_front(self) -> None:
+        self.showNormal()
+        self.raise_()
+        self.activateWindow()
+
     def closeEvent(self, event) -> None:
         if self.controller.busy:
             answer = QMessageBox.question(
@@ -629,4 +656,6 @@ class MainWindow(QMainWindow):
         self.optimize.stop()
         self.printers.stop()
         self.palette.hide()
+        if self.tray is not None:
+            self.tray.hide()
         event.accept()

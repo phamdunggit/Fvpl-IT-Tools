@@ -4,7 +4,7 @@ Cập nhật: 14/10/2026. File này được cập nhật trước mỗi commit.
 
 ## Đang làm
 
-- **Làm mới giao diện** theo [kế hoạch](KE-HOACH-GIAO-DIEN.md) (bồ đã duyệt 14/10/2026). **Xong đợt P0, P1** và phần đầu **P2** (sửa lỗi theo tình huống, Gửi cho IT). Đang làm phần còn lại của P2: trang Cài phần mềm dạng thẻ, wizard theo mockup.
+- **Làm mới giao diện** theo [kế hoạch](KE-HOACH-GIAO-DIEN.md) (bồ đã duyệt 14/10/2026). **Xong đợt P0, P1, P2.** Tiếp theo: đợt P3 (làm lại các trang Máy in, Tối ưu, Cấu hình, Tiện ích, Nhật ký theo khung mới; tiến độ trên taskbar; ước tính thời gian từ số liệu thật; hướng dẫn nhanh lần đầu mở app; rà bàn phím, cỡ chữ 150%).
 
 ## Đã xong (code xong, **chưa chạy thử bằng quyền admin trên máy ảo**)
 
@@ -19,6 +19,7 @@ Cập nhật: 14/10/2026. File này được cập nhật trước mỗi commit.
 | GĐ2 Cài máy mới | **Wizard 8 bước:** kiểm tra trước; tên `FVPL-<mã phòng><2 số>` (thêm mã phòng mới, lưu vào site.yaml; gợi ý số kế tiếp từ AD); đổi tên + join OU chung; tự mở lại sau khi khởi động lại; gpupdate, nhóm IT vào Administrators; phần mềm theo profile; cấu hình chuẩn (có vi-VN); driver / BIOS của hãng (Dell Command \| Update, Lenovo System Update) + Windows Update; báo cáo HTML trên máy và ổ mang theo. **Mẫu** (ví dụ "Kế toán – Laptop": phòng, profile, phần mềm thêm như bản Office) chọn lại một lần là xong. Trang Cài phần mềm (winget, share MSI/EXE/ISO/portable); danh mục công ty trong `SOFT` |
 | Hai bản mang theo | **USB** (tool + cài qua share) và **SSD** (tool + kho `SOFT` cạnh exe, không cần mạng); `packaging/deploy.py usb/ssd` chép ra ổ |
 | GĐ3 Tối ưu & dọn dẹp | Dọn rác có quét trước (8 loại, có cache trình duyệt); tìm file lớn; khởi động cùng Windows (khoá Run, thư mục Startup, **task chạy lúc đăng nhập / bật máy**); hiệu ứng hình ảnh cho máy yếu; dịch vụ cập nhật Edge / Chrome / Adobe sang Manual; chặn app "đồng hành" driver; tắt quảng cáo / theo dõi; power; gỡ app cài sẵn; các mục sửa lỗi P2 (hosts, firewall, Windows Update, WMI, MSI, Teams, RDP, BitLocker, Defender…) |
+| Giao diện mới, đợt P2 (phần sau) | Trang **Cài phần mềm dạng thẻ** (mỗi phần mềm một thẻ: tên, một câu giải thích, nguồn / trạng thái, bấm để chọn); wizard **thanh bước nằm ngang**, **thẻ chọn bản Office** ở bước 1, mỗi bước cuộn được khi cửa sổ thấp; **tên dễ hiểu** (`basic_name`) cho 17 mục có tên kỹ thuật ở chế độ Cơ bản; **thông báo khay hệ thống** khi chạy xong mà cửa sổ đang thu nhỏ |
 | Giao diện mới, đợt P2 (phần đầu) | **Sửa lỗi theo tình huống** từng bước (Kiểm tra → Sửa → Kết quả) cho 6 tình huống: mạng, máy in, domain / ổ chung, máy chậm, Office, Windows Update (`scenarios.yaml`, script kiểm tra chỉ đọc trong `data/scripts/scenarios/`, đã chạy thật trên máy dev); mở từ ô Trang chủ, Ctrl+K, thanh "Hướng dẫn từng bước" trên trang Sửa lỗi. **Gửi kết quả cho IT**: báo cáo vào clipboard + file HTML |
 | Giao diện mới, đợt P1 | **Khung kiểu Windows 11** (màu, chữ Segoe UI Variable, icon nét mảnh tự vẽ, thanh trên trắng, sidebar có icon, thanh trạng thái dưới cùng, khung log thành ngăn kéo "Chi tiết kỹ thuật"); **Trang chủ**: 8 ô theo việc cần làm, khung **Tình trạng máy này** có nút sửa, banner cài dở; **chế độ Cơ bản / Chuyên gia** (Cơ bản ẩn mục Nâng cao, tab Event log / LAPS, gập log; nhớ lựa chọn); **tìm Ctrl+K** (bỏ dấu, mã lỗi, từ khoá cho 51 mục sửa lỗi / máy in; mở đúng trang, tab, mục) |
 | Giao diện mới, đợt P0 | **Thanh tiến độ** cho mọi lượt chạy nhiều mục (mục n/N, % tải về của winget, từng mục ✔ / ✖ kèm lý do, dừng sau mục đang chạy, thẻ kết quả + Thử lại mục lỗi) ở trang Cài phần mềm, wizard bước 3 / 5 / 6 và khung log; **thẻ chọn bản Office** (Không cài / 2016 / 2013 / 2010 / 365), có cả khi chạy bản zip không kèm kho; máy có Microsoft 365 cài sẵn thì tick **Gỡ trước khi cài**; **banner kho bộ cài + Chọn kho…** (nhớ cho lần sau) |
@@ -30,7 +31,7 @@ Cập nhật: 14/10/2026. File này được cập nhật trước mỗi commit.
 
 | # | Việc | Ghi chú |
 |---|---|---|
-| 1 | Làm mới giao diện, đợt P2 → P3 | [Kế hoạch](KE-HOACH-GIAO-DIEN.md) mục 7 |
+| 1 | Làm mới giao diện, đợt P3 | [Kế hoạch](KE-HOACH-GIAO-DIEN.md) mục 7 |
 | 2 | GĐ4 còn lại: chuyển dữ liệu máy cũ, sửa PATH, báo bản mới, ký số exe, bản 1.0 | |
 
 ## Bồ cần làm

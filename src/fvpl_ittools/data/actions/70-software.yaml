@@ -2,6 +2,7 @@
 
 - id: sw.repair_winget
   name: Sửa / cài lại winget
+  basic_name: 'Sửa công cụ cài phần mềm (winget)'
   category: Phần mềm
   keywords: ['winget', 'cài phần mềm lỗi', 'app installer']
   risk: safe

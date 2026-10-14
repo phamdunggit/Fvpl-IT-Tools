@@ -208,6 +208,19 @@ QPushButton#Tile[accent="true"] #TileText {{ color: #e8f1fb; }}
 QPushButton#Tile[accent="true"] #TileIcon {{ background: rgba(255, 255, 255, 40); }}
 #HealthRow {{ border-top: 1px solid #efefef; }}
 
+/* Thẻ phần mềm */
+#AppCard {{ background: {CARD}; border: 1px solid {BORDER}; border-radius: 8px; }}
+#AppCard:hover {{ border-color: #9cc0e6; }}
+#AppCard:focus {{ border: 1px solid {ACCENT}; }}
+#AppCard[checked="true"] {{ background: #f5f9fe; border: 1px solid {ACCENT}; }}
+#AppCard[locked="true"] {{ background: #fafafa; }}
+#AppMark {{ background: {ACCENT_TINT}; color: {ACCENT}; border-radius: 8px; font-weight: 700; font-size: 9pt; }}
+#AppName {{ font-weight: 600; background: transparent; }}
+#AppText {{ color: {TEXT_SECONDARY}; font-size: 9pt; background: transparent; }}
+#AppBox {{ border: 2px solid #8a8a8a; border-radius: 4px; background: {CARD}; color: #ffffff; font-weight: 700; font-size: 9pt; }}
+#AppCard[checked="true"] #AppBox {{ background: {ACCENT}; border-color: {ACCENT}; }}
+#AppCard[locked="true"] #AppBox {{ border-color: #d0d0d0; background: #f0f0f0; }}
+
 /* Sửa lỗi theo tình huống */
 #StepLabel {{ color: {TEXT_SECONDARY}; padding: 4px 10px; border-radius: 12px; background: #e9e9e9; }}
 #StepLabel[state="active"] {{ color: #ffffff; background: {ACCENT}; font-weight: 600; }}
@@ -215,6 +228,10 @@ QPushButton#Tile[accent="true"] #TileIcon {{ background: rgba(255, 255, 255, 40)
 #StepLine {{ background: {BORDER_STRONG}; }}
 #FixRow {{ border: 1px solid {BORDER}; border-radius: 6px; background: {CARD}; }}
 #GuideBar {{ background: {CARD}; border: 1px solid {BORDER}; border-radius: 8px; }}
+#Stepper {{ background: transparent; border: none; outline: 0; }}
+#Stepper::item {{ background: #e9e9e9; color: {TEXT}; border-radius: 15px; padding: 2px 10px; margin: 3px 6px 3px 0; }}
+#Stepper::item:hover:!selected {{ background: #dedede; }}
+#Stepper::item:selected {{ background: {ACCENT}; color: #ffffff; font-weight: 600; }}
 
 /* Bảng tìm chức năng (Ctrl+K) */
 #Palette {{ background: {CARD}; border: 1px solid {BORDER_STRONG}; border-radius: 10px; }}

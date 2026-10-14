@@ -146,8 +146,10 @@ class ActionDetail(QFrame):
         badges.append(badge("Hoàn tác được" if action.can_undo else "Không hoàn tác được", "neutral"))
         self.badges_holder.addWidget(badge_row(badges))
 
-        self.title.setText(action.name)
-        self.description.setText(action.description or "(Chưa có mô tả)")
+        basic = self.page.mode == "basic" and bool(action.basic_name)
+        self.title.setText(action.title(basic))
+        technical = f"Tên kỹ thuật: {action.name}\n\n" if basic else ""
+        self.description.setText(technical + (action.description or "(Chưa có mô tả)"))
         self.commands.setPlainText(executor.describe_action(action, env))
         self.note.setText(executor.blocked_reason(action, env) or "")
         self.refresh_buttons()
@@ -425,7 +427,8 @@ class ActionsPage(QWidget):
             for child_index in range(category.childCount()):
                 child = category.child(child_index)
                 action = self._by_id[child.data(0, ACTION_ID_ROLE)]
-                haystack = fold(f"{action.name} {action.description} {action.id} {' '.join(action.keywords)}")
+                haystack = fold(f"{action.name} {action.basic_name} {action.description} {action.id} "
+                                f"{' '.join(action.keywords)}")
                 show = not needle or category_match or (not exact and needle in haystack)
                 if show and self.mode == "basic" and action.risk is Risk.ADVANCED and action.id != self._revealed:
                     show = False
@@ -440,10 +443,14 @@ class ActionsPage(QWidget):
     # ------------------------------------------------------------ chế độ, điều hướng
 
     def set_mode(self, mode: str) -> None:
+        """Cơ bản: tên dễ hiểu (basic_name), ẩn mục Nâng cao. Chuyên gia: tên gốc, đủ mọi mục."""
         self.mode = mode
         self._revealed = None
         if self.actions:
+            for action in self.actions:
+                self._items[action.id].setText(0, action.title(mode == "basic"))
             self._filter(self.search.text())
+            self.detail.show_action(self.detail.action)
 
     def show_category(self, category: str) -> None:
         """Chỉ hiện một nhóm (ô "Không vào được mạng" ở Trang chủ)."""

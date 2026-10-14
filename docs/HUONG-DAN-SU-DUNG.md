@@ -118,7 +118,7 @@ Trang **Cài máy mới**, làm lần lượt từ trên xuống. Danh sách bư
 | Bước | Làm gì |
 |---|---|
 | 0. Kiểm tra trước | Xem dòng ✖: DNS chưa trỏ về DC, giờ lệch (bấm **Đồng bộ giờ**), thiếu mạng… |
-| 1. Thông tin máy | Chọn **Mẫu** nếu có (ví dụ "Kế toán – Laptop"), hoặc chọn phòng ban, bấm **Gợi ý tên** (hỏi AD lấy số kế tiếp), ghi người dùng, chọn profile và **phần mềm thêm** (bản Office). **Lưu thành mẫu…** để lần sau chọn lại |
+| 1. Thông tin máy | Chọn **Mẫu** nếu có (ví dụ "Kế toán – Laptop"), hoặc chọn phòng ban, bấm **Gợi ý tên** (hỏi AD lấy số kế tiếp), ghi người dùng, chọn profile, chọn **bản Office** ở thẻ ngay dưới và **phần mềm thêm** nếu cần. **Lưu thành mẫu…** để lần sau chọn lại |
 | 2. Đổi tên + join | Nhập tài khoản join. Tool chép mình vào máy, đổi tên và join OU trong một lần khởi động lại, hẹn tự mở lại |
 | 3. Sau khởi động lại | Đăng nhập bằng tài khoản domain có quyền admin: tool tự mở, bấm **Chạy các bước sau khởi động lại** |
 | 4. Cài phần mềm | Sang trang Cài phần mềm: bản Office của mẫu đã chọn sẵn, các ứng dụng đã tick sẵn theo profile + phần mềm thêm, bấm **Cài N mục** (xem mục 4–6) |

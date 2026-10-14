@@ -128,6 +128,10 @@ class Action:
     needs_credential: str | None = None
     requires_domain: bool = False
     keywords: tuple[str, ...] = ()  # từ người dùng hay gõ khi tìm (Ctrl+K): từ đồng nghĩa, mã lỗi
+    basic_name: str = ""  # tên dễ hiểu hiện ở chế độ Cơ bản, rỗng thì dùng name
+
+    def title(self, basic: bool = False) -> str:
+        return self.basic_name if basic and self.basic_name else self.name
     source: str = ""
 
     def supports_build(self, build: int) -> bool:

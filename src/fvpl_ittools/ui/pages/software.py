@@ -11,22 +11,19 @@ import re
 import threading
 from pathlib import Path
 
-from PySide6.QtCore import QObject, Qt, Signal
-from PySide6.QtGui import QBrush, QColor, QFont
+from PySide6.QtCore import QObject, Signal
 from PySide6.QtWidgets import (
     QComboBox,
     QFileDialog,
     QFrame,
+    QGridLayout,
     QHBoxLayout,
-    QHeaderView,
     QLabel,
     QLineEdit,
     QMessageBox,
     QPushButton,
     QScrollArea,
     QStackedWidget,
-    QTreeWidget,
-    QTreeWidgetItem,
     QVBoxLayout,
     QWidget,
 )
@@ -38,17 +35,17 @@ from ...software import catalog as catalog_module
 from ...software import scan as scan_module
 from ...software.catalog import App
 from ...software.install import REMOVE_C2R, blocked_reason, install_action
+from ..components.app_card import AppCard
 from ..components.banner import Banner
 from ..components.choice import ChoiceGroup, ChoiceOption
 from ..components.progress_panel import ProgressPanel
 from ..controller import RunController
 from ..text import fold
-from ..theme import STATE_COLORS
 from ..widgets import page_header
 
 log = logging.getLogger(__name__)
-APP_ID_ROLE = Qt.ItemDataRole.UserRole
 SELECT_VIEW, PROGRESS_VIEW = 0, 1
+CARD_COLUMNS = 3
 STORE_TITLES = {"local": "Kho bộ cài trên ổ mang theo", "chosen": "Kho bộ cài đã chọn", "share": "Kho bộ cài trên mạng"}
 
 
@@ -90,7 +87,8 @@ class SoftwarePage(QWidget):
         self.controller = controller
         self.state: scan_module.SoftwareState | None = None
         self.loading = False
-        self._items: dict[str, QTreeWidgetItem] = {}
+        self.cards: dict[str, AppCard] = {}
+        self.groups: list[tuple[QLabel, QGridLayout, list[AppCard]]] = []  # nhóm phần mềm: tên, lưới, các thẻ
         self.choice_groups: dict[str, ChoiceGroup] = {}
         self._started = False
         self._wanted_profile: tuple[str, tuple[str, ...]] | None = None  # (profile, ứng dụng thêm) chờ quét xong
@@ -140,26 +138,22 @@ class SoftwarePage(QWidget):
         profile_row.addWidget(self.search, 1)
         select_layout.addLayout(profile_row)
 
-        self.tree = QTreeWidget()
-        self.tree.setHeaderLabels(["Ứng dụng", "Nguồn", "Trạng thái"])
-        self.tree.setUniformRowHeights(True)
-        self.tree.setMinimumHeight(140)
-        header = self.tree.header()
-        header.setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
-        header.setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
-        header.setSectionResizeMode(2, QHeaderView.ResizeMode.ResizeToContents)
-        select_layout.addWidget(self.tree, 1)
+        # Phần mềm khác: thẻ theo nhóm (mockup 4), dựng lại mỗi lần quét xong.
+        self.cards_box = QVBoxLayout()
+        self.cards_box.setSpacing(8)
+        select_layout.addLayout(self.cards_box)
         self.info = QLabel("Đang đọc danh mục…")
         self.info.setObjectName("PageSubtitle")
         self.info.setWordWrap(True)
         select_layout.addWidget(self.info)
-        # Cửa sổ thấp (màn hình laptop, khung log kéo cao) thì cuộn thay vì đè chữ lên nhau.
-        select_scroll = QScrollArea()
-        select_scroll.setObjectName("PageScroll")
-        select_scroll.setWidgetResizable(True)
-        select_scroll.setFrameShape(QFrame.Shape.NoFrame)
-        select_scroll.setWidget(select)
-        self.views.addWidget(select_scroll)
+        select_layout.addStretch(1)
+        # Cả phần chọn cuộn chung: danh sách dài hay cửa sổ thấp đều không đè chữ.
+        self.select_scroll = QScrollArea()
+        self.select_scroll.setObjectName("PageScroll")
+        self.select_scroll.setWidgetResizable(True)
+        self.select_scroll.setFrameShape(QFrame.Shape.NoFrame)
+        self.select_scroll.setWidget(select)
+        self.views.addWidget(self.select_scroll)
 
         self.progress = ProgressPanel(controller)
         self.progress.can_retry = True
@@ -193,7 +187,6 @@ class SoftwarePage(QWidget):
         self.preview_button.clicked.connect(self.preview)
         self.install_button.clicked.connect(lambda: self.install(self.selected_apps()))
         self.retry_button.clicked.connect(lambda: self.install(self.failed_apps()))
-        self.tree.itemChanged.connect(lambda *_: self._update_summary())
         self.views.currentChanged.connect(lambda index: self.bottom.setVisible(index == SELECT_VIEW))
         controller.busy_changed.connect(lambda _busy: self._update_buttons())
         controller.finished.connect(self._run_finished)
@@ -254,12 +247,11 @@ class SoftwarePage(QWidget):
             if not self.choice_groups[app.choice].select(app.id):
                 self.controller.say(Level.INFO, f"{app.name}: {self._choice_note(app)[2] or 'không chọn được'}")
             return
-        item = self._items[app.id]
-        if not self.state.detections[app.id].installed and blocked_reason(app, self.state.senv) is None:
-            item.setCheckState(0, Qt.CheckState.Checked)
+        card = self.cards[app.id]
+        card.setChecked(True)  # thẻ bị khoá (đã cài, không cài được) thì không đổi
         self.search.clear()
-        self.tree.setCurrentItem(item)
-        self.tree.scrollToItem(item)
+        card.setFocus()
+        self.select_scroll.ensureWidgetVisible(card, 0, 80)
 
     def preselect_profile(self, profile_id: str, extra_apps: list[str] | tuple[str, ...] = ()) -> None:
         """Chọn profile, tick sẵn ứng dụng của nó và các ứng dụng thêm (wizard Cài máy mới gọi).
@@ -289,7 +281,7 @@ class SoftwarePage(QWidget):
             elif self.state.detections[app_id].installed or blocked_reason(app, self.state.senv) is not None:
                 skipped.append(app.name)
             else:
-                self._items[app_id].setCheckState(0, Qt.CheckState.Checked)
+                self.cards[app_id].setChecked(True)
                 picked.append(app.name)
         if picked:
             self.controller.say(Level.INFO, f"Chọn thêm: {', '.join(picked)}.")
@@ -448,36 +440,39 @@ class SoftwarePage(QWidget):
         return [app for group in self.choice_groups.values()
                 if (key := group.selected()) and (app := self.state.catalog.app(key)) is not None]
 
-    # ------------------------------------------------------------ cây
+    # ------------------------------------------------------------ thẻ phần mềm
 
     def _populate(self) -> None:
         state = self.state
         checked = {app.id for app in self.checked_apps()}
         current_profile = self.profile.currentData()
-        self.tree.blockSignals(True)
-        self.tree.clear()
-        self._items.clear()
-        groups: dict[str, QTreeWidgetItem] = {}
-        bold = QFont()
-        bold.setBold(True)
+        while self.cards_box.count():
+            widget = self.cards_box.takeAt(0).widget()
+            if widget is not None:
+                widget.deleteLater()
+        self.cards, self.groups = {}, []
+        by_group: dict[str, list[App]] = {}
         for app in state.catalog.apps:
-            if app.choice:
-                continue
-            parent = groups.get(app.group)
-            if parent is None:
-                parent = QTreeWidgetItem(self.tree, [app.group])
-                parent.setFlags(parent.flags() | Qt.ItemFlag.ItemIsUserCheckable | Qt.ItemFlag.ItemIsAutoTristate)
-                parent.setCheckState(0, Qt.CheckState.Unchecked)
-                parent.setFont(0, bold)
-                groups[app.group] = parent
-            item = QTreeWidgetItem(parent, [app.name, app.source_label, ""])
-            item.setData(0, APP_ID_ROLE, app.id)
-            item.setFlags(item.flags() | Qt.ItemFlag.ItemIsUserCheckable)
-            item.setCheckState(0, Qt.CheckState.Checked if app.id in checked else Qt.CheckState.Unchecked)
-            item.setToolTip(0, app.description or app.name)
-            self._items[app.id] = item
-        self.tree.expandAll()
-        self.tree.blockSignals(False)
+            if not app.choice:
+                by_group.setdefault(app.group, []).append(app)
+        for group, apps in by_group.items():
+            label = QLabel(group)
+            label.setObjectName("SectionLabel")
+            holder = QWidget()
+            grid = QGridLayout(holder)
+            grid.setContentsMargins(0, 0, 0, 6)
+            grid.setSpacing(8)
+            for column in range(CARD_COLUMNS):
+                grid.setColumnStretch(column, 1)
+            cards = []
+            for app in apps:
+                card = AppCard(app)
+                card.toggled.connect(lambda _checked: self._update_summary())
+                self.cards[app.id] = card
+                cards.append(card)
+            self.groups.append((label, grid, cards))
+            self.cards_box.addWidget(label)
+            self.cards_box.addWidget(holder)
 
         self.profile.clear()
         for profile in state.catalog.profiles:
@@ -488,6 +483,9 @@ class SoftwarePage(QWidget):
                 self.profile.setCurrentIndex(index)
         self._build_choices()
         self.refresh_states()
+        for app_id in checked:  # giữ các lựa chọn cũ sau khi quét lại (nếu vẫn chọn được)
+            if app_id in self.cards:
+                self.cards[app_id].setChecked(True)
         self._filter(self.search.text())
         self._update_summary()
 
@@ -511,36 +509,37 @@ class SoftwarePage(QWidget):
     def refresh_states(self) -> None:
         if self.state is None:
             return
-        self.tree.blockSignals(True)
-        for app_id, item in self._items.items():
-            text, kind, note = self.app_status(self.state.catalog.app(app_id))
-            item.setText(2, text)
-            item.setToolTip(2, note)
-            item.setForeground(2, QBrush(QColor(STATE_COLORS.get(kind, "#64748b"))))
-        self.tree.blockSignals(False)
+        for app_id, card in self.cards.items():
+            app = self.state.catalog.app(app_id)
+            text, kind, note = self.app_status(app)
+            where = "Từ kho bộ cài" if app.source == "share" else "Tải từ Internet"
+            if kind == "off":
+                text = where
+            card.set_state(text, kind, note, enabled=kind in ("off", "ok", "error"))
 
     def _filter(self, text: str) -> None:
+        """Ẩn thẻ không khớp chữ tìm, xếp lại các thẻ còn lại cho liền nhau; nhóm không còn thẻ nào thì ẩn tên nhóm."""
         needle = fold(text.strip())
-        for index in range(self.tree.topLevelItemCount()):
-            group = self.tree.topLevelItem(index)
-            group_match = needle in fold(group.text(0))
-            visible = 0
-            for child_index in range(group.childCount()):
-                child = group.child(child_index)
-                app = self.state.catalog.app(child.data(0, APP_ID_ROLE))
-                show = not needle or group_match or needle in fold(f"{app.name} {app.id} {app.description}")
-                child.setHidden(not show)
-                visible += show
-            group.setHidden(visible == 0)
+        for label, grid, cards in self.groups:
+            group_match = needle in fold(label.text())
+            visible = [card for card in cards if not needle or group_match
+                       or needle in fold(f"{card.app.name} {card.app.id} {card.app.description}")]
+            for card in cards:
+                grid.removeWidget(card)
+                card.setVisible(card in visible)
+            for index, card in enumerate(visible):
+                grid.addWidget(card, index // CARD_COLUMNS, index % CARD_COLUMNS)
+            label.setVisible(bool(visible))
+            grid.parentWidget().setVisible(bool(visible))
 
     # ------------------------------------------------------------ chọn
 
     def checked_apps(self) -> list[App]:
-        """Ứng dụng đang tick trong cây (không gồm nhóm chọn một)."""
+        """Ứng dụng đang chọn trong các thẻ (không gồm nhóm chọn một như Office)."""
         if self.state is None:
             return []
         return [app for app in self.state.catalog.apps
-                if (item := self._items.get(app.id)) is not None and item.checkState(0) == Qt.CheckState.Checked]
+                if (card := self.cards.get(app.id)) is not None and card.isChecked()]
 
     def selected_apps(self) -> list[App]:
         return self.chosen_apps() + self.checked_apps()
@@ -558,14 +557,12 @@ class SoftwarePage(QWidget):
         profile_apps = self.state.catalog.profile_apps(self.profile.currentData())
         wanted = {app.id for app in profile_apps}
         picked = 0
-        self.tree.blockSignals(True)
-        for app_id, item in self._items.items():
+        for app_id, card in self.cards.items():
             app = self.state.catalog.app(app_id)
             installed = self.state.detections[app_id].installed
             check = app_id in wanted and not installed and blocked_reason(app, self.state.senv) is None
-            item.setCheckState(0, Qt.CheckState.Checked if check else Qt.CheckState.Unchecked)
+            card.setChecked(check)
             picked += check
-        self.tree.blockSignals(False)
         for choice, group in self.choice_groups.items():
             options = [app.id for app in profile_apps if app.choice == choice]
             if not any(group.select(app_id) for app_id in options):

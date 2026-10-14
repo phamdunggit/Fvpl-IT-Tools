@@ -90,6 +90,7 @@
 
 - id: off.teams_cache
   name: Xoá cache Teams
+  basic_name: 'Sửa Teams trắng màn hình, không đăng nhập được (xoá cache)'
   category: Office
   keywords: ['teams', 'cache', 'teams trắng', 'không đăng nhập teams']
   risk: safe

@@ -70,6 +70,7 @@ Mục chẩn đoán dùng hàm dựng sẵn và giải thích mã thoát:
 | `reboot` | | `false` | Cần khởi động lại sau khi chạy (chỉ tính khi mục có thay đổi). |
 | `os` | | | `{ min_build: 22000, max_build: 26100 }`. Ví dụ 19045 = Win10 22H2, 22000 = Win11 đầu tiên. |
 | `description` | | | Mô tả hiện trong khung chi tiết. Viết cho IT đọc: làm gì, dùng khi nào, ảnh hưởng gì. Test yêu cầu tối thiểu 40 ký tự. |
+| `basic_name` | | | Tên dễ hiểu cho chế độ Cơ bản và màn hình sửa lỗi theo tình huống, khi `name` là tên kỹ thuật. Ví dụ `name: Reset Windows Update`, `basic_name: 'Sửa Windows Update bị kẹt (đặt lại Windows Update)'`. Khung chi tiết vẫn ghi tên kỹ thuật. |
 | `keywords` | có với mục `fixes`, `printers` | | Từ người dùng hay gõ khi tìm (ô tìm / Ctrl+K): cách gọi thường ngày, tiếng Anh, mã lỗi. Ví dụ `['máy in', 'kẹt lệnh in', 'spooler', '0x0000011b']`. Đặt mỗi từ trong nháy đơn: không có nháy thì YAML đọc `0x…`, `3389` thành số. |
 | `check` | | | `{ registry: { key, name, on_value } }`. Đọc trạng thái hiện tại: giá trị bằng `on_value` thì cột trạng thái hiện "✔ Đã áp dụng", ngược lại "Chưa áp dụng". `on_value` là giá trị *sau khi* chạy mục, kể cả với mục tên "Tắt …". |
 | `apply` | có | | Danh sách bước, chạy lần lượt. Một bước lỗi thì dừng mục đó. |

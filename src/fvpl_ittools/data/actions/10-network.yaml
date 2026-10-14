@@ -63,6 +63,7 @@
 
 - id: net.flush_dns
   name: Xoá cache DNS
+  basic_name: 'Xoá bộ nhớ tên trang web (cache DNS)'
   category: Mạng & Internet
   keywords: ['dns', 'flushdns', 'không vào được trang web', 'web lỗi']
   risk: safe
@@ -124,6 +125,7 @@
 
 - id: net.reset_winhttp_proxy
   name: Xoá proxy hệ thống (WinHTTP)
+  basic_name: 'Xoá proxy của Windows (Windows Update, Office không ra mạng)'
   category: Mạng & Internet
   keywords: ['proxy', 'winhttp', 'netsh', 'windows update không tải được']
   risk: safe
@@ -172,6 +174,7 @@
 
 - id: net.reset_winsock
   name: Reset Winsock và TCP/IP
+  basic_name: 'Sửa lỗi mạng nặng (đặt lại Winsock, TCP/IP)'
   category: Mạng & Internet
   keywords: ['winsock', 'tcpip', 'netsh', 'mất mạng', 'mạng lỗi']
   risk: caution

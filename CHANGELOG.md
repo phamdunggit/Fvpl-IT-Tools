@@ -5,6 +5,10 @@
 ### Thêm
 
 - **Sửa lỗi theo tình huống** (giao diện mới, đợt P2): 6 tình huống (Không vào được mạng, Không in được, Lỗi domain / ổ chung, Máy chậm / đầy ổ, Lỗi Office / Outlook, Windows Update lỗi). Màn hình 3 bước: **Kiểm tra** bằng script chỉ đọc (dấu hiệu viết bằng lời thường), **Tool sẽ làm** (mục sửa tick sẵn theo dấu hiệu, nhãn rủi ro) + **Bạn cần tự làm** (lời khuyên, nút mở đúng chỗ), **Sửa** có thanh tiến độ, tự **kiểm tra lại** và báo đã sửa được gì, còn gì; **Vẫn chưa được?** gợi ý chỗ khác. Khai báo trong `data/scenarios.yaml` (xem docs/ACTIONS.md). Ô ở Trang chủ, tìm Ctrl+K và thanh "Hướng dẫn từng bước" trên trang Sửa lỗi mở tình huống.
+- Trang **Cài phần mềm dạng thẻ** (mockup 4): mỗi phần mềm một thẻ (chữ viết tắt, tên, một câu giải thích, "Tải từ Internet" / "Từ kho bộ cài" / "Đã cài"), bấm vào thẻ để chọn, thẻ đã cài hoặc không cài được bị khoá; tìm thì thẻ còn lại xếp liền nhau.
+- Wizard **Cài máy mới**: thanh bước nằm ngang ở trên, **thẻ chọn bản Office** ở bước 1 (đồng bộ với "Phần mềm thêm" và mẫu), mỗi bước cuộn được khi cửa sổ thấp.
+- Khoá mới `basic_name` cho mục YAML: tên dễ hiểu hiện ở chế độ Cơ bản và màn hình tình huống (đã đặt cho 17 mục, ví dụ "Reset Winsock và TCP/IP" → "Sửa lỗi mạng nặng (đặt lại Winsock, TCP/IP)"); khung chi tiết vẫn ghi tên kỹ thuật.
+- Chạy xong mà cửa sổ tool đang thu nhỏ / ở sau: **thông báo ở khay hệ thống**, bấm vào để mở lại tool.
 - **Gửi kết quả cho IT**: báo cáo (máy, người dùng, tình huống, đã kiểm tra / đã chạy gì, 50 dòng log cuối) chép vào clipboard để dán vào Zalo / email, lưu thêm file HTML (`core/support_report.py`).
 - **Giao diện mới, đợt P1** ([kế hoạch](docs/KE-HOACH-GIAO-DIEN.md)):
   - **Khung kiểu Windows 11 sáng**: bảng màu mới (nền #F3F3F3, thẻ trắng, màu nhấn #005FB8), chữ Segoe UI Variable, icon nét mảnh vẽ bằng SVG trong code (`ui/icons.py`); thanh trên màu trắng có ô tìm, thông tin máy, nút **Cơ bản / Chuyên gia**; sidebar có icon và ô **Kho bộ cài · Đổi kho…**; **thanh trạng thái** dưới cùng (đang chạy mục n/N, %, Huỷ, kết quả lượt vừa chạy); khung log thành ngăn kéo **Chi tiết kỹ thuật (log)**.

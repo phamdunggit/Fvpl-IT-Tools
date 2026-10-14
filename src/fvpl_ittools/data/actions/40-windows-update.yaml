@@ -83,6 +83,7 @@
 
 - id: wu.component_cleanup
   name: Dọn kho thành phần (WinSxS)
+  basic_name: 'Dọn bản cập nhật cũ cho đỡ đầy ổ (WinSxS)'
   category: Windows Update
   keywords: ['winsxs', 'dọn ổ', 'đầy ổ', 'dism', 'cập nhật']
   risk: safe
@@ -95,6 +96,7 @@
 
 - id: wu.reset
   name: Reset Windows Update
+  basic_name: 'Sửa Windows Update bị kẹt (đặt lại Windows Update)'
   category: Windows Update
   keywords: ['windows update lỗi', 'cập nhật lỗi', 'kẹt cập nhật', 'softwaredistribution', 'catroot2', '0x80070002', '0x8024']
   risk: caution

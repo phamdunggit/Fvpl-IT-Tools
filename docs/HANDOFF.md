@@ -9,7 +9,7 @@ Cập nhật lần cuối: 14/10/2026, sau khi xong đợt P1 của giao diện 
 | Giai đoạn | **GĐ1, GĐ2 (wizard Cài máy mới), phần lớn GĐ3 xong phần code.** Còn chạy thử các mục đổi hệ thống bằng quyền admin trên VM (danh sách bên dưới) rồi mới coi là xong |
 | Nhánh | Code mới làm trên `featured`. Chỉ merge về `main` khi được duyệt |
 | Phiên bản | 0.2.0, xem [CHANGELOG.md](../CHANGELOG.md) (trang Phần mềm nằm ở mục "Chưa phát hành") |
-| Test | 355 test pytest, tất cả đều qua (khoảng 50 giây) |
+| Test | 357 test pytest, tất cả đều qua (khoảng 1 phút) |
 | Bản exe | `python packaging\build.py`: thư mục 64MB, zip 27MB. `--test` chạy selftest trên exe, gồm cả đọc thông tin máy |
 
 Đã có:
@@ -184,7 +184,8 @@ Giao diện mới đợt P0. Đã chạy thử offscreen với dữ liệu giả
 
 ## Việc tiếp theo
 
-1. **Giao diện mới, đợt P2** theo [KE-HOACH-GIAO-DIEN.md](KE-HOACH-GIAO-DIEN.md) mục 7: `scenarios.yaml` + sửa lỗi theo tình huống (Kiểm tra → Sửa → Kết quả), trang Phần mềm dạng thẻ, wizard theo mockup, `basic_name` / viết lại mô tả, "Gửi cho IT". Ô trang chủ đang trỏ tới trang / nhóm sẵn có (`TILES` trong `home.py`), P2 đổi sang tình huống. Chỉ thay tầng `ui`, giữ nguyên `core` / `actions` / `software` / `newpc`.
+1. **Giao diện mới, đợt P3** theo [KE-HOACH-GIAO-DIEN.md](KE-HOACH-GIAO-DIEN.md) mục 7: làm lại các trang Máy in, Tối ưu, Cấu hình, Tiện ích, Nhật ký theo khung mới; tiến độ trên taskbar (`ITaskbarList3`); ước tính thời gian từ số liệu thật; hướng dẫn nhanh lần đầu mở app; rà bàn phím, cỡ chữ 150%. Chỉ thay tầng `ui`.
+2. **Thử tình huống trên VM có lỗi thật**: rút cáp mạng, tắt Spooler, kẹt lệnh in, lệch giờ, tắt dịch vụ Windows Update: mỗi tình huống phải chỉ đúng vấn đề, sửa xong kiểm tra lại thấy hết.
 2. **Chạy danh sách trên** trên VM, sửa những gì sai. Khi đó GĐ1, GĐ2 mới xong. Wizard cần VM chưa join + domain test.
 3. GĐ4 còn lại ở [TIEN-DO.md](TIEN-DO.md): chuyển dữ liệu máy cũ, sửa PATH, báo bản mới, ký số exe, bản 1.0.
 

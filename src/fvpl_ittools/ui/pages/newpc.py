@@ -26,10 +26,12 @@ from PySide6.QtWidgets import (
     QHeaderView,
     QLabel,
     QLineEdit,
+    QListView,
     QListWidget,
     QListWidgetItem,
     QMessageBox,
     QPushButton,
+    QScrollArea,
     QStackedWidget,
     QTreeWidget,
     QTreeWidgetItem,
@@ -44,17 +46,18 @@ from ...core.executor import BatchResult, Level, RunContext, Status
 from ...newpc import naming, precheck, report, state as wizard_state, steps
 from ...newpc import templates as templates_module
 from ...software import catalog as catalog_module
+from ..components.choice import ChoiceGroup, ChoiceOption
 from ..components.progress_panel import ProgressPanel
 from ..controller import RunController
 from ..credential_dialog import ask_credential
 from ..widgets import Worker, open_as_user, open_path, page_header
+from .software import short_name
 
 log = logging.getLogger(__name__)
 
 STATE_MARKS = {"ok": "✔", "warn": "⚠", "bad": "✖", "skip": "–"}
 STATE_TEXT_COLORS = {"ok": "#15803d", "warn": "#b45309", "bad": "#b91c1c", "skip": "#7b8794"}
 STEP_MARKS = {"ok": "✔", "failed": "✖", "skipped": "–", "": "○"}
-STEP_COLORS = {"ok": "#15803d", "failed": "#b91c1c", "skipped": "#7b8794"}
 STEP_KEYS = [key for key, _name in wizard_state.STEPS]
 UPDATE_ACTIONS = ("drv.vendor_update", "wu.scan_install")  # bước 6, chạy lần lượt
 
@@ -299,6 +302,8 @@ class NewPcPage(QWidget):
         self.state = wizard_state.active()
         self.profiles: list[tuple[str, str]] = []
         self.catalog_apps: list[tuple[str, str, str]] = []  # (id, tên, nhóm) trong danh mục phần mềm
+        self.office_apps: list[tuple[str, str, str]] = []  # (id, tên, nguồn) các bản Office (choice: office)
+        self._syncing_office = False
         self._wanted_profile: str | None = None  # profile của mẫu, chọn khi danh mục đọc xong
         self.extra_apps: list[str] = list(self.state.extra_apps) if self.state else []
         self.templates: list[templates_module.Template] = templates_module.load(templates_module.templates_path(app.site))
@@ -321,14 +326,19 @@ class NewPcPage(QWidget):
         banner.addWidget(self.reset_button)
         root.addLayout(banner)
 
-        body = QHBoxLayout()
-        body.setSpacing(12)
+        body = QVBoxLayout()
+        body.setSpacing(10)
         self.step_list = QListWidget()
-        self.step_list.setFixedWidth(230)
+        self.step_list.setObjectName("Stepper")
+        self.step_list.setFlow(QListView.Flow.LeftToRight)
+        self.step_list.setWrapping(True)
+        self.step_list.setResizeMode(QListView.ResizeMode.Adjust)
+        self.step_list.setFixedHeight(84)
+        self.step_list.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.step_list.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         for key, name in wizard_state.STEPS:
             item = QListWidgetItem(name)
             item.setData(Qt.ItemDataRole.UserRole, key)
-            item.setSizeHint(QSize(0, 32))
             self.step_list.addItem(item)
         self.stack = QStackedWidget()
         self.check = PrecheckPanel(app, controller)
@@ -363,12 +373,18 @@ class NewPcPage(QWidget):
 
     @staticmethod
     def _framed(panel: QWidget) -> QWidget:
+        """Thẻ chứa một bước, cuộn được khi cửa sổ thấp (không ép dẹt ô nhập, nút)."""
         frame = QFrame()
         frame.setObjectName("Card")
         layout = QVBoxLayout(frame)
         layout.setContentsMargins(16, 14, 16, 14)
         layout.addWidget(panel)
-        return frame
+        scroll = QScrollArea()
+        scroll.setObjectName("PageScroll")
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QFrame.Shape.NoFrame)
+        scroll.setWidget(frame)
+        return scroll
 
     @staticmethod
     def _panel(title: str) -> tuple[QWidget, QVBoxLayout]:
@@ -446,6 +462,11 @@ class NewPcPage(QWidget):
         form.addWidget(self.extra_button, 6, 2)
         form.setColumnStretch(1, 1)
         layout.addLayout(form)
+        self.office = ChoiceGroup("Bản Office", "Cài ở bước 4 cùng các phần mềm khác. Máy có Microsoft 365 cài sẵn thì "
+                                                "trang Cài phần mềm hỏi gỡ trước.")
+        self.office.set_options([ChoiceOption("", "Không cài", "Đang đọc danh mục…")])
+        self.office.changed.connect(self._office_changed)
+        layout.addWidget(self.office)
         self.save_info_button = QPushButton("Lưu và sang bước tiếp")
         self.save_info_button.setObjectName("Primary")
         self._buttons(layout, self.save_info_button)
@@ -599,7 +620,7 @@ class NewPcPage(QWidget):
             item = self.step_list.item(row)
             status = state.status(key) if state else ""
             item.setText(f"{STEP_MARKS.get(status, '○')}  {wizard_state.STEP_NAMES[key]}")
-            item.setForeground(QBrush(QColor(STEP_COLORS.get(status, "#1f2933"))))
+            item.setSizeHint(QSize(self.step_list.fontMetrics().horizontalAdvance(item.text()) + 40, 34))
             record = state.steps.get(key) if state else None
             item.setToolTip(f"{wizard_state.STATUS_LABELS.get(record.status, '')} lúc {record.time_label}"
                             f"{': ' + record.note if record.note else ''}" if record else "Chưa làm")
@@ -735,7 +756,29 @@ class NewPcPage(QWidget):
         return [names.get(app_id, app_id) for app_id in app_ids]
 
     def _show_extra_apps(self) -> None:
-        self.extra_label.setText(", ".join(self.app_names(self.extra_apps)) or "Không có")
+        """Phần mềm thêm ngoài profile; bản Office hiện ở thẻ chọn riêng."""
+        office_ids = {app_id for app_id, _name, _source in self.office_apps}
+        others = [app_id for app_id in self.extra_apps if app_id not in office_ids]
+        self.extra_label.setText(", ".join(self.app_names(others)) or "Không có")
+        chosen = next((app_id for app_id in self.extra_apps if app_id in office_ids), "")
+        self._syncing_office = True
+        self.office.select(chosen)
+        self._syncing_office = False
+
+    def _fill_office(self) -> None:
+        options = [ChoiceOption("", "Không cài", "Giữ nguyên Office hiện có trên máy")]
+        for app_id, name, source in self.office_apps:
+            base, extra = short_name(name)
+            where = "Cài từ kho bộ cài" if source == "share" else "Tải từ Internet"
+            options.append(ChoiceOption(app_id, base, " · ".join(part for part in (extra, where) if part), tooltip=name))
+        self.office.set_options(options)
+        self.office.setVisible(bool(self.office_apps))
+
+    def _office_changed(self, key: str) -> None:
+        if self._syncing_office:
+            return
+        office_ids = {app_id for app_id, _name, _source in self.office_apps}
+        self.extra_apps = [app_id for app_id in self.extra_apps if app_id not in office_ids] + ([key] if key else [])
 
     def pick_extra_apps(self) -> None:
         if not self.catalog_apps:
@@ -784,7 +827,9 @@ class NewPcPage(QWidget):
                 self.name_status.setProperty("state", "ok")
             _restyle(self.name_status)
         elif name == "catalog":
-            self.profiles, self.catalog_apps = ([], []) if isinstance(result, Exception) else result
+            loaded = ([], [], []) if isinstance(result, Exception) else tuple(result) + ([],) * (3 - len(result))
+            self.profiles, self.catalog_apps, self.office_apps = loaded[:3]
+            self._fill_office()
             current = self._wanted_profile or (self.state.profile if self.state else self.profile.currentData())
             self._wanted_profile = None
             self.profile.clear()
@@ -1092,10 +1137,11 @@ class NewPcPage(QWidget):
             self._started = True
             self.check.recheck()
             root = self.app.software.root
-            def read_catalog() -> tuple[list[tuple[str, str]], list[tuple[str, str, str]]]:
+            def read_catalog() -> tuple[list, list, list]:
                 loaded = catalog_module.load_catalog(root if root and os.path.isdir(root) else "")
                 return ([(profile.id, profile.name) for profile in loaded.profiles],
-                        [(item.id, item.name, item.group) for item in loaded.apps])
+                        [(item.id, item.name, item.group) for item in loaded.apps],
+                        [(item.id, item.name, item.source) for item in loaded.apps if item.choice == "office"])
             self.worker.run("catalog", read_catalog)
         super().showEvent(event)
 

@@ -61,6 +61,7 @@
 
 - id: prn.restart_spooler
   name: Khởi động lại Print Spooler
+  basic_name: 'Khởi động lại dịch vụ in (Print Spooler)'
   category: Máy in
   keywords: ['máy in', 'printer', 'spooler', 'print spooler', 'dịch vụ in', 'in không được']
   page: printers

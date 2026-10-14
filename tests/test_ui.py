@@ -140,11 +140,13 @@ def test_software_page_profiles_and_install(window, qt_app, monkeypatch):
         qt_app.processEvents()
         time.sleep(0.01)
     assert page.state is not None
-    assert page._items["chrome"].text(2) == "Đã cài 130.0"
+    assert page.cards["chrome"].state_text == "Đã cài 130.0"
+    page.cards["chrome"].setChecked(True)
+    assert not page.cards["chrome"].isChecked()  # đã cài: thẻ khoá, không chọn được
     assert page.store.title.text() == "Chưa có kho bộ cài" and page.store.button.text() == "Chọn kho…"
 
     # Office là nhóm chọn một, không nằm trong cây; bản trong kho bị khoá khi chưa có kho, bản winget chọn được.
-    assert "office2016" not in page._items
+    assert "office2016" not in page.cards
     office = page.choice_groups["office"]
     cards = {card.option.key: card.option for card in office.cards}
     assert list(cards) == ["", "office2016", "office2013", "office2010", "office365"]
@@ -179,7 +181,7 @@ def test_software_page_profiles_and_install(window, qt_app, monkeypatch):
     window.controller.last_results["app.putty"] = ActionResult(software_module.install_action(putty, ""), Status.FAILED, "lỗi")
     assert [app.id for app in page.failed_apps()] == ["putty"]
     page.refresh_states()
-    assert page._items["putty"].text(2).startswith("✖ Lỗi")
+    assert page.cards["putty"].state_text.startswith("✖ Lỗi")
 
 
 def test_overview_saves_asset_record(window, qt_app, monkeypatch, tmp_path):
@@ -423,7 +425,7 @@ def test_software_page_removes_click_to_run_office_first(window, qt_app, monkeyp
     assert office.select("office2016")
     assert not office.warning.isHidden() and office.warning_check.isChecked()
     assert "Microsoft 365 Apps for business" in office.warning_text.text()
-    page._items["7zip"].setCheckState(0, software_module.Qt.CheckState.Checked)
+    page.cards["7zip"].setChecked(True)
     actions, apps, blocked = page.plan(page.selected_apps())
     assert [action.id for action in actions] == ["off.remove_c2r", "app.7zip", "app.office2016"] and not blocked
     office.warning_check.setChecked(False)  # không cho gỡ thì Office 2016 bị bỏ qua
@@ -1002,3 +1004,33 @@ def test_scenario_guide_checks_fixes_and_verifies(window, qt_app, monkeypatch):
     copied = QtWidgets.QApplication.clipboard().text()
     assert "Tình huống: Không in được" in copied and "Đã chạy:" in copied
     assert "Đã chép báo cáo vào clipboard" in window.log_panel.plain_text()
+
+
+def test_newpc_office_choice_syncs_with_extra_apps(window, qt_app):
+    page = window.newpc
+    apps = [("7zip", "7-Zip", "Tiện ích"), ("office2016", "Microsoft Office Standard 2016 (64-bit)", "Văn phòng"),
+            ("office2013", "Microsoft Office Standard 2013 (64-bit)", "Văn phòng")]
+    office = [("office2016", "Microsoft Office Standard 2016 (64-bit)", "share"),
+              ("office2013", "Microsoft Office Standard 2013 (64-bit)", "share")]
+    page._worker_done("catalog", ([("van-phong", "Văn phòng")], apps, office))
+    titles = [card.option.title for card in page.office.cards]
+    assert titles == ["Không cài", "Office 2016", "Office 2013"]
+    page.extra_apps = ["7zip", "office2013"]
+    page._show_extra_apps()
+    assert page.office.selected() == "office2013" and page.extra_label.text() == "7-Zip"
+    page.office.select("office2016")
+    assert page.extra_apps == ["7zip", "office2016"]
+    page.office.select("")
+    assert page.extra_apps == ["7zip"]
+
+
+def test_basic_mode_shows_plain_names(window):
+    fixes = window.fixes
+    item = fixes._items["wu.reset"]
+    assert window.mode == "basic" and item.text(0) == "Sửa Windows Update bị kẹt (đặt lại Windows Update)"
+    fixes.focus_action("wu.reset")
+    assert fixes.detail.title.text() == item.text(0) and "Tên kỹ thuật: Reset Windows Update" in fixes.detail.description.text()
+    window.set_mode("expert")
+    assert item.text(0) == "Reset Windows Update" and fixes.detail.title.text() == "Reset Windows Update"
+    fixes.search.setText("bị kẹt")  # tìm theo tên dễ hiểu cả ở chế độ Chuyên gia
+    assert not item.isHidden()

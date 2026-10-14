@@ -42,6 +42,7 @@ _ID_PATTERN = re.compile(r"^[a-z0-9_]+(\.[a-z0-9_]+)+$")
 _ACTION_KEYS = {
     "id", "name", "category", "page", "risk", "scope", "admin", "reboot", "os",
     "description", "check", "apply", "undo", "after", "gpo", "needs_credential", "requires_domain", "keywords",
+    "basic_name",
 }
 _STEP_KINDS = ("cmd", "powershell", "registry", "service", "builtin")
 _STEP_COMMON = {"timeout", "ok_codes", "reboot_codes", "messages"}
@@ -159,6 +160,7 @@ def parse_action(raw: Any, source: str = "") -> Action:
         needs_credential=needs_credential,
         requires_domain=requires_domain,
         keywords=tuple(item.strip() for item in keywords if item.strip()),
+        basic_name=_optional_text(raw, "basic_name"),
         source=source,
     )
 

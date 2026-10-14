@@ -2,6 +2,7 @@
 
 - id: sys.sfc_dism
   name: Quét và sửa file hệ thống (DISM + SFC)
+  basic_name: 'Sửa file hệ thống Windows bị hỏng (DISM + SFC)'
   category: Hệ thống
   keywords: ['sfc', 'dism', 'file hệ thống', 'windows lỗi', 'scannow', 'hỏng file']
   risk: safe
@@ -52,6 +53,7 @@
 
 - id: sys.restart_explorer
   name: Khởi động lại Explorer
+  basic_name: 'Khởi động lại thanh tác vụ và màn hình nền (Explorer)'
   category: Hệ thống
   keywords: ['explorer', 'taskbar', 'thanh tác vụ', 'màn hình treo', 'desktop']
   risk: safe
@@ -64,6 +66,7 @@
 
 - id: sys.rebuild_icon_cache
   name: Xây lại cache icon và thumbnail
+  basic_name: 'Sửa icon, ảnh thu nhỏ bị trắng hoặc sai'
   category: Hệ thống
   keywords: ['icon', 'biểu tượng', 'thumbnail', 'ảnh thu nhỏ', 'icon trắng']
   risk: safe
@@ -129,6 +132,7 @@
 
 - id: sys.repair_wmi
   name: Sửa WMI
+  basic_name: 'Sửa thành phần đọc thông tin máy (WMI)'
   category: Hệ thống
   keywords: ['wmi', 'winmgmt', 'thông tin máy lỗi']
   risk: caution
@@ -144,6 +148,7 @@
 
 - id: sys.repair_msi
   name: Sửa Windows Installer
+  basic_name: 'Sửa lỗi không cài được phần mềm (Windows Installer)'
   category: Hệ thống
   keywords: ['windows installer', 'msi', 'không cài được phần mềm', '1603', '1618']
   risk: caution
