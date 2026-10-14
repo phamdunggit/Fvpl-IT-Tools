@@ -4,6 +4,9 @@
     python packaging/build.py --test     # bản thử: không xin UAC, tự chạy selftest sau khi build
 
 Kết quả nằm trong dist/: thư mục FVPL-ITTools/ và FVPL-ITTools-v<phiên bản>.zip
+
+Ký số (bản phát hành): đặt biến môi trường FVPL_SIGN_THUMBPRINT = thumbprint của chứng chỉ Code Signing đã cài trong
+Certificates của tài khoản đang build (xem docs/KY-SO.md). Không đặt thì bỏ qua, exe chưa ký.
 """
 
 from __future__ import annotations
@@ -22,6 +25,10 @@ ROOT = Path(__file__).resolve().parent.parent
 PACKAGING = ROOT / "packaging"
 DIST = ROOT / "dist"
 NAME = "FVPL-ITTools"
+SIGN_THUMBPRINT = "FVPL_SIGN_THUMBPRINT"
+SIGN_TIMESTAMP = "FVPL_SIGN_TIMESTAMP"
+SIGNTOOL = "FVPL_SIGNTOOL"
+DEFAULT_TIMESTAMP = "http://timestamp.digicert.com"
 
 VERSION_TEMPLATE = """\
 VSVersionInfo(
@@ -65,6 +72,39 @@ def selftest(exe: Path) -> None:
         raise SystemExit("Selftest bản exe KHÔNG đạt")
 
 
+def find_signtool() -> Path | None:
+    """signtool.exe: biến FVPL_SIGNTOOL, không thì bản mới nhất trong Windows SDK."""
+    override = os.environ.get(SIGNTOOL)
+    if override:
+        return Path(override) if Path(override).is_file() else None
+    kits = Path(os.environ.get("ProgramFiles(x86)", r"C:\Program Files (x86)")) / "Windows Kits" / "10" / "bin"
+    found = sorted(kits.glob("10.*/x64/signtool.exe"), key=lambda item: [int(part) for part in item.parent.parent.name.split(".")])
+    return found[-1] if found else None
+
+
+def sign_commands(signtool: Path, exe: Path, thumbprint: str, timestamp: str) -> list[list[str]]:
+    """Ký SHA-256 kèm dấu thời gian (chữ ký còn hiệu lực sau khi chứng chỉ hết hạn), rồi kiểm tra lại."""
+    return [
+        [str(signtool), "sign", "/sha1", thumbprint.replace(" ", ""), "/fd", "SHA256",
+         "/tr", timestamp, "/td", "SHA256", "/d", "FVPL IT Toolkit", str(exe)],
+        [str(signtool), "verify", "/pa", str(exe)],
+    ]
+
+
+def sign(exe: Path) -> bool:
+    thumbprint = os.environ.get(SIGN_THUMBPRINT, "").strip()
+    if not thumbprint:
+        print(f"Chưa ký số exe (đặt {SIGN_THUMBPRINT}, xem docs/KY-SO.md).")
+        return False
+    signtool = find_signtool()
+    if signtool is None:
+        raise SystemExit("Không thấy signtool.exe: cài Windows SDK (chỉ cần phần Signing Tools) hoặc đặt FVPL_SIGNTOOL")
+    for command in sign_commands(signtool, exe, thumbprint, os.environ.get(SIGN_TIMESTAMP) or DEFAULT_TIMESTAMP):
+        subprocess.run(command, check=True)
+    print(f"Đã ký số {exe.name}")
+    return True
+
+
 def main() -> None:
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     parser = argparse.ArgumentParser()
@@ -85,6 +125,7 @@ def main() -> None:
     if args.test:
         selftest(folder / f"{NAME}.exe")
         return
+    sign(folder / f"{NAME}.exe")  # ký trước khi nén để file zip có bản đã ký
     archive = shutil.make_archive(str(DIST / f"{NAME}-v{version}"), "zip", DIST, NAME)
     size = sum(file.stat().st_size for file in folder.rglob("*") if file.is_file()) / 1024 / 1024
     print(f"Xong: {folder} ({size:.0f} MB), {archive}")

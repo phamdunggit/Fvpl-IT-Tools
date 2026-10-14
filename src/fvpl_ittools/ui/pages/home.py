@@ -21,10 +21,12 @@ from PySide6.QtWidgets import (
 )
 
 from ...app import AppContext
-from ...core import health
+from ... import __version__
+from ...core import health, updates
 from ...newpc import state as wizard_state
 from .. import icons, theme
 from ..components.banner import Banner
+from ..widgets import open_path
 
 COLUMNS = 4
 HEALTH_ICONS = {"ok": "ok", "warn": "warn", "bad": "bad"}
@@ -129,6 +131,11 @@ class HomePage(QWidget):
         self.resume = Banner()
         self.resume.clicked.connect(lambda: self.navigate.emit("page:newpc"))
         root.addWidget(self.resume)
+        self.release: updates.Release | None = None
+        self.update_banner = Banner()
+        self.update_banner.clicked.connect(self.open_release)
+        self.update_banner.hide()
+        root.addWidget(self.update_banner)
 
         title = QLabel("Bạn cần làm gì?")
         title.setObjectName("PageTitle")
@@ -194,6 +201,22 @@ class HomePage(QWidget):
                                f"Đã xong {done}/{len(wizard_state.STEPS)} bước. Bấm Làm tiếp để mở trang Cài máy mới.",
                                "Làm tiếp", primary=True)
         self.resume.show()
+
+    def show_update(self, release: updates.Release) -> None:
+        """Có bản tool mới trên share."""
+        self.release = release
+        notes = "; ".join(release.notes[:3])
+        when = f" ({release.date})" if release.date else ""
+        self.update_banner.show_state(
+            "info", f"Có bản tool mới {release.version}{when}, bản đang chạy là {__version__}",
+            (notes + ". " if notes else "") + "Chép thư mục bản mới ra USB / SSD (hoặc chạy deploy.py) rồi mở lại tool.",
+            "Mở thư mục bản mới")
+        self.update_banner.show()
+
+    def open_release(self) -> None:
+        if self.release is not None:
+            folder = self.release.folder
+            open_path(folder if folder.exists() else folder.parent)
 
     def set_health(self, items: list[health.HealthItem], loading: bool = False) -> None:
         self.health_items = items

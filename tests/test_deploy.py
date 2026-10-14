@@ -26,3 +26,14 @@ def test_ssd_adds_soft_without_deleting():
     assert soft[1:3] == ["D:\\Kho", "F:\\FVPL-ITTools\\SOFT"]
     assert "/E" in soft and "/MIR" not in soft
     assert not any(step[-1] == "site.yaml" or "site.yaml" in step for step in steps)
+
+
+def test_share_publishes_versioned_folder_zip_and_manifest():
+    import datetime
+    steps = deploy.commands("share", Path("S:/ITTools"), Path("D:/Kho"), None, "1.0.0")
+    assert steps[0][2].endswith("FVPL-ITTools-v1.0.0") and "/MIR" in steps[0]
+    assert steps[1][3] == "FVPL-ITTools-v1.0.0.zip" and not any("SOFT" in part for step in steps for part in step)
+    manifest = deploy.release_manifest("1.0.0", [], datetime.date(2026, 10, 20))
+    assert manifest == {"version": "1.0.0", "date": "2026-10-20", "folder": "FVPL-ITTools-v1.0.0",
+                        "zip": "FVPL-ITTools-v1.0.0.zip", "notes": ["Xem CHANGELOG.md trong repo"]}
+    assert deploy.read_version()

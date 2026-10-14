@@ -29,6 +29,17 @@ Chép ra ổ sau khi build (trên máy có mã nguồn):
 Tool tự chọn **kho bộ cài**: có thư mục `SOFT` cạnh file exe thì dùng nó, không thì dùng share `share_root` trong
 `site.yaml`. Trang Cài phần mềm luôn ghi đang dùng kho nào.
 
+**Phát hành bản mới lên share** để mọi IT biết có bản mới:
+
+```powershell
+.venv\Scripts\python packaging\deploy.py share \\fileserver\IT$\ITTools\Releases --note "Sửa lỗi theo tình huống"
+```
+
+Lệnh chép thư mục `FVPL-ITTools-v<bản>`, file zip và ghi `version.json` vào thư mục đó (đặt `release_dir` trong
+site.yaml trỏ tới đây; bỏ trống thì tool tìm ở `<kho bộ cài>\ITTools`). Lúc mở, tool đọc `version.json`; bản trên share
+mới hơn thì Trang chủ hiện **Có bản tool mới … · Mở thư mục bản mới** để chép ra USB / SSD (tool không tự ghi đè chính nó).
+Ký số file exe trước khi phát hành: xem [KY-SO.md](KY-SO.md).
+
 ### 1.2 `site.yaml`
 
 Chép từ `site.example.yaml`, đặt cạnh file exe. Các khoá: `domain`, `netbios_domain`, `share_root`, `computer_prefix`,

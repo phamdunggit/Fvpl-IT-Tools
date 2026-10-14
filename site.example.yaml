@@ -17,6 +17,10 @@ netbios_domain: CORP
 #   Drivers\Printers\<hãng>\  driver máy in đã giải nén (có file .inf), trang Máy in mở sẵn thư mục này
 share_root: '\\fileserver.corp.example\IT$\ITTools'
 
+# Thư mục chứa các bản phát hành tool và version.json (lệnh: python packaging\deploy.py share <thư mục>).
+# Tool đọc version.json để báo ở Trang chủ khi có bản mới. Bỏ trống thì dùng <share_root>\ITTools.
+# release_dir: '\\fileserver.corp.example\IT$\ITTools\Releases'
+
 # Tiền tố tên máy, ví dụ FVPL- cho FVPL-KT05
 computer_prefix: FVPL-
 

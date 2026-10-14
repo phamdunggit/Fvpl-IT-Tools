@@ -33,7 +33,7 @@ from PySide6.QtWidgets import (
 from .. import APP_NAME, __version__
 from ..actions.model import Risk
 from ..app import AppContext
-from ..core import health, prefs, progress, scenarios, search, shell, taskbar
+from ..core import health, prefs, progress, scenarios, search, shell, taskbar, updates
 from ..core.executor import BatchResult, Level, Status
 from . import icons, theme
 from .components.command_palette import CommandPalette
@@ -50,7 +50,7 @@ from .pages.printers import PrintersPage
 from .pages.scenario import ScenarioPage
 from .pages.software import SoftwarePage
 from .pages.utilities import SHORTCUTS, UtilitiesPage
-from .widgets import chip
+from .widgets import Worker, chip
 
 UI_MODE = "ui_mode"
 WELCOME_SEEN = "welcome_seen"
@@ -356,6 +356,9 @@ class MainWindow(QMainWindow):
         saved = prefs.get(UI_MODE)
         self.set_mode(saved if saved in MODES else "basic", save=False)
         self._update_store_box()
+        self.update_worker = Worker(self)
+        self.update_worker.done.connect(self._update_checked)
+        self.check_for_update()
 
         self.controller.say(Level.INFO, f"Sẵn sàng. Log phiên này: {app.log_file or '(không ghi log)'}")
         if not app.env.is_admin:
@@ -637,6 +640,21 @@ class MainWindow(QMainWindow):
                 creationflags=shell.CREATE_NO_WINDOW,
             )
             self.controller.say(Level.WARN, "Máy sẽ khởi động lại sau 30 giây (huỷ bằng lệnh: shutdown /a).")
+
+    # ------------------------------------------------------------ bản mới
+
+    def check_for_update(self) -> None:
+        """Đọc version.json trên share ở thread nền; có bản mới thì báo ở Trang chủ."""
+        folder = updates.release_dir(self.app.site.release_dir, self.app.software.root)
+        if folder is not None:
+            self.update_worker.run("update", lambda: updates.check(folder, __version__))
+
+    def _update_checked(self, _name: str, result: object) -> None:
+        if isinstance(result, updates.Release):
+            self.home.show_update(result)
+            self.controller.say(Level.INFO, f"Có bản tool mới {result.version}: {result.folder}")
+        elif isinstance(result, Exception):
+            self.controller.say(Level.WARN, f"Không kiểm tra được bản tool mới: {result}")
 
     # ------------------------------------------------------------ hướng dẫn nhanh, taskbar
 

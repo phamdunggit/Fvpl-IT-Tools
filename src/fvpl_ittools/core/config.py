@@ -13,7 +13,7 @@ import yaml
 from . import paths
 
 SITE_FILE = "site.yaml"
-_FIELDS = ("domain", "netbios_domain", "share_root", "computer_prefix", "computer_ou", "it_admins_group")
+_FIELDS = ("domain", "netbios_domain", "share_root", "computer_prefix", "computer_ou", "it_admins_group", "release_dir")
 _DEPARTMENTS = "departments"
 DEPARTMENT_CODE = re.compile(r"^[A-Z0-9]{1,6}$")
 
@@ -27,6 +27,7 @@ class SiteConfig:
     computer_prefix: str = ""
     computer_ou: str = ""              # OU chung của máy trạm (distinguished name), rỗng = container Computers
     it_admins_group: str = ""          # nhóm domain của IT, thêm vào Administrators của máy sau khi join
+    release_dir: str = ""              # thư mục bản phát hành tool (version.json), rỗng = <kho bộ cài>\ITTools
     departments: tuple[tuple[str, str], ...] = ()  # (mã phòng, tên phòng), thêm dần từ wizard
     errors: tuple[str, ...] = ()
 

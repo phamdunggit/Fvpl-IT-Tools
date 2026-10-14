@@ -24,7 +24,7 @@ Cập nhật: 14/10/2026. File này được cập nhật trước mỗi commit.
 | Giao diện mới, đợt P2 (phần đầu) | **Sửa lỗi theo tình huống** từng bước (Kiểm tra → Sửa → Kết quả) cho 6 tình huống: mạng, máy in, domain / ổ chung, máy chậm, Office, Windows Update (`scenarios.yaml`, script kiểm tra chỉ đọc trong `data/scripts/scenarios/`, đã chạy thật trên máy dev); mở từ ô Trang chủ, Ctrl+K, thanh "Hướng dẫn từng bước" trên trang Sửa lỗi. **Gửi kết quả cho IT**: báo cáo vào clipboard + file HTML |
 | Giao diện mới, đợt P1 | **Khung kiểu Windows 11** (màu, chữ Segoe UI Variable, icon nét mảnh tự vẽ, thanh trên trắng, sidebar có icon, thanh trạng thái dưới cùng, khung log thành ngăn kéo "Chi tiết kỹ thuật"); **Trang chủ**: 8 ô theo việc cần làm, khung **Tình trạng máy này** có nút sửa, banner cài dở; **chế độ Cơ bản / Chuyên gia** (Cơ bản ẩn mục Nâng cao, tab Event log / LAPS, gập log; nhớ lựa chọn); **tìm Ctrl+K** (bỏ dấu, mã lỗi, từ khoá cho 51 mục sửa lỗi / máy in; mở đúng trang, tab, mục) |
 | Giao diện mới, đợt P0 | **Thanh tiến độ** cho mọi lượt chạy nhiều mục (mục n/N, % tải về của winget, từng mục ✔ / ✖ kèm lý do, dừng sau mục đang chạy, thẻ kết quả + Thử lại mục lỗi) ở trang Cài phần mềm, wizard bước 3 / 5 / 6 và khung log; **thẻ chọn bản Office** (Không cài / 2016 / 2013 / 2010 / 365), có cả khi chạy bản zip không kèm kho; máy có Microsoft 365 cài sẵn thì tick **Gỡ trước khi cài**; **banner kho bộ cài + Chọn kho…** (nhớ cho lần sau) |
-| GĐ4 Tiện ích (một phần) | **Sửa biến PATH** (bỏ mục hỏng / trùng, hoàn tác được). Trang Tiện ích thêm tab **Event log** (lỗi Critical / Error 24 giờ / 7 / 30 ngày, gộp theo loại, gợi ý tiếng Việt) và **Công cụ khác**: sao lưu / cài lại driver (`DriverBackup\` cạnh tool), sao lưu rồi sửa HOSTS, tìm chương trình đang khoá file, mật khẩu Wi-Fi đã lưu; Chẩn đoán RAM ở Mở nhanh |
+| GĐ4 Tiện ích (một phần) | **Báo bản mới** (version.json trên share, `deploy.py share`), **ký số exe** khi build (cần chứng chỉ, [KY-SO.md](KY-SO.md)). **Sửa biến PATH** (bỏ mục hỏng / trùng, hoàn tác được). Trang Tiện ích thêm tab **Event log** (lỗi Critical / Error 24 giờ / 7 / 30 ngày, gộp theo loại, gợi ý tiếng Việt) và **Công cụ khác**: sao lưu / cài lại driver (`DriverBackup\` cạnh tool), sao lưu rồi sửa HOSTS, tìm chương trình đang khoá file, mật khẩu Wi-Fi đã lưu; Chẩn đoán RAM ở Mở nhanh |
 | Trang Máy in | Danh sách máy in (kể cả share của người đang đăng nhập), gỡ máy in / driver, in thử; thêm qua IP (driver từ file .inf) và qua share; **sửa share máy in Win11 ↔ Win10** |
 | Câu hỏi PLAN mục 11 | Đã trả lời hết (13/10/2026) |
 
@@ -33,7 +33,7 @@ Cập nhật: 14/10/2026. File này được cập nhật trước mỗi commit.
 | # | Việc | Ghi chú |
 |---|---|---|
 | 1 | Thử giao diện mới với 2–3 người không làm IT, sửa theo góp ý | [Kế hoạch](KE-HOACH-GIAO-DIEN.md) mục 7, cột "Xong khi" của P2 |
-| 2 | GĐ4 còn lại: báo bản mới, ký số exe, chuyển dữ liệu máy cũ, bản 1.0 | Đang làm (đã xong sửa PATH) |
+| 2 | GĐ4 còn lại: chuyển dữ liệu máy cũ, bản 1.0 | Đã xong sửa PATH, báo bản mới, ký số exe (khi có chứng chỉ) |
 
 ## Bồ cần làm
 

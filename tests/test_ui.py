@@ -1087,3 +1087,19 @@ def test_path_dialog_cleans_and_saves(window, tmp_path, monkeypatch):
     monkeypatch.setattr(path_dialog.QMessageBox, "question", lambda *args: path_dialog.QMessageBox.StandardButton.Yes)
     dialog.save()
     assert runs == [["env.path_user"]]
+
+
+def test_home_shows_new_release(window, tmp_path, monkeypatch):
+    from fvpl_ittools.core import updates
+    from fvpl_ittools.ui.pages import home as home_module
+    home = window.home
+    assert home.update_banner.isHidden()
+    release = updates.Release("9.0.0", tmp_path / "FVPL-ITTools-v9.0.0", None, "2026-10-20", ("Bản lớn",))
+    window._update_checked("update", release)
+    assert not home.update_banner.isHidden() and "9.0.0" in home.update_banner.title.text()
+    opened = []
+    monkeypatch.setattr(home_module, "open_path", opened.append)
+    home.update_banner.button.click()
+    assert opened == [tmp_path]  # thư mục bản mới chưa có thì mở thư mục cha
+    window._update_checked("update", updates.UpdateError("share không trả lời"))
+    assert "Không kiểm tra được bản tool mới" in window.log_panel.plain_text()
