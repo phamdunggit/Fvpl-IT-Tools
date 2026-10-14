@@ -51,14 +51,20 @@ TILES = (
 )
 
 
-class Tile(QPushButton):
+class Tile(QFrame):
+    """Ô lớn ở Trang chủ. Là khung (không phải nút) để chữ xuống dòng thì ô tự cao lên, không bị cắt
+    (cỡ chữ 150%, cửa sổ hẹp). Bấm chuột, Enter hoặc phím cách đều mở."""
+    clicked = Signal()
+
     def __init__(self, spec: TileSpec):
         super().__init__()
         self.spec = spec
         self.setObjectName("Tile")
         self.setProperty("accent", spec.accent)
         self.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.setMinimumHeight(140)
+        self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
+        self.setAttribute(Qt.WidgetAttribute.WA_Hover)
+        self.setMinimumHeight(128)
         self.setAccessibleName(spec.title)
         self.setToolTip(spec.text)
         layout = QVBoxLayout(self)
@@ -71,10 +77,10 @@ class Tile(QPushButton):
         mark.setPixmap(icons.pixmap(spec.icon, "#ffffff" if spec.accent else theme.ACCENT, 22))
         title = QLabel(spec.title)
         title.setObjectName("TileTitle")
+        title.setWordWrap(True)
         text = QLabel(spec.text)
         text.setObjectName("TileText")
         text.setWordWrap(True)
-        text.setMinimumHeight(text.fontMetrics().lineSpacing() * 2 + 6)  # đủ 2 dòng, ô nào cũng cao bằng nhau
         text.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
         for label in (mark, title, text):
             label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
@@ -82,6 +88,20 @@ class Tile(QPushButton):
         layout.addWidget(title)
         layout.addWidget(text)
         layout.addStretch(1)
+
+    def click(self) -> None:
+        self.clicked.emit()
+
+    def mouseReleaseEvent(self, event) -> None:
+        if event.button() == Qt.MouseButton.LeftButton and self.rect().contains(event.position().toPoint()):
+            self.clicked.emit()
+        super().mouseReleaseEvent(event)
+
+    def keyPressEvent(self, event) -> None:
+        if event.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter, Qt.Key.Key_Space):
+            self.clicked.emit()
+            return
+        super().keyPressEvent(event)
 
 
 class HomePage(QWidget):
@@ -124,7 +144,7 @@ class HomePage(QWidget):
         self.tiles: list[Tile] = []
         for index, spec in enumerate(TILES):
             tile = Tile(spec)
-            tile.clicked.connect(lambda _checked=False, target=spec.target: self.navigate.emit(target))
+            tile.clicked.connect(lambda target=spec.target: self.navigate.emit(target))
             grid.addWidget(tile, index // COLUMNS, index % COLUMNS)
             self.tiles.append(tile)
         for column in range(COLUMNS):

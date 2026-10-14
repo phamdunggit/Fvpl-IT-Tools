@@ -62,21 +62,21 @@ class InventoryLoader(QObject):
 
 
 _STATE_STYLE = {
-    "ok": "color:#15803d", "warn": "color:#b45309", "bad": "color:#b91c1c; font-weight:600", "muted": "color:#7b8794",
+    "ok": "color:#0e700e", "warn": "color:#8a5300", "bad": "color:#c42b1c; font-weight:600", "muted": "color:#8a8a8a",
 }
 
 
 def _card(title: str, rows) -> str:
     """Một thẻ thông tin bằng HTML của Qt (QTextBrowser chỉ hiểu một phần CSS, nên dùng bảng)."""
     lines = [
-        "<table width='100%' cellspacing='0' cellpadding='12' bgcolor='#ffffff' style='border:1px solid #dde3ea'><tr><td>",
-        f"<p style='font-size:11pt; font-weight:600; color:#102a43; margin:0 0 6px 0'>{html.escape(title)}</p>",
+        "<table width='100%' cellspacing='0' cellpadding='12' bgcolor='#ffffff' style='border:1px solid #e5e5e5'><tr><td>",
+        f"<p style='font-size:11pt; font-weight:600; color:#1b1b1b; margin:0 0 6px 0'>{html.escape(title)}</p>",
         "<table width='100%' cellspacing='0' cellpadding='3'>",
     ]
     for row in rows:
         style = _STATE_STYLE.get(row.state, "")
         lines.append(
-            f"<tr><td width='34%' valign='top' style='color:#52606d'>{html.escape(row.label)}</td>"
+            f"<tr><td width='34%' valign='top' style='color:#5c5c5c'>{html.escape(row.label)}</td>"
             f"<td valign='top' style='{style}'>{html.escape(row.value)}</td></tr>"
         )
     lines.append("</table></td></tr></table>")

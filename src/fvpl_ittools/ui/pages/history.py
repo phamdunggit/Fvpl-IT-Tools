@@ -48,6 +48,12 @@ class HistoryPage(QWidget):
         header.setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
         header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
         root.addWidget(self.table, 1)
+        self.empty = QLabel("Chưa có thay đổi nào. Mỗi lần tool đổi cài đặt (registry) của máy sẽ ghi một dòng ở đây "
+                            "để hoàn tác được.")
+        self.empty.setObjectName("EmptyState")
+        self.empty.setWordWrap(True)
+        self.empty.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        root.addWidget(self.empty, 1)
 
         buttons = QHBoxLayout()
         self.undo_button = QPushButton("Hoàn tác mục đã chọn")
@@ -85,8 +91,10 @@ class HistoryPage(QWidget):
                 item = QTableWidgetItem(value)
                 item.setData(ENTRY_ID_ROLE, entry.id)
                 if entry.undone:
-                    item.setForeground(QBrush(QColor("#94a3b8")))
+                    item.setForeground(QBrush(QColor("#8a8a8a")))
                 self.table.setItem(row, column, item)
+        self.table.setVisible(bool(entries))
+        self.empty.setVisible(not entries)
         self._update_buttons()
 
     def showEvent(self, event) -> None:

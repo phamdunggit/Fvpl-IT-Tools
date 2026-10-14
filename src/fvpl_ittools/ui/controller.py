@@ -10,8 +10,8 @@ from PySide6.QtCore import QObject, Signal
 
 from ..actions.model import Action
 from ..app import AppContext
-from ..core import executor
-from ..core.executor import ActionResult, BatchResult, Level, LogEvent, RunContext
+from ..core import durations, executor
+from ..core.executor import ActionResult, BatchResult, Level, LogEvent, RunContext, Status
 
 log = logging.getLogger(__name__)
 
@@ -140,6 +140,8 @@ class RunController(QObject):
         if isinstance(result, BatchResult):
             for item in result.results:
                 self.last_results[item.action.id] = item
+            # Thời gian chạy thật để lần sau ước tính "còn khoảng N phút".
+            durations.record((item.action.id, item.seconds) for item in result.results if item.status is Status.OK)
         self.busy_changed.emit(False)
         self.journal_changed.emit()
         self.finished.emit(result)

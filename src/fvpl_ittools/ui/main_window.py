@@ -10,7 +10,7 @@ from __future__ import annotations
 import subprocess
 
 from PySide6.QtCore import QSize, Qt, Signal
-from PySide6.QtGui import QKeySequence, QShortcut
+from PySide6.QtGui import QGuiApplication, QKeySequence, QShortcut
 from PySide6.QtWidgets import (
     QButtonGroup,
     QFrame,
@@ -33,10 +33,11 @@ from PySide6.QtWidgets import (
 from .. import APP_NAME, __version__
 from ..actions.model import Risk
 from ..app import AppContext
-from ..core import health, prefs, progress, scenarios, search, shell
+from ..core import health, prefs, progress, scenarios, search, shell, taskbar
 from ..core.executor import BatchResult, Level, Status
 from . import icons, theme
 from .components.command_palette import CommandPalette
+from .components.welcome import WelcomeDialog
 from .controller import RunController
 from .log_panel import LogPanel
 from .pages.actions_page import ActionsPage
@@ -52,6 +53,7 @@ from .pages.utilities import SHORTCUTS, UtilitiesPage
 from .widgets import chip
 
 UI_MODE = "ui_mode"
+WELCOME_SEEN = "welcome_seen"
 MODES = ("basic", "expert")
 PAGE_LABELS = {"fixes": "Sửa lỗi", "printers": "Máy in", "optimize": "Tối ưu & dọn dẹp", "config": "Cấu hình",
                "utilities": "Tiện ích"}
@@ -87,6 +89,8 @@ TOOLS = (
     ("Chọn kho bộ cài", "Thư mục SOFT trên SSD, USB hoặc mạng", "store", "kho soft share bộ cài", False, "disk"),
     ("Hoàn tác thay đổi", "Trả lại registry như trước khi tool chạy", "page:history", "undo hoàn tác nhật ký", False,
      "history"),
+    ("Xem lại hướng dẫn nhanh (F1)", "3 điều cần biết: Trang chủ, Ctrl+K, Cơ bản / Chuyên gia", "welcome",
+     "hướng dẫn trợ giúp help cách dùng", False, "info"),
 )
 
 
@@ -149,9 +153,10 @@ class HeaderBar(QFrame):
         self.alerts = QHBoxLayout()
         self.alerts.setSpacing(8)
         layout.addLayout(self.alerts)
-        system = " · ".join(part for part in (machine.computer_name, machine.domain_label,
-                                              f"{machine.os_name} {machine.display_version}".strip()) if part)
-        layout.addWidget(chip(system, "normal" if machine.joined_domain else "warn"))
+        system = chip(" · ".join(part for part in (machine.computer_name, machine.domain_label) if part),
+                      "normal" if machine.joined_domain else "warn")
+        system.setToolTip(f"{machine.os_name} {machine.display_version} (build {machine.build}.{machine.ubr})".strip())
+        layout.addWidget(system)
         if app.runs_as_other_user:
             layout.addWidget(chip(f"Chạy bằng {env.process_user.name} · áp cho {env.target_user.short_name}", "warn"))
         layout.addWidget(chip("Quyền admin ✓", "ok") if env.is_admin else chip("Không có quyền admin", "bad"))
@@ -287,6 +292,7 @@ class MainWindow(QMainWindow):
         self.app = app
         self.mode = "basic"
         self.tray: QSystemTrayIcon | None = None
+        self.taskbar: taskbar.TaskbarProgress | None = None
         self.setWindowTitle(f"{APP_NAME} {__version__}")
         self.resize(1280, 820)
         self.setMinimumSize(1040, 660)
@@ -326,6 +332,10 @@ class MainWindow(QMainWindow):
         self.palette = CommandPalette(self, self.build_index, lambda: self.mode == "basic")
         self.palette.activated.connect(self.navigate)
         QShortcut(QKeySequence("Ctrl+K"), self, activated=self.open_search)
+        QShortcut(QKeySequence("F1"), self, activated=self.show_welcome)
+        for row in range(min(10, len(PAGES))):  # Ctrl+1 … Ctrl+0: mở trang thứ 1 … 10 trên sidebar
+            QShortcut(QKeySequence(f"Ctrl+{(row + 1) % 10}"), self,
+                      activated=lambda index=row: self.sidebar.setCurrentRow(index))
         self.header.search_requested.connect(self.open_search)
         self.header.mode_requested.connect(self.set_mode)
         self.status_bar.log_button.toggled.connect(self.show_log)
@@ -337,6 +347,9 @@ class MainWindow(QMainWindow):
         self.log_panel.cancel_requested.connect(self.controller.cancel)
         self.controller.finished.connect(self._finished)
         self.controller.finished.connect(self._notify_done)
+        self.controller.busy_changed.connect(self._taskbar_busy)
+        self.controller.progress.connect(self._taskbar_progress)
+        self.controller.finished.connect(self._taskbar_finished)
 
         saved = prefs.get(UI_MODE)
         self.set_mode(saved if saved in MODES else "basic", save=False)
@@ -371,9 +384,11 @@ class MainWindow(QMainWindow):
         self.sidebar.setObjectName("Sidebar")
         self.sidebar.setIconSize(QSize(20, 20))
         self.sidebar.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        for key, label, icon_name in PAGES:
+        for row, (key, label, icon_name) in enumerate(PAGES):
             item = QListWidgetItem(icons.icon(icon_name, theme.TEXT, theme.ACCENT), label)
             item.setData(KEY_ROLE, key)
+            if row < 10:
+                item.setToolTip(f"Ctrl+{(row + 1) % 10}")
             item.setSizeHint(QSize(0, 38))
             self.sidebar.addItem(item)
         layout.addWidget(self.sidebar, 1)
@@ -590,6 +605,8 @@ class MainWindow(QMainWindow):
         elif kind == "store":
             self.select_page("software")
             self.software.choose_store()
+        elif kind == "welcome":
+            self.show_welcome()
         elif kind == "guide":
             if self.guide.start(rest):
                 self.sidebar.blockSignals(True)
@@ -618,6 +635,44 @@ class MainWindow(QMainWindow):
                 creationflags=shell.CREATE_NO_WINDOW,
             )
             self.controller.say(Level.WARN, "Máy sẽ khởi động lại sau 30 giây (huỷ bằng lệnh: shutdown /a).")
+
+    # ------------------------------------------------------------ hướng dẫn nhanh, taskbar
+
+    def show_welcome(self) -> None:
+        WelcomeDialog(self).exec()
+        try:
+            prefs.put(WELCOME_SEEN, True)
+        except OSError:
+            pass
+
+    def maybe_show_welcome(self) -> None:
+        """Lần đầu mở tool (trên tài khoản Windows này): hiện hướng dẫn nhanh 3 bước."""
+        if not prefs.get(WELCOME_SEEN):
+            self.show_welcome()
+
+    def _taskbar(self) -> taskbar.TaskbarProgress | None:
+        if self.taskbar is None and QGuiApplication.platformName() == "windows":
+            self.taskbar = taskbar.TaskbarProgress(int(self.winId()))
+        return self.taskbar if self.taskbar is not None and self.taskbar.available else None
+
+    def _taskbar_busy(self, busy: bool) -> None:
+        bar = self._taskbar()
+        if bar is not None and busy:
+            bar.set_state(taskbar.INDETERMINATE)
+
+    def _taskbar_progress(self, _event: object) -> None:
+        bar, tracker = self._taskbar(), self.status_bar.tracker
+        if bar is not None and tracker is not None:
+            bar.set_value(tracker.fraction)
+
+    def _taskbar_finished(self, result: object) -> None:
+        bar = self._taskbar()
+        if bar is None:
+            return
+        if isinstance(result, BatchResult) and (result.count(Status.FAILED) or result.cancelled):
+            bar.set_value(1.0, taskbar.ERROR)  # đỏ tới lượt chạy sau
+        else:
+            bar.set_state(taskbar.NONE)
 
     def _notify_done(self, result: object) -> None:
         """Chạy xong mà IT đang làm việc khác (cửa sổ thu nhỏ / ở sau): báo ở khay hệ thống."""

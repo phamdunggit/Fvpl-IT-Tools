@@ -24,7 +24,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from ...core import progress
+from ...core import durations, progress
 from ...core.executor import BatchResult
 from ..controller import RunController
 
@@ -122,6 +122,9 @@ class ProgressPanel(QFrame):
         self.can_retry = False  # trang có xử lý retry_requested không
         self.result: BatchResult | None = None
         self._clock = QElapsedTimer()
+        self._item_clock = QElapsedTimer()  # mục đang chạy bắt đầu lúc nào
+        self._running_index: int | None = None
+        self._durations: dict[str, list[float]] = {}
         self._timer = QTimer(self)
         self._timer.setInterval(1000)
         self._timer.timeout.connect(self._tick)
@@ -212,6 +215,9 @@ class ProgressPanel(QFrame):
             self._armed = False
             self._start(event)
         elif isinstance(event, progress.ItemUpdate) and self.running and self.tracker.apply(event):
+            if event.state == progress.RUNNING and event.index != self._running_index:
+                self._running_index = event.index
+                self._item_clock.start()
             if event.index == progress.BATCH:
                 self._refresh()
             else:
@@ -221,6 +227,8 @@ class ProgressPanel(QFrame):
     def _start(self, started: progress.BatchStarted) -> None:
         self.tracker = progress.Tracker(started)
         self.result = None
+        self._durations = durations.load()
+        self._running_index = None
         while self.rows_layout.count():
             widget = self.rows_layout.takeAt(0).widget()
             if widget is not None:
@@ -266,9 +274,29 @@ class ProgressPanel(QFrame):
 
     # ------------------------------------------------------------ vẽ
 
+    def remaining_seconds(self) -> float | None:
+        """Ước tính thời gian còn lại từ số liệu các lần chạy trước; None nếu có mục chưa biết."""
+        if self.tracker is None or self.result is not None:
+            return None
+        total = 0.0
+        for index, item in enumerate(self.tracker.items):
+            if item.state not in (progress.WAITING, progress.RUNNING):
+                continue
+            value = durations.estimate(item.item.action_id, self._durations)
+            if value is None:
+                return None
+            if item.state == progress.RUNNING and index == self._running_index:
+                value = max(value - self._item_clock.elapsed() / 1000, 0.0)
+            total += value
+        return total
+
     def _tick(self) -> None:
         if self.tracker is not None:
-            self.clock.setText(f"đã chạy {elapsed_text(self._clock.elapsed() // 1000)}")
+            text = f"đã chạy {elapsed_text(self._clock.elapsed() // 1000)}"
+            remaining = self.remaining_seconds()
+            if remaining is not None and remaining >= 30:
+                text += f" · còn {durations.minutes_text(remaining)}"
+            self.clock.setText(text)
 
     def _refresh(self) -> None:
         tracker = self.tracker

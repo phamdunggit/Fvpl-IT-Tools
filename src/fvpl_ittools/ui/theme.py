@@ -196,16 +196,18 @@ QProgressBar::chunk {{ background: {ACCENT}; border-radius: 4px; }}
 #BottomSummary {{ font-weight: 600; color: {TEXT}; }}
 
 /* Trang chủ */
-QPushButton#Tile {{ text-align: left; background: {CARD}; border: 1px solid {BORDER}; border-radius: 8px; padding: 0; }}
-QPushButton#Tile:hover {{ border-color: #9cc0e6; background: #fbfdff; }}
-QPushButton#Tile[accent="true"] {{ background: {ACCENT}; border-color: {ACCENT}; }}
-QPushButton#Tile[accent="true"]:hover {{ background: {ACCENT_HOVER}; }}
+#Tile {{ background: {CARD}; border: 1px solid {BORDER}; border-radius: 8px; }}
+#Tile:hover {{ border-color: #9cc0e6; background: #fbfdff; }}
+#Tile:focus {{ border: 2px solid {ACCENT}; }}
+#Tile[accent="true"] {{ background: {ACCENT}; border-color: {ACCENT}; }}
+#Tile[accent="true"]:hover {{ background: {ACCENT_HOVER}; }}
+#Tile[accent="true"]:focus {{ border: 2px solid {ACCENT_PRESSED}; }}
 #TileTitle {{ font-size: 11.5pt; font-weight: 600; color: {TEXT}; background: transparent; }}
 #TileText {{ color: {TEXT_SECONDARY}; background: transparent; }}
-QPushButton#Tile[accent="true"] #TileTitle {{ color: #ffffff; }}
-QPushButton#Tile[accent="true"] #TileText {{ color: #e8f1fb; }}
+#Tile[accent="true"] #TileTitle {{ color: #ffffff; }}
+#Tile[accent="true"] #TileText {{ color: #e8f1fb; }}
 #TileIcon {{ background: {ACCENT_TINT}; border-radius: 8px; }}
-QPushButton#Tile[accent="true"] #TileIcon {{ background: rgba(255, 255, 255, 40); }}
+#Tile[accent="true"] #TileIcon {{ background: rgba(255, 255, 255, 40); }}
 #HealthRow {{ border-top: 1px solid #efefef; }}
 
 /* Thẻ phần mềm */

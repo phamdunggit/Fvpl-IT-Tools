@@ -79,7 +79,10 @@ vào SEPM của công ty: trong SEPM console → **Clients** → chuột phải 
 
 ## 2. Mở tool
 
-Chạy `FVPL-ITTools.exe`, bấm **Yes** ở UAC.
+Chạy `FVPL-ITTools.exe`, bấm **Yes** ở UAC. Lần đầu mở trên một tài khoản Windows, tool hiện **hướng dẫn nhanh 3 bước**
+(xem lại bằng phím **F1**).
+
+![Trang chủ](images/trang-chu.png)
 
 - **Trang chủ** mở đầu tiên: các ô theo việc cần làm (Cài máy mới, Cài phần mềm, Không vào được mạng, Không in được,
   Máy chậm / đầy ổ, Lỗi Office, Windows Update lỗi, Kiểm tra máy) và khung **Tình trạng máy này** (domain, ổ C còn
@@ -88,13 +91,20 @@ Chạy `FVPL-ITTools.exe`, bấm **Yes** ở UAC.
 - **Ô tìm** trên cùng (hoặc phím **Ctrl+K**): gõ việc cần làm, gõ không dấu cũng được, gõ được cả mã lỗi. Ví dụ
   "may in khong in duoc", "mạng chậm", "cài zalo", "0x0000011b", "mật khẩu wifi". Enter hoặc bấm vào một dòng: tool mở
   đúng trang / tab và chọn sẵn mục đó, **không tự chạy** gì.
+
+  ![Tìm bằng Ctrl+K](images/tim-ctrl-k.png)
+
 - **Cơ bản / Chuyên gia** (góc trên bên phải): chế độ **Cơ bản** ẩn các mục Nâng cao và các tab chuyên sâu (Event log,
   LAPS & BitLocker), gập khung log. **Chuyên gia** hiện đủ mọi thứ và mở sẵn khung log. Tool nhớ chế độ đã chọn.
 - Thanh trên cùng cho biết tên máy, domain, bản Windows, có quyền admin không, và cảnh báo nếu tool chạy bằng tài khoản
   khác người đang đăng nhập (thiết lập theo người dùng vẫn áp đúng người đang đăng nhập).
 - **Thanh dưới cùng** cho biết đang chạy gì ("Mục 3/8: Cài Zalo · 45%") hoặc kết quả lượt vừa chạy. Bấm **Chi tiết kỹ
-  thuật (log)** để mở / đóng khung log (từng lệnh và kết quả; nút **Mở thư mục log** để gửi log khi cần).
+  thuật (log)** để mở / đóng khung log (từng lệnh và kết quả; nút **Mở thư mục log** để gửi log khi cần). Nút của tool
+  ở **taskbar Windows** cũng có thanh tiến độ (đỏ nếu có mục lỗi), và khi chạy xong mà tool đang thu nhỏ thì có
+  **thông báo** ở góc màn hình.
 - Góc dưới sidebar: kho bộ cài đang dùng, **Đổi kho…** để chọn kho khác.
+- **Phím tắt**: **Ctrl+K** tìm, **Ctrl+1** … **Ctrl+0** mở trang thứ 1 … 10 trên sidebar (Trang chủ, Thông tin máy,
+  Cài máy mới…), **F1** hướng dẫn nhanh. Ở Trang chủ, Tab chuyển giữa các ô, Enter để mở.
 
 ---
 
@@ -102,6 +112,8 @@ Chạy `FVPL-ITTools.exe`, bấm **Yes** ở UAC.
 
 Ô **Không vào được mạng**, **Không in được**, **Máy chậm / đầy ổ**, **Lỗi Office**, **Windows Update lỗi** ở Trang chủ
 (và thanh **Hướng dẫn từng bước** trên trang Sửa lỗi, có thêm **Domain, ổ chung**) mở màn hình 3 bước:
+
+![Sửa lỗi từng bước](images/sua-loi-tung-buoc.png)
 
 1. **Kiểm tra** (5–30 giây, chỉ xem, chưa đổi gì): từng dòng ✔ / ⚠ / ✖ nói bằng lời thường chuyện gì đang xảy ra.
 2. **Tool sẽ làm**: các việc sửa, việc cần thiết đã tick sẵn, nhãn An toàn / Có hoàn tác cho biết mức rủi ro. Bấm
@@ -138,6 +150,8 @@ mềm thêm** / mẫu của wizard, trang Cài phần mềm sẽ chọn sẵn). 
 2013 / 2010 / Microsoft 365. Dòng nhỏ dưới tên mỗi bản cho biết cài được không: "Cài từ kho bộ cài", "Đã cài",
 "Cần kho bộ cài" (bấm **Chọn kho…** ở dòng trên), "Không thấy bộ cài trong kho"…
 
+![Trang Cài phần mềm](images/cai-phan-mem.png)
+
 1. **Máy có Microsoft 365 / Office cài sẵn?** Máy Dell, Lenovo mới thường có. Chọn bản Office cần cài: dưới thẻ hiện
    cảnh báo "Máy đang có Microsoft 365…" và ô **Gỡ trước khi cài** đã tick. Để nguyên tick: lượt cài sẽ gỡ bản cài sẵn
    trước (5–15 phút, đóng Word / Excel / Outlook trước), cài các phần mềm khác, cài Office sau cùng. Nếu Office báo lỗi
@@ -149,6 +163,9 @@ mềm thêm** / mẫu của wizard, trang Cài phần mềm sẽ chọn sẵn). 
    cài không báo phần trăm. **Dừng sau mục đang chạy** để dừng mà không cắt ngang bộ cài. Xong thì có thẻ kết quả: mục
    nào lỗi, vì sao, có cần khởi động lại không. Log của bộ cài Office nằm trong thư mục `%TEMP%` của tài khoản chạy tool
    (tên `Office 2016 Standard Setup(…).txt`, theo dòng `Logging` trong file XML). Lỗi thì xem mục 8.
+   Từ lần cài thứ hai trở đi, tool nhớ mỗi phần mềm cài mất bao lâu và hiện **"còn khoảng N phút"**.
+
+   ![Đang cài](images/dang-cai.png)
 3. **Kích hoạt:** nếu lúc cài máy chưa có Internet hoặc chưa điền key, chạy **Sửa lỗi → Office → Kích hoạt Office bản
    volume (MAK) và xem trạng thái**. Dòng ✔ "đã kích hoạt" là xong; ✖ thì xem lời báo (thiếu Internet, key MAK hết
    lượt…).

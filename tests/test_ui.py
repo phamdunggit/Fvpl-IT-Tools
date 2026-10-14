@@ -1034,3 +1034,36 @@ def test_basic_mode_shows_plain_names(window):
     assert item.text(0) == "Reset Windows Update" and fixes.detail.title.text() == "Reset Windows Update"
     fixes.search.setText("bị kẹt")  # tìm theo tên dễ hiểu cả ở chế độ Chuyên gia
     assert not item.isHidden()
+
+
+def test_progress_panel_estimates_remaining_time(window, qt_app):
+    from fvpl_ittools.core import durations, progress
+    from fvpl_ittools.ui.components.progress_panel import ProgressPanel
+    durations.record([("app.a", 300.0), ("app.b", 120.0)])
+    panel = ProgressPanel(window.controller)
+    panel.watch("Cài phần mềm")
+    window.controller.progress.emit(progress.BatchStarted(5, (progress.PlanItem("app.a", "Cài A"),
+                                                              progress.PlanItem("app.b", "Cài B"))))
+    window.controller.progress.emit(progress.ItemUpdate(5, 0, progress.RUNNING))
+    assert panel.remaining_seconds() == pytest.approx(420, abs=2)
+    panel._tick()
+    assert "còn khoảng 7 phút" in panel.clock.text()
+    window.controller.progress.emit(progress.BatchStarted(6, (progress.PlanItem("app.khong-biet", "Cài C"),)))
+    panel.deleteLater()
+
+
+def test_welcome_shows_once_and_history_empty_state(window, monkeypatch):
+    from fvpl_ittools.core import prefs
+    from fvpl_ittools.ui.components import welcome
+    shown = []
+    monkeypatch.setattr(welcome.WelcomeDialog, "exec", lambda self: shown.append(len(self.findChildren(
+        QtWidgets.QFrame))) or 1)
+    window.maybe_show_welcome()
+    window.maybe_show_welcome()
+    assert len(shown) == 1 and prefs.get("welcome_seen") is True
+    window.navigate("welcome")  # F1 / tìm kiếm: xem lại bất cứ lúc nào
+    assert len(shown) == 2
+    history = window.history
+    history.refresh()
+    assert history.table.isHidden() and not history.empty.isHidden()
+    assert window.sidebar.item(2).toolTip() == "Ctrl+3"

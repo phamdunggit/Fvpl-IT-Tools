@@ -29,7 +29,7 @@ from PySide6.QtWidgets import (
 )
 
 from ...app import AppContext
-from ...core import paths, prefs
+from ...core import durations, paths, prefs
 from ...core.executor import BatchResult, Level, Status
 from ...software import catalog as catalog_module
 from ...software import scan as scan_module
@@ -580,7 +580,9 @@ class SoftwarePage(QWidget):
             self.summary.setText("Chưa chọn gì")
         else:
             office = f" (có {', '.join(short_name(app.name)[0] for app in chosen)})" if chosen else ""
-            self.summary.setText(f"Đã chọn {total} mục{office}")
+            seconds = durations.total(f"app.{app.id}" for app in chosen + checked)
+            when = f" · {durations.minutes_text(seconds)} (theo các lần cài trước)" if seconds else ""
+            self.summary.setText(f"Đã chọn {total} mục{office}{when}")
         self.install_button.setText(f"Cài {total} mục" if total else "Cài")
 
     # ------------------------------------------------------------ cài

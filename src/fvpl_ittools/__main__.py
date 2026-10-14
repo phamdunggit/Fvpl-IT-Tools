@@ -136,6 +136,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.selftest:
         return _selftest(window, app_ctx, Path(args.selftest))
     window.show()
+    window.maybe_show_welcome()
     return qt_app.exec()
 
 

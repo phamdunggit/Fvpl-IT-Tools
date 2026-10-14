@@ -1,6 +1,6 @@
 # Bàn giao: đọc file này trước khi làm tiếp
 
-Cập nhật lần cuối: 14/10/2026, sau khi xong đợt P1 của giao diện mới (khung Windows 11, Trang chủ, chế độ Cơ bản / Chuyên gia, tìm Ctrl+K).
+Cập nhật lần cuối: 14/10/2026, sau khi xong cả 4 đợt của giao diện mới (P0 → P3, xem docs/KE-HOACH-GIAO-DIEN.md).
 
 ## Trạng thái
 
@@ -9,7 +9,7 @@ Cập nhật lần cuối: 14/10/2026, sau khi xong đợt P1 của giao diện 
 | Giai đoạn | **GĐ1, GĐ2 (wizard Cài máy mới), phần lớn GĐ3 xong phần code.** Còn chạy thử các mục đổi hệ thống bằng quyền admin trên VM (danh sách bên dưới) rồi mới coi là xong |
 | Nhánh | Code mới làm trên `featured`. Chỉ merge về `main` khi được duyệt |
 | Phiên bản | 0.2.0, xem [CHANGELOG.md](../CHANGELOG.md) (trang Phần mềm nằm ở mục "Chưa phát hành") |
-| Test | 357 test pytest, tất cả đều qua (khoảng 1 phút) |
+| Test | 361 test pytest, tất cả đều qua (khoảng 1 phút 20 giây) |
 | Bản exe | `python packaging\build.py`: thư mục 64MB, zip 27MB. `--test` chạy selftest trên exe, gồm cả đọc thông tin máy |
 
 Đã có:
@@ -184,7 +184,8 @@ Giao diện mới đợt P0. Đã chạy thử offscreen với dữ liệu giả
 
 ## Việc tiếp theo
 
-1. **Giao diện mới, đợt P3** theo [KE-HOACH-GIAO-DIEN.md](KE-HOACH-GIAO-DIEN.md) mục 7: làm lại các trang Máy in, Tối ưu, Cấu hình, Tiện ích, Nhật ký theo khung mới; tiến độ trên taskbar (`ITaskbarList3`); ước tính thời gian từ số liệu thật; hướng dẫn nhanh lần đầu mở app; rà bàn phím, cỡ chữ 150%. Chỉ thay tầng `ui`.
+1. **Thử giao diện mới với người thật**: 2–3 người không làm IT tự làm "Không in được" và "Cài phần mềm" không cần hỏi (cột "Xong khi" của P2 trong KE-HOACH-GIAO-DIEN.md). Ghi lại chỗ họ bị vướng rồi sửa câu chữ / thứ tự.
+   Ảnh trong `docs/images/` chụp bằng dữ liệu mẫu (tên máy FVPL-KT05, domain corp.example): khi chụp lại, không dùng máy thật (repo công khai).
 2. **Thử tình huống trên VM có lỗi thật**: rút cáp mạng, tắt Spooler, kẹt lệnh in, lệch giờ, tắt dịch vụ Windows Update: mỗi tình huống phải chỉ đúng vấn đề, sửa xong kiểm tra lại thấy hết.
 2. **Chạy danh sách trên** trên VM, sửa những gì sai. Khi đó GĐ1, GĐ2 mới xong. Wizard cần VM chưa join + domain test.
 3. GĐ4 còn lại ở [TIEN-DO.md](TIEN-DO.md): chuyển dữ liệu máy cũ, sửa PATH, báo bản mới, ký số exe, bản 1.0.
