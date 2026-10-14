@@ -24,5 +24,9 @@ wizard-templates.json
 *.iso
 *.ISO
 
+# File key bản quyền Windows / Office (tab Key bản quyền, nằm cạnh tool): KHÔNG BAO GIỜ commit.
+license-keys*.json
+license-keys*.json.tmp
+
 # Log khi chạy thử
 *.log

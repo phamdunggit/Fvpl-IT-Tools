@@ -79,7 +79,7 @@ def items(data: dict, basics: Basics, unwanted: list[str] | None = None) -> list
     windows = [item for item in licenses if item.get("product") == "windows"]
     if windows and not any(item.get("status") == 1 for item in windows):
         label, _ = LICENSE_STATUS.get(windows[0].get("status"), ("chưa kích hoạt", "warn"))
-        result.append(HealthItem(f"Windows: {label.lower()}", "warn", "Xem thông tin máy", "page:overview"))
+        result.append(HealthItem(f"Windows: {label.lower()}", "warn", "Kích hoạt", "tab:utilities:Key bản quyền"))
     office = [item for item in licenses if item.get("product") == "office"]
     if office:
         if any(item.get("status") == 1 for item in office):

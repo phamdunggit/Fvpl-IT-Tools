@@ -1208,3 +1208,46 @@ def test_uninstall_tab_marks_unwanted_and_uninstalls(window, qt_app, monkeypatch
     assert "/qn" in actions[0].apply[0].script and "'/S'" in actions[1].apply[0].script
     assert not actions[1].admin  # tool chạy bằng chính người dùng: không cần tác vụ chạy hộ
 
+
+
+def test_licenses_tab_adds_keys_and_records_activation(window, qt_app, tmp_path, monkeypatch):
+    from fvpl_ittools.core import licenses, log
+    from fvpl_ittools.core.executor import ActionResult, BatchResult, Status
+    from fvpl_ittools.ui.pages import licenses_panel
+    panel = window.utilities.licenses
+    panel.path = tmp_path / "usb" / licenses.FILE_NAME
+    window.navigate("tab:utilities:Key bản quyền")
+    _wait(qt_app, lambda: not panel.loading)
+    assert "Chưa có file" in panel.file_label.text() and not panel.activate_button.isEnabled()
+
+    def fill(dialog):
+        dialog.product.setCurrentText("Office 2016 Standard")
+        dialog.keys.setPlainText("aaaaa-bbbbb-ccccc-ddddd-11111\nAAAAABBBBBCCCCCDDDDD22222\nrác")
+        dialog.note.setText("50 lượt")
+        assert dialog.count.text() == "Nhận được 2 key"
+        return True
+    monkeypatch.setattr(panel, "ask", fill)
+    panel.add_key()
+    assert [key.key[-5:] for key in licenses.load(panel.path)] == ["11111", "22222"]
+    group = panel.tree.topLevelItem(0)
+    assert group.text(0) == "Office 2016 Standard" and group.childCount() == 2
+    assert group.child(0).text(0) == "•••••-•••••-•••••-•••••-11111"
+    panel.show_keys.setChecked(True)
+    assert panel.tree.topLevelItem(0).child(0).text(0) == "AAAAA-BBBBB-CCCCC-DDDDD-11111"
+    assert log.mask("AAAAA-BBBBB-CCCCC-DDDDD-11111") == log.MASK
+    panel.tree.topLevelItem(0).child(0).setSelected(True)
+    runs, asked = [], []
+    monkeypatch.setattr(panel, "confirm", lambda text: asked.append(text) or True)
+    monkeypatch.setattr(window.controller, "run", lambda actions, **kw: runs.append(actions))
+    panel.activate()
+    action = runs[0][0]
+    assert action.id.startswith("lic.activate_") and "OSPP.VBS" in action.apply[0].script and "-11111 (Office 2016 Standard)" in asked[0]
+    batch = BatchResult()
+    batch.results.append(ActionResult(action, Status.OK))
+    panel._activated(batch)
+    saved = licenses.load(panel.path)[0]
+    assert saved.activations == 1 and saved.used[0].computer == window.app.machine.computer_name
+    assert "1 máy" in panel.tree.topLevelItem(0).child(0).text(2)
+    monkeypatch.setattr(licenses_panel.QMessageBox, "question", lambda *args: licenses_panel.QMessageBox.StandardButton.Yes)
+    panel.delete_key()
+    assert len(licenses.load(panel.path)) == 1

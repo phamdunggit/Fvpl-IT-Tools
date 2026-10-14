@@ -35,6 +35,7 @@ from ..controller import RunController
 from ..credential_dialog import ask_credential
 from ..widgets import Worker, page_header
 from . import system_tools
+from .licenses_panel import LicensesPanel
 from .migrate_panel import MigratePanel
 
 log = logging.getLogger(__name__)
@@ -445,7 +446,7 @@ class UtilitiesPage(QWidget):
         root = QVBoxLayout(self)
         root.setContentsMargins(24, 20, 24, 12)
         root.setSpacing(10)
-        page_header(root, "Tiện ích", "Mở nhanh các công cụ quản trị của Windows và công cụ mạng cho IT.")
+        page_header(root, "Tiện ích", "Công cụ quản trị, công cụ mạng, sao lưu dữ liệu, key bản quyền cho IT.")
         self.tabs = QTabWidget()
         self.shortcuts = ShortcutsPanel(controller)
         self.network = NetworkToolsPanel(controller)
@@ -462,6 +463,8 @@ class UtilitiesPage(QWidget):
         self.tabs.addTab(system_tools.scroll(self.tools), "Công cụ khác")
         self.migrate = MigratePanel(app, controller)
         self.tabs.addTab(system_tools.scroll(self.migrate), "Sao lưu dữ liệu")
+        self.licenses = LicensesPanel(app, controller)
+        self.tabs.addTab(system_tools.scroll(self.licenses), "Key bản quyền")
         self.tabs.addTab(self.secrets, "LAPS && BitLocker")  # "&&": Qt hiểu "&" là phím tắt
         if any(action.page == "utilities" for action in app.actions):
             self.tabs.addTab(ActionsPage("utilities", "", "", "", app, controller, show_header=False), "Mục khác")

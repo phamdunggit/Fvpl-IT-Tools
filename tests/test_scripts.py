@@ -11,7 +11,7 @@ import json
 from fvpl_ittools.actions import loader
 from fvpl_ittools.cleanup import startup
 from fvpl_ittools.actions.model import PowerShellStep
-from fvpl_ittools.core import adsecrets, drivers, eventlog, executor, inventory, pslib, safety, shell
+from fvpl_ittools.core import adsecrets, drivers, eventlog, executor, inventory, licenses, pslib, safety, shell
 from fvpl_ittools.newpc import naming, precheck, steps
 
 from . import test_printers as printers_test
@@ -70,6 +70,7 @@ def _internal_scripts() -> list[dict]:
          {"name": "event log", "script": eventlog.script()}] + [
         {"name": name, "script": script} for name, script in drivers.scripts()] + [
         {"name": name, "script": script} for name, script in adsecrets.scripts()] + [
+        {"name": name, "script": script} for name, script in licenses.scripts()] + [
         {"name": action.id, "script": step.script} for action in _generated_actions() for step in action.apply]
 
 

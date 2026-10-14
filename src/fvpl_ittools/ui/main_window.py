@@ -76,6 +76,9 @@ TOOLS = (
     ("Chuyển dữ liệu máy cũ sang máy mới", "Sao lưu Desktop, Documents, bookmark, chữ ký Outlook rồi khôi phục",
      "tab:utilities:Sao lưu dữ liệu", "chuyển máy đổi máy máy mới máy cũ sao lưu backup khôi phục restore dữ liệu "
      "bookmark", False, "download"),
+    ("Key bản quyền Windows / Office", "Lưu key vào một file mang đi được, kích hoạt máy bằng key đã lưu",
+     "tab:utilities:Key bản quyền", "key bản quyền license kích hoạt active windows office mak slmgr ospp product key "
+     "nhập key", False, "shield"),
     ("Sửa biến PATH", "Bỏ thư mục không tồn tại / trùng, thêm hoặc gỡ thư mục trong PATH", "tab:utilities:Công cụ khác",
      "path biến môi trường environment is not recognized lệnh không chạy", True, "toolbox"),
     ("Tìm chương trình đang khoá file", "File / thư mục không xoá được vì đang mở", "tab:utilities:Công cụ khác",

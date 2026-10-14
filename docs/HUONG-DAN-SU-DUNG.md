@@ -233,7 +233,7 @@ Lưu ý:
 | **Tối ưu & dọn dẹp** | Dọn rác (quét trước rồi mới xoá), tìm file lớn, **gỡ phần mềm** (phần mềm rác như WPS, 360, McAfee dùng thử được đánh dấu "Nên gỡ", bấm **Chọn các phần mềm này** rồi Gỡ; dòng "Bấm theo trình gỡ" mở cửa sổ gỡ của hãng; danh sách nên gỡ / nên giữ sửa ở `SOFT\config\uninstall.yaml`, xem [SOFTWARE.md](SOFTWARE.md)), tắt chương trình khởi động cùng Windows, tắt quảng cáo / theo dõi |
 | **Cài phần mềm** | Mục 4–6 ở trên |
 | **Cấu hình** | Gói Cấu hình chuẩn máy mới và các tuỳ chọn hay dùng (hiện đuôi file, menu chuột phải kiểu cũ…) |
-| **Tiện ích** | Mở nhanh công cụ quản trị (có Chẩn đoán RAM); ping / tracert / kiểm tra cổng; tab **Event log**: lỗi gần đây của Windows gộp theo loại, kèm gợi ý cách xử lý; tab **Công cụ khác**: sao lưu / cài lại driver (trước khi cài lại Windows), sửa file HOSTS, **sửa biến PATH** (bỏ thư mục không tồn tại / trùng, hoàn tác được), tìm chương trình đang khoá file không xoá được, xem mật khẩu Wi-Fi đã lưu; tab **Sao lưu dữ liệu**: sao lưu trước khi cài lại Windows hoặc chuyển sang máy mới, rồi khôi phục (mục 7.1); tab **LAPS & BitLocker**: tra mật khẩu admin cục bộ và khoá khôi phục BitLocker của một máy (xem [BITLOCKER-LAPS-GPO.md](BITLOCKER-LAPS-GPO.md)) |
+| **Tiện ích** | Mở nhanh công cụ quản trị (có Chẩn đoán RAM); ping / tracert / kiểm tra cổng; tab **Event log**: lỗi gần đây của Windows gộp theo loại, kèm gợi ý cách xử lý; tab **Công cụ khác**: sao lưu / cài lại driver (trước khi cài lại Windows), sửa file HOSTS, **sửa biến PATH** (bỏ thư mục không tồn tại / trùng, hoàn tác được), tìm chương trình đang khoá file không xoá được, xem mật khẩu Wi-Fi đã lưu; tab **Sao lưu dữ liệu**: sao lưu trước khi cài lại Windows hoặc chuyển sang máy mới, rồi khôi phục (mục 7.1); tab **Key bản quyền**: lưu key Windows / Office, kích hoạt máy (mục 7.2); tab **LAPS & BitLocker**: tra mật khẩu admin cục bộ và khoá khôi phục BitLocker của một máy (xem [BITLOCKER-LAPS-GPO.md](BITLOCKER-LAPS-GPO.md)) |
 | **Nhật ký** | Các thay đổi registry tool đã làm, **hoàn tác** theo từng lần chạy |
 
 ### 7.1. Sao lưu dữ liệu trước khi cài lại Windows / chuyển sang máy mới
@@ -265,6 +265,18 @@ cài lại Windows trên máy này, hoặc chuyển dữ liệu sang máy khác.
 Không chép: mật khẩu đã lưu trong trình duyệt (dùng đồng bộ tài khoản Google / Microsoft), file OST của Outlook (tải lại
 từ máy chủ), dữ liệu Zalo (dùng tính năng sao lưu của Zalo). Bản sao lưu chứa dữ liệu cá nhân và mật khẩu Wi-Fi: xoá
 khỏi USB sau khi khôi phục xong.
+
+---
+
+### 7.2. Key bản quyền Windows / Office
+
+Tiện ích → tab **Key bản quyền** (hoặc gõ "key", "kích hoạt" ở ô tìm).
+
+- **Nhập key**: bấm **Thêm key…**, chọn / gõ tên sản phẩm (ví dụ `Office 2016 Standard`, `Windows 10/11 Pro`), dán một hoặc nhiều key (mỗi dòng một key, dán cả đoạn chữ có lẫn key cũng được), chọn loại (MAK, Retail, OEM, KMS), ghi chú (hợp đồng, số lượt). Mỗi sản phẩm có bao nhiêu key cũng được.
+- **File key**: mọi key nằm trong `license-keys.json`, mặc định cạnh tool trên USB / SSD. Mang sang USB / máy khác: chép file này (hoặc **Lưu bản sao…**), ở chỗ mới bấm **Mở file khác…** (tool nhớ cho lần sau). Để file trên share của IT thì cả nhóm IT dùng chung một file. File có key bản quyền: không gửi qua Zalo / email.
+- **Kích hoạt**: mở tool bằng quyền admin, chọn một key, bấm **Kích hoạt máy này bằng key đã chọn**. Cần Internet. Key Windows hợp với bản Windows của máy có ghi "hợp với máy này". Kích hoạt lỗi thì log ghi lý do bằng tiếng Việt (ví dụ key MAK hết lượt, key Pro cho máy Home). Cột **Đã dùng** cho biết key đã kích hoạt bao nhiêu máy, lần cuối máy nào.
+- **Xem trạng thái kích hoạt**: Windows và Office trên máy này đã kích hoạt chưa, key nào (5 ký tự cuối). Không cần quyền admin.
+- Key hiện dạng `•••••-…-ABCDE`; tick **Hiện key** để xem đủ, **Copy key** để dán vào chỗ khác. Log của tool không bao giờ có key.
 
 ---
 

@@ -1,6 +1,6 @@
 # Bàn giao: đọc file này trước khi làm tiếp
 
-Cập nhật lần cuối: 14/10/2026, sau khi xong giao diện mới (P0 → P3) và các tiện ích GĐ4, thêm gỡ phần mềm, sao lưu trước khi cài lại Windows.
+Cập nhật lần cuối: 14/10/2026, sau khi xong giao diện mới (P0 → P3) và các tiện ích GĐ4, thêm gỡ phần mềm, sao lưu trước khi cài lại Windows, key bản quyền.
 
 ## Trạng thái
 
@@ -9,7 +9,7 @@ Cập nhật lần cuối: 14/10/2026, sau khi xong giao diện mới (P0 → P3
 | Giai đoạn | **GĐ1, GĐ2 (wizard Cài máy mới), phần lớn GĐ3 xong phần code.** Còn chạy thử các mục đổi hệ thống bằng quyền admin trên VM (danh sách bên dưới) rồi mới coi là xong |
 | Nhánh | Code mới làm trên `featured`. Chỉ merge về `main` khi được duyệt |
 | Phiên bản | 0.2.0, xem [CHANGELOG.md](../CHANGELOG.md) (trang Phần mềm nằm ở mục "Chưa phát hành") |
-| Test | 389 test pytest, tất cả đều qua (khoảng 1–1,5 phút) |
+| Test | 395 test pytest, tất cả đều qua (khoảng 1,5 phút) |
 | Bản exe | `python packaging\build.py`: thư mục 64MB, zip 27MB. `--test` chạy selftest trên exe, gồm cả đọc thông tin máy |
 
 Đã có:
@@ -27,6 +27,7 @@ Cập nhật lần cuối: 14/10/2026, sau khi xong giao diện mới (P0 → P3
 - Trang **Cài máy mới**: wizard 8 bước (`ui/pages/newpc.py`, `newpc/`): kiểm tra trước, thông tin máy (mã phòng lưu vào site.yaml, gợi ý tên bằng AD), đổi tên + join, sau khởi động lại, phần mềm, cấu hình chuẩn, Windows Update, báo cáo. Tiến độ lưu ở `newpc-wizard.json` trong thư mục dữ liệu; bước 2 chép tool vào `%ProgramData%\FVPL-ITTools\app` và hẹn tác vụ `FVPL-ITTools-TiepTucCaiMay` mở lại tool (`--resume`) khi admin đăng nhập.
 - Trang **Tối ưu & dọn dẹp** (GĐ3): dọn rác có quét trước (`cleanup/junk.py`), chương trình khởi động cùng Windows (`cleanup/startup.py`), tối ưu / quyền riêng tư / nguồn điện / gỡ app cài sẵn (`75-optimize.yaml`).
 - **Gỡ phần mềm** (tab ở trang Tối ưu): `software/uninstall.py` đọc khoá Uninstall (HKLM 64 / WOW6432Node, HKU của người đang đăng nhập), `plan()` chọn lệnh gỡ, `uninstall_action()` sinh mục `soft.uninstall_<hash>`: chạy trình gỡ rồi chờ khoá biến mất (không tin mã thoát), phần mềm cài riêng cho người dùng mà tool chạy bằng tài khoản khác thì chạy trình gỡ qua tác vụ Interactive của người dùng. Danh sách nên gỡ / giữ / tham số im lặng: `data/uninstall.yaml` + `<kho>\config\uninstall.yaml`. Giao diện `ui/pages/uninstall_panel.py`; Trang chủ có dòng "Có phần mềm nên gỡ" (`MainWindow.check_unwanted`).
+- **Key bản quyền** (tab ở Tiện ích): `core/licenses.py` (file `license-keys.json`: `load` / `save` ghi file tạm rồi thay, đăng ký mọi key với `log.register_secret`; `activation_action` dòng đầu script là chú thích vì log chỉ in dòng đầu, key ở biến `$ProductKey`, output slmgr / ospp được thay key trước khi in; `record_usage` ghi máy đã dùng) + `ui/pages/licenses_panel.py` (đọc lại file ngay trước mỗi lần sửa để không ghi đè thay đổi của IT khác trên share). Đường dẫn file IT chọn lưu ở `prefs.json` (`license_file`). File key trong `.gitignore`: chạy từ mã nguồn thì file nằm ở gốc repo.
 - Trang **Nhật ký**: hoàn tác thay đổi registry.
 
 ## Bắt đầu
@@ -183,6 +184,11 @@ Gỡ phần mềm. Đã chạy thật trên máy dev với mục giả trong `HK
 - [ ] **WPS Office thật** (cài riêng cho người dùng): `uninst.exe /S` gỡ im lặng hết không, có mở trang khảo sát không; tool chạy bằng tài khoản admin khác người đang đăng nhập (đi qua tác vụ Interactive). Sau khi gỡ, file .docx mở bằng Word.
 - [ ] **Bấm theo trình gỡ** (ví dụ TeamViewer): cửa sổ gỡ hiện lên, bấm Huỷ → báo "vẫn còn"; gỡ xong → ✔.
 - [ ] Gỡ MSI cần khởi động lại (mã 3010) → tool hỏi khởi động lại.
+
+Key bản quyền. Đã chạy thật trên máy dev: Xem trạng thái kích hoạt (không cần admin, đọc đúng Windows Pro MAK và Office 2013 MAK), hàm giải thích mã lỗi. Chưa nhập key thật vào máy nào. Còn:
+- [ ] **Kích hoạt Windows bằng key MAK** trên VM (quyền admin): ✔ và cột Đã dùng thêm máy; key sai phiên bản (Pro cho máy Enterprise) → báo 0xC004F050 bằng tiếng Việt; không có mạng → báo không vào được Internet. Log và khung log không có key (chỉ ******).
+- [ ] **Kích hoạt Office 2016 / 2013** bằng key trong file (máy đã cài Office bản volume): đúng OSPP.VBS của phiên bản.
+- [ ] File key trên share: hai IT cùng thêm key gần như cùng lúc, không mất key của nhau.
 
 Sao lưu dữ liệu. Đã chạy thật trên máy dev (không quyền admin): sao lưu Music, bookmark Chrome / Edge, một thư mục thêm bằng tay vào thư mục tạm; tìm lại bản sao lưu; khôi phục sang hồ sơ giả (Chrome đang mở → báo đóng trình duyệt; file mới hơn ở thư mục gốc được giữ). Xuất Wi-Fi vào đường dẫn dài: đủ 13 mạng, không để lại file tạm (lần đầu netsh cắt đường dẫn > 260 ký tự và ghi nhầm chỗ, đã sửa bằng thư mục tạm ngắn). Còn:
 - [ ] **Cài lại Windows thật trên VM**: sao lưu ra ổ D (tự chọn), cài lại chỉ format phân vùng C, đăng nhập lại, tab tự thấy bản sao lưu trên ổ D, khôi phục đủ: Desktop / Documents, thư mục `C:\KeToan`, Wi-Fi (bằng quyền admin, kết nối được không cần gõ mật khẩu), driver (máy chưa có driver mạng).

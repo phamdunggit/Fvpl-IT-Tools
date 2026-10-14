@@ -284,6 +284,7 @@ Danh sách mặc định gợi ý (**cần bồ chốt**; đã đưa phần có 
 | Tìm process đang khoá file ✔ | Windows Restart Manager API (ctypes), file hoặc thư mục; kết thúc tiến trình có hỏi lại | P3 |
 | Xem mật khẩu Wi-Fi đã lưu ✔ | `netsh wlan export profile key=clear` ra thư mục tạm, đọc XML, xoá ngay; không ghi log | P3 |
 | Chạy chẩn đoán RAM ✔ | `mdsched`, ở Tiện ích → Mở nhanh | P3 |
+| Key bản quyền Windows / Office ✔ | Một file `license-keys.json` (cạnh tool hoặc file IT chọn, chép đi là dùng được, không lên git), nhiều key mỗi sản phẩm, che key trên màn hình và trong log; kích hoạt máy bằng key đã chọn (`slmgr /ipk` + `/ato`, Office `ospp.vbs /inpkey` + `/act`), giải thích mã lỗi tiếng Việt, ghi lại máy nào đã dùng key nào. Tiện ích → Key bản quyền | P3 |
 | Sao lưu dữ liệu trước khi cài lại Windows / chuyển sang máy mới ✔ | Desktop, Documents, Downloads, Pictures (Videos, Music tuỳ chọn), bookmark Chrome / Edge / Cốc Cốc, chữ ký và file .pst Outlook, Wi-Fi, driver, thư mục ở gốc ổ C và thư mục IT thêm, danh sách máy in, danh sách phần mềm (chọn sẵn ở trang Cài phần mềm). Nơi lưu tự chọn ngoài ổ C (USB đang chạy tool, ổ D), khôi phục tự tìm trên mọi ổ. Tiện ích → Sao lưu dữ liệu | P3 |
 
 ### 5.8 Phần dùng chung (log, sao lưu, hoàn tác)
