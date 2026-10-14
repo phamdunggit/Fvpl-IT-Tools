@@ -70,9 +70,12 @@ TOOLS = (
      "tab:utilities:Công cụ khác", "driver backup pnputil cài lại windows", False, "toolbox"),
     ("Sửa file HOSTS", "Sao lưu rồi mở file hosts bằng Notepad", "tab:utilities:Công cụ khác",
      "hosts chặn web", False, "toolbox"),
+    ("Sao lưu dữ liệu trước khi cài lại Windows", "Desktop, Documents, Downloads, thư mục ở ổ C, Wi-Fi, driver ra ổ D / USB",
+     "tab:utilities:Sao lưu dữ liệu", "sao lưu backup cài lại win windows ghost format ổ c dữ liệu desktop documents "
+     "download khôi phục restore", False, "download"),
     ("Chuyển dữ liệu máy cũ sang máy mới", "Sao lưu Desktop, Documents, bookmark, chữ ký Outlook rồi khôi phục",
-     "tab:utilities:Chuyển máy", "chuyển máy đổi máy máy mới máy cũ sao lưu backup khôi phục restore dữ liệu bookmark",
-     False, "download"),
+     "tab:utilities:Sao lưu dữ liệu", "chuyển máy đổi máy máy mới máy cũ sao lưu backup khôi phục restore dữ liệu "
+     "bookmark", False, "download"),
     ("Sửa biến PATH", "Bỏ thư mục không tồn tại / trùng, thêm hoặc gỡ thư mục trong PATH", "tab:utilities:Công cụ khác",
      "path biến môi trường environment is not recognized lệnh không chạy", True, "toolbox"),
     ("Tìm chương trình đang khoá file", "File / thư mục không xoá được vì đang mở", "tab:utilities:Công cụ khác",

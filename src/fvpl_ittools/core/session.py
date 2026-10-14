@@ -63,6 +63,31 @@ def session_user() -> UserIdentity | None:
     return UserIdentity(name=name, sid=sid, profile_path=profile_path_for(sid))
 
 
+def user_profiles() -> list[UserIdentity]:
+    """Người dùng (tài khoản máy / domain) có hồ sơ trên máy này, theo tên. Tên tra không được (mất kết nối DC) thì
+    dùng tên thư mục hồ sơ."""
+    result: list[UserIdentity] = []
+    try:
+        with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, _PROFILE_LIST) as root:
+            index = 0
+            while True:
+                try:
+                    sid = winreg.EnumKey(root, index)
+                except OSError:
+                    break
+                index += 1
+                if not sid.startswith("S-1-5-21-") or sid.endswith(".bak"):
+                    continue
+                path = profile_path_for(sid)
+                if not path or not os.path.isdir(path):
+                    continue
+                name = winapi.lookup_account_sid(sid) or os.path.basename(path)
+                result.append(UserIdentity(name=name, sid=sid, profile_path=path))
+    except OSError:
+        return result
+    return sorted(result, key=lambda user: user.short_name.lower())
+
+
 def _sid_from_profiles(user: str) -> str | None:
     """Dự phòng khi không tra được SID (mất kết nối DC): dò ProfileList theo tên thư mục profile.
 

@@ -1,6 +1,6 @@
 # Bàn giao: đọc file này trước khi làm tiếp
 
-Cập nhật lần cuối: 14/10/2026, sau khi xong giao diện mới (P0 → P3) và các tiện ích GĐ4 (chuyển dữ liệu máy cũ là mục cuối).
+Cập nhật lần cuối: 14/10/2026, sau khi xong giao diện mới (P0 → P3) và các tiện ích GĐ4, thêm gỡ phần mềm, sao lưu trước khi cài lại Windows.
 
 ## Trạng thái
 
@@ -9,13 +9,13 @@ Cập nhật lần cuối: 14/10/2026, sau khi xong giao diện mới (P0 → P3
 | Giai đoạn | **GĐ1, GĐ2 (wizard Cài máy mới), phần lớn GĐ3 xong phần code.** Còn chạy thử các mục đổi hệ thống bằng quyền admin trên VM (danh sách bên dưới) rồi mới coi là xong |
 | Nhánh | Code mới làm trên `featured`. Chỉ merge về `main` khi được duyệt |
 | Phiên bản | 0.2.0, xem [CHANGELOG.md](../CHANGELOG.md) (trang Phần mềm nằm ở mục "Chưa phát hành") |
-| Test | 386 test pytest, tất cả đều qua (khoảng 1 phút) |
+| Test | 389 test pytest, tất cả đều qua (khoảng 1–1,5 phút) |
 | Bản exe | `python packaging\build.py`: thư mục 64MB, zip 27MB. `--test` chạy selftest trên exe, gồm cả đọc thông tin máy |
 
 Đã có:
 - **Khung giao diện** (`ui/main_window.py`): thanh trên (ô tìm, thông tin máy, nút Cơ bản / Chuyên gia), sidebar có icon (`ui/icons.py`) + ô kho bộ cài, thanh trạng thái, ngăn kéo log. Mọi chỗ mở trang đi qua `MainWindow.navigate(đích)` (`page:`, `fixes:<nhóm>`, `action:`, `pack:`, `app:`, `tab:<trang>:<tab>`, `shortcut:`, `store`). Chế độ lưu ở `prefs.json` (`ui_mode`); trang nào có `set_mode` thì được gọi khi đổi chế độ.
 - **Trang chủ** (`ui/pages/home.py`): ô tình huống (`TILES`), khung Tình trạng máy (`core/health.py`, lấy dữ liệu trang Thông tin máy).
-- **Báo bản mới**: `core/updates.py` đọc `version.json` (thư mục `release_dir` trong site.yaml, mặc định `<kho>/ITTools`) ở thread nền lúc mở cửa sổ; `deploy.py share` ghi file đó. **Ký số**: `build.py` ký khi có biến `FVPL_SIGN_THUMBPRINT` (docs/KY-SO.md). **Sửa PATH**: `core/envpath.py` + `ui/pages/path_dialog.py`, ghi bằng mục registry có hoàn tác, builtin `notify_environment`. **Chuyển máy**: `core/migrate.py` (quét thư mục theo User Shell Folders của người đang đăng nhập, sao lưu / khôi phục bằng robocopy, mỗi mục một action `move.*`, `manifest.json` ghi máy in + phần mềm, `match_software` khớp tên với `apps.yaml`) + `ui/pages/migrate_panel.py` (tab Chuyển máy trong Tiện ích, signal `software_wanted` → trang Cài phần mềm).
+- **Báo bản mới**: `core/updates.py` đọc `version.json` (thư mục `release_dir` trong site.yaml, mặc định `<kho>/ITTools`) ở thread nền lúc mở cửa sổ; `deploy.py share` ghi file đó. **Ký số**: `build.py` ký khi có biến `FVPL_SIGN_THUMBPRINT` (docs/KY-SO.md). **Sửa PATH**: `core/envpath.py` + `ui/pages/path_dialog.py`, ghi bằng mục registry có hoàn tác, builtin `notify_environment`. **Sao lưu dữ liệu** (cài lại Windows / chuyển máy): `core/migrate.py` (quét thư mục theo User Shell Folders của người dùng được chọn, `root_folders()` gợi ý thư mục ở gốc ổ C, `extra_spec()` cho thư mục bất kỳ (`Khac\C-<tên>-<mã>` cho ngắn), Wi-Fi qua netsh trong thư mục tạm ngắn, driver qua `core/drivers.py`; `pick_target()` chọn nơi lưu ngoài ổ Windows, `find_backups()` tìm `<ổ>:\FVPL-SaoLuu` trên mọi ổ; mỗi mục một action `move.*`, `manifest.json` ghi máy in + phần mềm, `match_software` khớp tên với `apps.yaml`) + `ui/pages/migrate_panel.py` (tab Sao lưu dữ liệu trong Tiện ích, signal `software_wanted` → trang Cài phần mềm). Danh sách người dùng: `session.user_profiles()`.
 - **Sửa lỗi theo tình huống**: `data/scenarios.yaml` + script chỉ đọc `data/scripts/scenarios/*.ps1` (gọi `Add-Finding`), `core/scenarios.py` (nạp, chạy kiểm tra, `plan()` chọn mục sửa), màn hình `ui/pages/scenario.py` (đích `guide:<id>`, không có trên sidebar). Gửi cho IT: `core/support_report.py`.
 - **Tìm Ctrl+K**: `core/search.py` (bỏ dấu, chấm điểm), `MainWindow.build_index()` gom trang, mục YAML (khoá `keywords`), gói, công cụ (`TOOLS`), Mở nhanh, phần mềm; bảng tìm `ui/components/command_palette.py`.
 - Trang **Thông tin máy** (trước là Tổng quan): hệ điều hành, kích hoạt, phần cứng, mạng (DNS có trỏ về DC không), bảo mật; copy chữ, xuất HTML; **Lưu kiểm kê** (`core/assets.py`): `Inventory\<máy>.json` cạnh tool trên USB / SSD và file tổng hợp `KiemKe.xlsx` (tool tự ghi file .xlsx, không cần thư viện).
@@ -184,7 +184,9 @@ Gỡ phần mềm. Đã chạy thật trên máy dev với mục giả trong `HK
 - [ ] **Bấm theo trình gỡ** (ví dụ TeamViewer): cửa sổ gỡ hiện lên, bấm Huỷ → báo "vẫn còn"; gỡ xong → ✔.
 - [ ] Gỡ MSI cần khởi động lại (mã 3010) → tool hỏi khởi động lại.
 
-Chuyển dữ liệu máy cũ. Đã chạy thật trên máy dev: sao lưu Music + bookmark Chrome / Edge của người dùng thật vào thư mục tạm (robocopy, manifest đúng), khôi phục sang hồ sơ giả: Chrome đang mở → mục bookmark báo đóng trình duyệt, không ghi. Còn:
+Sao lưu dữ liệu. Đã chạy thật trên máy dev (không quyền admin): sao lưu Music, bookmark Chrome / Edge, một thư mục thêm bằng tay vào thư mục tạm; tìm lại bản sao lưu; khôi phục sang hồ sơ giả (Chrome đang mở → báo đóng trình duyệt; file mới hơn ở thư mục gốc được giữ). Xuất Wi-Fi vào đường dẫn dài: đủ 13 mạng, không để lại file tạm (lần đầu netsh cắt đường dẫn > 260 ký tự và ghi nhầm chỗ, đã sửa bằng thư mục tạm ngắn). Còn:
+- [ ] **Cài lại Windows thật trên VM**: sao lưu ra ổ D (tự chọn), cài lại chỉ format phân vùng C, đăng nhập lại, tab tự thấy bản sao lưu trên ổ D, khôi phục đủ: Desktop / Documents, thư mục `C:\KeToan`, Wi-Fi (bằng quyền admin, kết nối được không cần gõ mật khẩu), driver (máy chưa có driver mạng).
+- [ ] **Sao lưu người dùng khác** (tool chạy bằng admin, chọn người không đăng nhập): đọc được thư mục, đường dẫn mặc định đúng.
 - [ ] **Máy cũ chạy bằng quyền admin** (tool mở bằng "Run as administrator", người dùng khác đang đăng nhập): quét đúng thư mục của người đang đăng nhập, không phải của admin; Documents chuyển sang OneDrive thì không tick sẵn.
 - [ ] **Sao lưu vài GB ra USB** (FAT32 / exFAT / NTFS): thanh tiến độ, "Dừng sau mục đang chạy"; file > 4 GB trên FAT32 báo lỗi rõ ở mục đó.
 - [ ] **Khôi phục trên máy mới** (Win11, người dùng domain mới đăng nhập lần đầu): file vào đúng Desktop / Documents, file mới hơn trên máy mới không bị ghi đè; bookmark Chrome / Edge hiện sau khi mở trình duyệt; chữ ký Outlook hiện trong Outlook. **Chọn sẵn phần mềm** tick đúng các ứng dụng có trong danh mục.

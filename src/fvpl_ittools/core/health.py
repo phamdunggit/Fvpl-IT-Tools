@@ -73,7 +73,7 @@ def items(data: dict, basics: Basics, unwanted: list[str] | None = None) -> list
     for disk in data.get("disks") or []:
         if disk.get("health") == 2:
             result.append(HealthItem(f"Ổ đĩa {disk.get('name') or ''} báo hỏng: sao lưu dữ liệu ngay".replace("  ", " "),
-                                     "bad", "Xem thông tin máy", "page:overview"))
+                                     "bad", "Sao lưu", "tab:utilities:Sao lưu dữ liệu"))
 
     licenses = data.get("licenses") or []
     windows = [item for item in licenses if item.get("product") == "windows"]

@@ -1115,27 +1115,49 @@ def test_home_shows_new_release(window, tmp_path, monkeypatch):
 
 
 def test_migrate_panel_backup_restore_and_software(window, qt_app, tmp_path, monkeypatch):
-    from fvpl_ittools.core import migrate
+    from fvpl_ittools.core import migrate, session
     from fvpl_ittools.ui.pages import migrate_panel
+    monkeypatch.setattr(migrate, "system_drive", lambda: "Z:")  # tmp_path nằm trên ổ C thật
     desktop = tmp_path / "Desktop"
     desktop.mkdir()
     (desktop / "a.txt").write_text("x", encoding="utf-8")
-    sources = [migrate.Source(migrate.SPECS["desktop"], str(desktop), True, 1, 1),
-               migrate.Source(migrate.SPECS["videos"], str(tmp_path / "Videos"), True, 0, 0),
-               migrate.Source(migrate.SPECS["documents"], str(tmp_path / "OneDrive" / "Documents"), True, 5, 1,
-                              onedrive=True)]
-    monkeypatch.setattr(migrate_panel, "_collect", lambda app, cancel=None: (
-        sources, [{"name": "HP", "where": "10.0.0.5"}], ["7-Zip 24.08 (x64)"]))
+    ketoan, extra = tmp_path / "KeToan", tmp_path / "Them"
+    ketoan.mkdir()
+    extra.mkdir()
+    usb = tmp_path / "usb"
+    usb.mkdir()
+    drives = [migrate.Drive(str(usb) + "\\", "removable", 100 * 1024**3, "USB")]
+
+    def fake_collect(app, user, extras, cancel=None):
+        sources = [migrate.Source(migrate.SPECS["desktop"], str(desktop), True, 1, 1),
+                   migrate.Source(migrate.SPECS["videos"], str(tmp_path / "Videos"), True, 0, 0),
+                   migrate.Source(migrate.SPECS["documents"], str(tmp_path / "OneDrive"), True, 5, 1, onedrive=True),
+                   migrate.Source(migrate.SPECS["wifi"], "", True, 0, 2),
+                   migrate.Source(migrate.SPECS["drivers"], "", True)]
+        sources += [migrate.Source(migrate.extra_spec(path), path, True, 3, 1) for path in [*extras, str(ketoan)]]
+        users = [app.env.target_user, session.UserIdentity(r"CORP\binh", "S-1-5-21-9", str(tmp_path / "binh"))]
+        return {"users": users, "sources": sources, "suggested": [str(ketoan)],
+                "printers": [{"name": "HP", "where": "10.0.0.5"}], "software": ["7-Zip 24.08 (x64)"], "drives": drives}
+    monkeypatch.setattr(migrate_panel, "_collect", fake_collect)
+    monkeypatch.setattr(migrate_panel, "_find", lambda roots: (drives, migrate.find_backups(drives, roots)))
     panel = window.utilities.migrate
-    panel.root = panel.target = tmp_path / migrate.FOLDER
-    window.navigate("tab:utilities:Chuyển máy")
-    _wait(qt_app, lambda: not panel.scanning and panel.sources)
-    assert [source.spec.id for source in panel.selected_sources()] == ["desktop"]  # thư mục trống, OneDrive: không tick
+    window.navigate("tab:utilities:Sao lưu dữ liệu")
+    _wait(qt_app, lambda: not panel.scanning and panel.sources and not panel.finding)
+    # Thư mục trống, OneDrive, thư mục lạ ở ổ C: không tick; driver: chỉ tick khi có quyền admin.
+    expected = ["desktop", "wifi"] + (["drivers"] if window.app.env.is_admin else [])
+    assert [source.spec.id for source in panel.selected_sources()] == expected
+    assert panel.user_combo.count() == 2 and "(đang đăng nhập)" in panel.user_combo.itemText(0)
+    assert panel.target == usb / migrate.FOLDER and "USB (" in panel.target_label.text()
+    assert "Không thấy bản sao lưu" in panel.backup_combo.itemText(0)
+    monkeypatch.setattr(migrate_panel.QFileDialog, "getExistingDirectory", lambda *args: str(extra))
+    panel.add_folder()
+    _wait(qt_app, lambda: not panel.scanning)
+    assert migrate.extra_spec(str(extra)).id in {source.spec.id for source in panel.selected_sources()}
     runs = []
     monkeypatch.setattr(window.controller, "run", lambda actions, **kw: runs.append([a.id for a in actions]))
     panel.backup()
-    assert runs == [["move.backup_desktop"]]
-    manifests = list(panel.root.glob("*/manifest.json"))
+    assert runs[0][0] == "move.backup_desktop" and runs[0][-1] == f"move.backup_{migrate.extra_spec(str(extra)).id}"
+    manifests = list((usb / migrate.FOLDER).glob("*/manifest.json"))
     assert len(manifests) == 1 and "7-Zip" in manifests[0].read_text(encoding="utf-8")
     (manifests[0].parent / "Desktop").mkdir()  # controller.run giả không chép thật
 
@@ -1144,10 +1166,11 @@ def test_migrate_panel_backup_restore_and_software(window, qt_app, tmp_path, mon
     monkeypatch.setattr(migrate_panel.QMessageBox, "information", no_dialog)
     monkeypatch.setattr(migrate_panel.QMessageBox, "warning", no_dialog)
     panel.refresh_backups()
+    _wait(qt_app, lambda: not panel.finding)
     assert panel.current_backup() is not None and "10.0.0.5" in panel.backup_info.text()
     monkeypatch.setattr(migrate_panel.QMessageBox, "question", lambda *args: migrate_panel.QMessageBox.StandardButton.Yes)
     panel.restore()
-    assert runs[-1] == ["move.restore_desktop"]
+    assert runs[-1] == ["move.restore_desktop"]  # mục thiếu trong bản sao lưu không tick
     picked = []
     monkeypatch.setattr(window.software, "preselect_profile", lambda profile, extra: picked.append((profile, list(extra))))
     panel.software_button.click()

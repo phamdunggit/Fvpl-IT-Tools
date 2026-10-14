@@ -69,7 +69,28 @@ def _internal_scripts() -> list[dict]:
          {"name": "startup bật tắt task", "script": startup._TOGGLE_TASK},
          {"name": "event log", "script": eventlog.script()}] + [
         {"name": name, "script": script} for name, script in drivers.scripts()] + [
-        {"name": name, "script": script} for name, script in adsecrets.scripts()]
+        {"name": name, "script": script} for name, script in adsecrets.scripts()] + [
+        {"name": action.id, "script": step.script} for action in _generated_actions() for step in action.apply]
+
+
+def _generated_actions() -> list:
+    """Mục sinh lúc chạy: sao lưu / khôi phục dữ liệu, gỡ phần mềm (MSI, trình gỡ thường, chạy hộ người dùng)."""
+    from pathlib import Path
+
+    from fvpl_ittools.core import migrate
+    from fvpl_ittools.software import uninstall
+    sources = [migrate.Source(migrate.SPECS[item], "C:\\Users\\an\\x", True, 1, 1)
+               for item in ("desktop", "chrome", "outlook_data", "wifi", "drivers")]
+    sources.append(migrate.Source(migrate.extra_spec("C:\\KeToan"), "C:\\KeToan", True, 1, 1))
+    folder = Path("E:\\FVPL-SaoLuu\\may_an")
+    backup = migrate.Backup(folder, items=[{"id": source.spec.id, "kind": source.spec.kind, "source": source.path,
+                                            "folder": source.spec.folder} for source in sources])
+    rules = uninstall.Rules()
+    programs = [uninstall.Program("A", "HKEY_LOCAL_MACHINE\\X\\A", msi_code="{12345678-1234-1234-1234-123456789ABC}"),
+                uninstall.Program("B", "HKEY_USERS\\S\\X\\B", uninstall='"C:\\B\\uninst.exe" /x', user_sid="S")]
+    return (migrate.backup_actions(sources, folder)
+            + migrate.restore_actions(backup, [item["id"] for item in backup.items], "S-1-5-21-0", "C:\\Users\\an")
+            + [uninstall.uninstall_action(program, rules, as_user) for program in programs for as_user in (False, True)])
 
 
 def test_every_powershell_script_parses(env, tmp_path):

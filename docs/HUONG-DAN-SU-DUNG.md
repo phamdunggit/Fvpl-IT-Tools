@@ -233,25 +233,38 @@ Lưu ý:
 | **Tối ưu & dọn dẹp** | Dọn rác (quét trước rồi mới xoá), tìm file lớn, **gỡ phần mềm** (phần mềm rác như WPS, 360, McAfee dùng thử được đánh dấu "Nên gỡ", bấm **Chọn các phần mềm này** rồi Gỡ; dòng "Bấm theo trình gỡ" mở cửa sổ gỡ của hãng; danh sách nên gỡ / nên giữ sửa ở `SOFT\config\uninstall.yaml`, xem [SOFTWARE.md](SOFTWARE.md)), tắt chương trình khởi động cùng Windows, tắt quảng cáo / theo dõi |
 | **Cài phần mềm** | Mục 4–6 ở trên |
 | **Cấu hình** | Gói Cấu hình chuẩn máy mới và các tuỳ chọn hay dùng (hiện đuôi file, menu chuột phải kiểu cũ…) |
-| **Tiện ích** | Mở nhanh công cụ quản trị (có Chẩn đoán RAM); ping / tracert / kiểm tra cổng; tab **Event log**: lỗi gần đây của Windows gộp theo loại, kèm gợi ý cách xử lý; tab **Công cụ khác**: sao lưu / cài lại driver (trước khi cài lại Windows), sửa file HOSTS, **sửa biến PATH** (bỏ thư mục không tồn tại / trùng, hoàn tác được), tìm chương trình đang khoá file không xoá được, xem mật khẩu Wi-Fi đã lưu; tab **Chuyển máy**: chuyển dữ liệu người dùng từ máy cũ sang máy mới (mục 7.1); tab **LAPS & BitLocker**: tra mật khẩu admin cục bộ và khoá khôi phục BitLocker của một máy (xem [BITLOCKER-LAPS-GPO.md](BITLOCKER-LAPS-GPO.md)) |
+| **Tiện ích** | Mở nhanh công cụ quản trị (có Chẩn đoán RAM); ping / tracert / kiểm tra cổng; tab **Event log**: lỗi gần đây của Windows gộp theo loại, kèm gợi ý cách xử lý; tab **Công cụ khác**: sao lưu / cài lại driver (trước khi cài lại Windows), sửa file HOSTS, **sửa biến PATH** (bỏ thư mục không tồn tại / trùng, hoàn tác được), tìm chương trình đang khoá file không xoá được, xem mật khẩu Wi-Fi đã lưu; tab **Sao lưu dữ liệu**: sao lưu trước khi cài lại Windows hoặc chuyển sang máy mới, rồi khôi phục (mục 7.1); tab **LAPS & BitLocker**: tra mật khẩu admin cục bộ và khoá khôi phục BitLocker của một máy (xem [BITLOCKER-LAPS-GPO.md](BITLOCKER-LAPS-GPO.md)) |
 | **Nhật ký** | Các thay đổi registry tool đã làm, **hoàn tác** theo từng lần chạy |
 
-### 7.1. Chuyển dữ liệu từ máy cũ sang máy mới
+### 7.1. Sao lưu dữ liệu trước khi cài lại Windows / chuyển sang máy mới
 
-Tiện ích → tab **Chuyển máy** (hoặc gõ "chuyển máy" ở ô tìm). Chạy tool từ USB / SSD để bản sao lưu nằm trên ổ đó.
+Tiện ích → tab **Sao lưu dữ liệu** (hoặc gõ "sao lưu", "cài lại win", "chuyển máy" ở ô tìm). Cùng một chỗ cho hai việc:
+cài lại Windows trên máy này, hoặc chuyển dữ liệu sang máy khác.
 
-1. **Trên máy cũ** (người dùng vẫn đăng nhập): tool liệt kê Desktop, Documents, Downloads, Pictures (Videos, Music bỏ
-   tick sẵn), bookmark Chrome / Edge, chữ ký Outlook kèm dung lượng. Thư mục đang đồng bộ OneDrive không tick sẵn (đã có
-   trên mây). Bỏ tick mục không cần, bấm **Sao lưu**. Bản sao lưu nằm ở `ChuyenMay\<máy>_<người dùng>_<thời gian>\` cạnh
-   tool (hoặc **Đổi nơi lưu…**), kèm danh sách máy in và phần mềm của máy cũ.
-2. **Trên máy mới** (người dùng mới đăng nhập ít nhất một lần): chọn bản sao lưu, tick mục cần chép, bấm **Khôi phục**.
-   File đã có trên máy mới mà mới hơn thì giữ nguyên. Đóng Chrome / Edge trước khi khôi phục bookmark (bookmark cũ của
-   máy mới được đổi tên giữ lại).
-3. Bấm **Chọn sẵn phần mềm ở trang Cài phần mềm**: tool tick các ứng dụng máy cũ có mà danh mục cũng có, IT xem lại rồi
+1. **Sao lưu** (trước khi cài lại Windows / trên máy cũ, người dùng vẫn đăng nhập):
+   - **Dữ liệu của**: mặc định người đang đăng nhập; chọn người dùng khác trên máy nếu cần (cần mở tool bằng quyền admin
+     để đọc thư mục của người khác). Máy nhiều người dùng thì sao lưu từng người.
+   - Tool liệt kê kèm dung lượng: Desktop, Documents, Downloads, Pictures (Videos, Music bỏ tick sẵn), bookmark Chrome /
+     Edge / Cốc Cốc, chữ ký Outlook, file dữ liệu Outlook `.pst`, **mạng Wi-Fi đã lưu** (có mật khẩu), **driver của máy**
+     (cần quyền admin, để cài lại khi Windows mới chưa có driver mạng). Thư mục đang đồng bộ OneDrive không tick sẵn.
+   - **Thư mục lạ ở gốc ổ C** (như `C:\KeToan`, `C:\Zalo Received Files`) có sẵn trong danh sách nhưng không tick: tick
+     nếu là dữ liệu. Thư mục khác ở đâu cũng được: **Thêm thư mục khác…**.
+   - **Nơi lưu tự chọn**, không bao giờ là ổ C: USB / SSD đang chạy tool nếu đủ chỗ, không thì ổ trong máy còn trống
+     nhiều nhất (ổ D), rồi tới USB khác. Lưu vào `<ổ>:\FVPL-SaoLuu\<máy>_<người dùng>_<thời gian>\`. Không có ổ nào
+     đủ chỗ thì cắm USB / ổ cứng ngoài rồi bấm **Quét lại**, hoặc **Đổi nơi lưu…** (ổ mạng).
+   - Bấm **Sao lưu**. Có thanh tiến độ từng mục; danh sách máy in và phần mềm của máy cũng được ghi lại.
+2. **Cài lại Windows**: chỉ xoá / format phân vùng ổ C, **giữ nguyên ổ D** (nếu bản sao lưu nằm trên ổ D). Ổ D có
+   BitLocker thì ghi lại khoá khôi phục trước (tab LAPS & BitLocker).
+3. **Khôi phục** (sau khi cài lại / trên máy mới, người dùng đã đăng nhập ít nhất một lần): tool tự tìm bản sao lưu
+   trên mọi ổ (USB, ổ D), chọn bản cần dùng, tick mục cần chép, bấm **Khôi phục**. File đã có mà mới hơn thì giữ
+   nguyên. Đóng Chrome / Edge / Cốc Cốc và Outlook trước (bookmark cũ của máy được đổi tên giữ lại). Thư mục khác được
+   chép về đúng đường dẫn cũ. Wi-Fi được thêm lại vào Windows; driver được cài cho thiết bị khớp (cần quyền admin).
+4. Bấm **Chọn sẵn phần mềm ở trang Cài phần mềm**: tool tick các ứng dụng máy cũ có mà danh mục cũng có, IT xem lại rồi
    bấm Cài. Máy in: xem danh sách trong khung khôi phục rồi thêm ở trang **Máy in**.
 
-Không chép: mật khẩu đã lưu trong trình duyệt (dùng đồng bộ tài khoản Google / Microsoft), dữ liệu Outlook (PST / OST),
-dữ liệu Zalo. Bản sao lưu chứa dữ liệu cá nhân: xoá khỏi USB sau khi chuyển xong.
+Không chép: mật khẩu đã lưu trong trình duyệt (dùng đồng bộ tài khoản Google / Microsoft), file OST của Outlook (tải lại
+từ máy chủ), dữ liệu Zalo (dùng tính năng sao lưu của Zalo). Bản sao lưu chứa dữ liệu cá nhân và mật khẩu Wi-Fi: xoá
+khỏi USB sau khi khôi phục xong.
 
 ---
 
