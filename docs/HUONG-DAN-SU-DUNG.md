@@ -98,6 +98,19 @@ Chạy `FVPL-ITTools.exe`, bấm **Yes** ở UAC.
 
 ---
 
+### 2.1 Sửa lỗi có hướng dẫn
+
+Ô **Không vào được mạng**, **Không in được**, **Máy chậm / đầy ổ**, **Lỗi Office**, **Windows Update lỗi** ở Trang chủ
+(và thanh **Hướng dẫn từng bước** trên trang Sửa lỗi, có thêm **Domain, ổ chung**) mở màn hình 3 bước:
+
+1. **Kiểm tra** (5–30 giây, chỉ xem, chưa đổi gì): từng dòng ✔ / ⚠ / ✖ nói bằng lời thường chuyện gì đang xảy ra.
+2. **Tool sẽ làm**: các việc sửa, việc cần thiết đã tick sẵn, nhãn An toàn / Có hoàn tác cho biết mức rủi ro. Bấm
+   **Sửa giúp tôi**; thanh tiến độ hiện ngay bên dưới. **Bạn cần tự làm**: việc tool không làm thay được (bật máy in,
+   cắm cáp, chọn máy in mặc định…), kèm nút mở đúng chỗ.
+3. **Kết quả**: sửa xong tool tự kiểm tra lại, báo đã sửa được gì, còn gì. **Vẫn chưa được?** gợi ý chỗ khác để thử,
+   và nút **Gửi kết quả cho IT**: chép báo cáo (máy, đã kiểm tra / đã làm gì, 50 dòng log cuối) vào clipboard để dán
+   vào Zalo / email, đồng thời lưu file HTML trong thư mục reports. Tool không tự gửi đi đâu.
+
 ## 3. Cài máy mới (wizard)
 
 Trang **Cài máy mới**, làm lần lượt từ trên xuống. Danh sách bước bên trái có dấu ✔ / ✖; tool nhớ tiến độ.

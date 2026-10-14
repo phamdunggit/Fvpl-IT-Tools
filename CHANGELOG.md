@@ -4,6 +4,8 @@
 
 ### Thêm
 
+- **Sửa lỗi theo tình huống** (giao diện mới, đợt P2): 6 tình huống (Không vào được mạng, Không in được, Lỗi domain / ổ chung, Máy chậm / đầy ổ, Lỗi Office / Outlook, Windows Update lỗi). Màn hình 3 bước: **Kiểm tra** bằng script chỉ đọc (dấu hiệu viết bằng lời thường), **Tool sẽ làm** (mục sửa tick sẵn theo dấu hiệu, nhãn rủi ro) + **Bạn cần tự làm** (lời khuyên, nút mở đúng chỗ), **Sửa** có thanh tiến độ, tự **kiểm tra lại** và báo đã sửa được gì, còn gì; **Vẫn chưa được?** gợi ý chỗ khác. Khai báo trong `data/scenarios.yaml` (xem docs/ACTIONS.md). Ô ở Trang chủ, tìm Ctrl+K và thanh "Hướng dẫn từng bước" trên trang Sửa lỗi mở tình huống.
+- **Gửi kết quả cho IT**: báo cáo (máy, người dùng, tình huống, đã kiểm tra / đã chạy gì, 50 dòng log cuối) chép vào clipboard để dán vào Zalo / email, lưu thêm file HTML (`core/support_report.py`).
 - **Giao diện mới, đợt P1** ([kế hoạch](docs/KE-HOACH-GIAO-DIEN.md)):
   - **Khung kiểu Windows 11 sáng**: bảng màu mới (nền #F3F3F3, thẻ trắng, màu nhấn #005FB8), chữ Segoe UI Variable, icon nét mảnh vẽ bằng SVG trong code (`ui/icons.py`); thanh trên màu trắng có ô tìm, thông tin máy, nút **Cơ bản / Chuyên gia**; sidebar có icon và ô **Kho bộ cài · Đổi kho…**; **thanh trạng thái** dưới cùng (đang chạy mục n/N, %, Huỷ, kết quả lượt vừa chạy); khung log thành ngăn kéo **Chi tiết kỹ thuật (log)**.
   - **Trang chủ** (trang mở đầu): 8 ô theo việc cần làm (Cài máy mới, Cài phần mềm, Không vào được mạng, Không in được, Máy chậm / đầy ổ, Lỗi Office, Windows Update lỗi, Kiểm tra máy), khung **Tình trạng máy này** (`core/health.py`: domain / DNS, ổ C, Office, diệt virus, số ngày chưa cập nhật, số ngày chưa khởi động lại) kèm nút sửa, banner **Đang cài dở máy … · Làm tiếp**.

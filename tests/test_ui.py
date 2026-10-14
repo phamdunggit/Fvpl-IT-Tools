@@ -66,6 +66,10 @@ def window(qt_app, monkeypatch):
 
     from .test_printers import SNAPSHOT
     monkeypatch.setattr(manage, "snapshot", lambda env, cancel=None: manage.parse_snapshot(SNAPSHOT))
+    # Sửa lỗi theo tình huống: không chạy script kiểm tra thật.
+    from fvpl_ittools.core import scenarios
+    monkeypatch.setattr(scenarios, "run_check", lambda scenario, variables, cancel=None: [
+        scenarios.Finding("ok", "ok", "Ổn")])
     win = MainWindow(build_context())
     win.show()
     yield win
@@ -891,15 +895,16 @@ def test_home_tiles_and_health_navigate(window, qt_app):
     assert any(item.target == "page:optimize" for item in home.health_items)  # ổ C trong dữ liệu mẫu gần đầy
     network = next(tile for tile in home.tiles if tile.spec.title == "Không vào được mạng")
     network.click()
+    assert window.stack.currentWidget() is window.guide and window.guide.scenario.id == "network"
+    assert window.sidebar.currentRow() == -1
+    window.navigate("fixes:Mạng & Internet")
     fixes = window.fixes
     assert window.stack.currentWidget() is fixes and fixes.search.text() == "Mạng & Internet"
     visible = [fixes.tree.topLevelItem(i).text(0) for i in range(fixes.tree.topLevelItemCount())
                if not fixes.tree.topLevelItem(i).isHidden()]
     assert visible == ["Mạng & Internet"]
     window.navigate("page:home")
-    printer = next(tile for tile in home.tiles if tile.spec.title == "Không in được")
-    printer.click()
-    assert window.stack.currentWidget() is window.printers
+    assert window.stack.currentWidget() is home and window.sidebar.currentRow() == 0
 
 
 def test_mode_switch_hides_advanced_and_expert_tabs(window, qt_app):
@@ -949,3 +954,51 @@ def test_command_palette_searches_and_opens(window, qt_app):
         time.sleep(0.01)
     assert window.stack.currentWidget() is software
     assert [app.id for app in software.checked_apps()] == ["7zip"]
+
+
+def _wait(qt_app, condition, timeout=10):
+    deadline = time.monotonic() + timeout
+    while not condition() and time.monotonic() < deadline:
+        qt_app.processEvents()
+        time.sleep(0.01)
+    qt_app.processEvents()
+
+
+def test_scenario_guide_checks_fixes_and_verifies(window, qt_app, monkeypatch):
+    from fvpl_ittools.core import scenarios
+    from fvpl_ittools.core.executor import ActionResult, BatchResult, Status
+    from fvpl_ittools.ui.pages import scenario as scenario_module
+    checks = []
+
+    def fake_check(scenario, variables, cancel=None):
+        checks.append(scenario.id)
+        if len(checks) == 1:
+            return [scenarios.Finding("queue_stuck", "bad", "Có 2 lệnh in bị kẹt"),
+                    scenarios.Finding("no_default", "warn", "Chưa chọn máy in mặc định"),
+                    scenarios.Finding("spooler", "ok", "Dịch vụ in đang chạy")]
+        return [scenarios.Finding("spooler", "ok", "Dịch vụ in đang chạy")]
+
+    monkeypatch.setattr(scenarios, "run_check", fake_check)
+    window.open_search("khong in duoc")
+    assert window.palette.results()[0] == "guide:printing"  # tình huống lên đầu
+    window.palette.activate_current()
+    page = window.guide
+    assert window.stack.currentWidget() is page and page.stage == "checking"
+    _wait(qt_app, lambda: page.stage == "review")
+    assert page.banner.title.text() == "Tìm thấy 2 vấn đề"
+    assert [(row.item.action.id, row.check.isChecked()) for row in page.fix_rows] == [("prn.clear_queue", True)]
+    assert not page.manual_card.isHidden()  # máy in mặc định: phải tự chọn
+    runs = []
+    monkeypatch.setattr(window.controller, "run", lambda actions, **kw: runs.append([a.id for a in actions]))
+    page.fix_button.click()
+    assert runs == [["prn.clear_queue"]] and page.stage == "fixing" and not page.progress.isHidden()
+    window.controller.finished.emit(BatchResult(results=[ActionResult(window.app.actions[0], Status.OK)]))
+    _wait(qt_app, lambda: page.stage == "result")
+    assert checks == ["printing", "printing"]
+    assert page.banner.title.text().startswith("Đã sửa xong") and not page.more_card.isHidden()
+
+    monkeypatch.setattr(scenario_module.QMessageBox, "information", lambda *args: None)
+    page.copy_report()
+    copied = QtWidgets.QApplication.clipboard().text()
+    assert "Tình huống: Không in được" in copied and "Đã chạy:" in copied
+    assert "Đã chép báo cáo vào clipboard" in window.log_panel.plain_text()

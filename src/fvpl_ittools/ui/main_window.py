@@ -2,7 +2,7 @@
 
 Bố cục theo KE-HOACH-GIAO-DIEN.md mục 5.2. Mọi chỗ mở trang (Trang chủ, nút sửa, tìm kiếm Ctrl+K) đi qua
 `navigate(đích)`: "page:<trang>", "fixes:<nhóm>", "action:<id>", "pack:<id>", "app:<id>", "tab:<trang>:<tab>",
-"shortcut:<tên>", "store".
+"shortcut:<tên>", "store", "guide:<tình huống>".
 """
 
 from __future__ import annotations
@@ -32,7 +32,7 @@ from PySide6.QtWidgets import (
 from .. import APP_NAME, __version__
 from ..actions.model import Risk
 from ..app import AppContext
-from ..core import health, prefs, progress, search, shell
+from ..core import health, prefs, progress, scenarios, search, shell
 from ..core.executor import BatchResult, Level, Status
 from . import icons, theme
 from .components.command_palette import CommandPalette
@@ -45,6 +45,7 @@ from .pages.newpc import NewPcPage
 from .pages.optimize import OptimizePage
 from .pages.overview import OverviewPage
 from .pages.printers import PrintersPage
+from .pages.scenario import ScenarioPage
 from .pages.software import SoftwarePage
 from .pages.utilities import SHORTCUTS, UtilitiesPage
 from .widgets import chip
@@ -304,6 +305,7 @@ class MainWindow(QMainWindow):
         self.stack = QStackedWidget()
         self.stack.setObjectName("PageArea")
         self.pages: dict[str, QWidget] = {}
+        self.scenarios, self.scenario_errors = scenarios.load()
         self._build_pages()
 
         self.log_panel = LogPanel()
@@ -345,7 +347,7 @@ class MainWindow(QMainWindow):
                 Level.WARN,
                 f"Tool chạy bằng {app.env.process_user.name}; thiết lập người dùng sẽ áp cho {app.env.target_user.name}.",
             )
-        for error in app.load_errors:
+        for error in app.load_errors + self.scenario_errors:
             self.controller.say(Level.ERROR, f"Mục khai báo sai, đã bỏ qua: {error}")
         wizard = self.newpc.state
         if wizard is not None:
@@ -422,6 +424,11 @@ class MainWindow(QMainWindow):
         for key, _label, _icon in PAGES:
             self.pages[key] = widgets[key]
             self.stack.addWidget(widgets[key])
+        # Sửa lỗi theo tình huống: không có trên sidebar, mở từ Trang chủ, tìm kiếm, thanh trên trang Sửa lỗi.
+        self.guide = ScenarioPage(app, controller, self.scenarios, log_text=lambda: self.log_panel.plain_text())
+        self.guide.navigate.connect(self.navigate)
+        self.stack.addWidget(self.guide)
+        self.fixes.layout().insertWidget(2, self._guide_bar())
 
         self.home.navigate.connect(self.navigate)
         self.home.need_data.connect(self.overview.ensure_loaded)
@@ -429,6 +436,22 @@ class MainWindow(QMainWindow):
         self.overview.alerts_changed.connect(self.header.set_alerts)
         self.newpc.open_software.connect(self._open_software)
         self.software.store_changed.connect(self._update_store_box)
+
+    def _guide_bar(self) -> QFrame:
+        bar = QFrame()
+        bar.setObjectName("GuideBar")
+        layout = QHBoxLayout(bar)
+        layout.setContentsMargins(12, 8, 12, 8)
+        label = QLabel("Hướng dẫn từng bước")
+        label.setObjectName("SectionLabel")
+        layout.addWidget(label)
+        for item in self.scenarios:
+            button = QPushButton(icons.icon(item.icon, theme.ACCENT), item.short)
+            button.setToolTip(f"{item.title}: {item.tile}")
+            button.clicked.connect(lambda _checked=False, target=item.target: self.navigate(target))
+            layout.addWidget(button)
+        layout.addStretch(1)
+        return bar
 
     # ------------------------------------------------------------ chế độ, log
 
@@ -491,6 +514,9 @@ class MainWindow(QMainWindow):
             entries.append(search.Entry("pack", pack.name, f"pack:{pack.id}", pack.description,
                                         PAGE_LABELS.get(pack.page, ""), "gói sửa nhanh",
                                         icon=PAGE_ICONS.get(pack.page, "wrench")))
+        for item in self.scenarios:
+            entries.append(search.Entry("guide", item.title, item.target, item.tile, "Hướng dẫn từng bước",
+                                        " ".join(item.keywords), icon=item.icon))
         for title, description, target, keywords, advanced, icon_name in TOOLS:
             entries.append(search.Entry("tool", title, target, description, "", keywords, advanced, icon_name))
         for group, shortcuts in SHORTCUTS.items():
@@ -559,6 +585,13 @@ class MainWindow(QMainWindow):
         elif kind == "store":
             self.select_page("software")
             self.software.choose_store()
+        elif kind == "guide":
+            if self.guide.start(rest):
+                self.sidebar.blockSignals(True)
+                self.sidebar.clearSelection()
+                self.sidebar.setCurrentRow(-1)
+                self.sidebar.blockSignals(False)
+                self.stack.setCurrentWidget(self.guide)
 
     def _open_software(self, profile_id: str, extra_apps: object) -> None:
         self.select_page("software")

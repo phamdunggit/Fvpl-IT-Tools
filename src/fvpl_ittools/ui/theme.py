@@ -208,6 +208,14 @@ QPushButton#Tile[accent="true"] #TileText {{ color: #e8f1fb; }}
 QPushButton#Tile[accent="true"] #TileIcon {{ background: rgba(255, 255, 255, 40); }}
 #HealthRow {{ border-top: 1px solid #efefef; }}
 
+/* Sửa lỗi theo tình huống */
+#StepLabel {{ color: {TEXT_SECONDARY}; padding: 4px 10px; border-radius: 12px; background: #e9e9e9; }}
+#StepLabel[state="active"] {{ color: #ffffff; background: {ACCENT}; font-weight: 600; }}
+#StepLabel[state="done"] {{ color: {OK}; background: {OK_BG}; font-weight: 600; }}
+#StepLine {{ background: {BORDER_STRONG}; }}
+#FixRow {{ border: 1px solid {BORDER}; border-radius: 6px; background: {CARD}; }}
+#GuideBar {{ background: {CARD}; border: 1px solid {BORDER}; border-radius: 8px; }}
+
 /* Bảng tìm chức năng (Ctrl+K) */
 #Palette {{ background: {CARD}; border: 1px solid {BORDER_STRONG}; border-radius: 10px; }}
 #Palette QLineEdit {{ border: none; border-bottom: 1px solid {BORDER}; border-radius: 0; padding: 12px 14px; font-size: 12.5pt; }}

@@ -150,6 +150,36 @@ Hai khoá tuỳ chọn:
 | `page` | `fixes` | Trang hiện nút gói: `fixes` (Sửa lỗi), `printers` (Máy in, tab Sửa lỗi), `optimize` hoặc `config` (hai trang này nhãn "Làm cả gói"). |
 | `stop_on_error` | `true` | `false`: một mục lỗi thì vẫn làm tiếp mục sau. Dùng cho gói cấu hình, ví dụ `pack.standard_config` (lỗi cài .NET 3.5 không nên chặn việc tạo restore point). |
 
+## Tình huống sửa lỗi có hướng dẫn (`scenarios.yaml`)
+
+Ô "Không in được", "Không vào được mạng"… ở Trang chủ mở màn hình Kiểm tra → Sửa → Kết quả (`core/scenarios.py`,
+`ui/pages/scenario.py`). Mỗi tình huống:
+
+```yaml
+- id: printing
+  title: Không in được
+  short: Máy in                  # tên ngắn cho nút trên trang Sửa lỗi
+  tile: Kẹt lệnh in, máy in báo lỗi, máy in share Win11 ↔ Win10
+  icon: printer                  # tên icon trong ui/icons.py
+  check: printing                # data/scripts/scenarios/printing.ps1
+  keywords: ['máy in', '0x0000011b']
+  findings:                      # dấu hiệu → cách xử lý
+    queue_stuck: { fix: [prn.clear_queue], advice: 'Xoá xong thì in lại.' }
+    no_printer: { link: 'tab:printers:Thêm máy in', link_text: 'Thêm máy in' }
+    gpo_old: { fix: [dom.gpupdate], checked: true }
+  more:                          # gợi ý khi đã sửa mà vẫn chưa được
+    - { target: 'page:printers', text: 'Mở trang Máy in' }
+```
+
+- Script kiểm tra **chỉ đọc** (test chặn các lệnh đổi hệ thống), gọi `Add-Finding 'id' 'ok|warn|bad|info' 'câu dễ hiểu'
+  'chi tiết'`. Câu viết cho người không chuyên: chuyện gì đang xảy ra, không dùng tên lệnh. Dùng được các hàm dựng sẵn
+  (`Test-Port`, `Get-ActiveAdapters`…) và biến `$TargetUserSid`, `$TargetUserProfile`.
+- Dấu hiệu `bad` có `fix` thì mục sửa được tick sẵn; `warn` / `info` chỉ tick sẵn khi `checked: true`. Mục Nâng cao
+  không bao giờ tick sẵn. Test bắt buộc: mọi dấu hiệu `warn` / `bad` / `info` script báo ra phải có cách xử lý trong
+  `findings`, mọi `fix` phải là mục có thật.
+- `link` / `target` dùng cùng kiểu đích với tìm kiếm: `page:<trang>`, `tab:<trang>:<tab>`, `action:<id>`,
+  `fixes:<nhóm>`, `guide:<tình huống>`.
+
 ## Bẫy hay gặp
 
 - **Đừng đặt tên khoá là `on`, `off`, `yes`, `no`.** YAML hiểu chúng là true/false. Đây là lý do khoá trạng thái tên là `on_value`.

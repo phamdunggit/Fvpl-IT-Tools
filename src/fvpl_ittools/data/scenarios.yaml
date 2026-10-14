@@ -1,0 +1,137 @@
+# Tình huống sửa lỗi có hướng dẫn (Trang chủ, tìm Ctrl+K): Kiểm tra → Sửa → Kết quả. Xem core/scenarios.py.
+#
+# check: script CHỈ ĐỌC ở data/scripts/scenarios/<check>.ps1, gọi Add-Finding 'id' 'ok|warn|bad|info' 'câu dễ hiểu'.
+# findings: dấu hiệu (id trong script) → fix (mục sửa, id trong data/actions), advice (việc phải tự làm),
+#           link + link_text (mở trang / mục khác), checked (tick sẵn mục sửa dù dấu hiệu chỉ là warn / info).
+#           Dấu hiệu bad có fix thì mục sửa được tick sẵn (trừ mục Nâng cao).
+# more: gợi ý khi đã sửa mà vẫn chưa được.
+
+- id: network
+  title: Không vào được mạng
+  short: Mạng
+  tile: Mất mạng, mạng chậm, không vào được trang web
+  icon: wifi
+  check: network
+  keywords: ['mất mạng', 'không vào được mạng', 'không vào internet', 'mạng chậm', 'wifi', 'lan', 'web', 'dns', 'proxy']
+  findings:
+    no_adapter:
+      fix: [net.restart_adapters]
+      advice: 'Kiểm tra cáp mạng còn cắm chặt, đèn ở cổng mạng có sáng; dùng Wi-Fi thì bật Wi-Fi và chọn đúng mạng.'
+    apipa: { fix: [net.renew_ip, net.restart_adapters], advice: 'Vẫn không xin được IP thì kiểm tra cáp mạng / switch, hoặc hỏi IT về DHCP.' }
+    no_gateway: { fix: [net.renew_ip] }
+    gateway_unreachable: { fix: [net.restart_adapters] }
+    dns_fail: { fix: [net.flush_dns, net.reset_winsock] }
+    internet_fail: { fix: [net.flush_dns] }
+    proxy: { fix: [net.reset_proxy] }
+    winhttp_proxy: { fix: [net.reset_winhttp_proxy] }
+    dns_no_dc:
+      advice: 'Máy đang ở ngoài công ty thì bật VPN. Ở công ty mà vẫn báo thì DNS của card mạng phải là địa chỉ máy chủ domain.'
+      link: 'guide:domain'
+      link_text: 'Kiểm tra domain'
+  more:
+    - { target: 'guide:domain', text: 'Không vào được ổ chung, lỗi đăng nhập domain' }
+    - { target: 'fixes:Mạng & Internet', text: 'Xem mọi mục sửa mạng' }
+    - { target: 'tab:utilities:Công cụ mạng', text: 'Ping, tracert một địa chỉ cụ thể' }
+
+- id: printing
+  title: Không in được
+  short: Máy in
+  tile: Kẹt lệnh in, máy in báo lỗi, máy in share Win11 ↔ Win10
+  icon: printer
+  check: printing
+  keywords: ['máy in', 'in không được', 'kẹt lệnh in', 'printer', 'spooler', 'share máy in', '0x0000011b', '0x00000709', '0x0000007c']
+  findings:
+    spooler_down: { fix: [prn.restart_spooler] }
+    queue_stuck: { fix: [prn.clear_queue], advice: 'Xoá xong thì người dùng in lại các tài liệu vừa bị kẹt.' }
+    no_printer: { link: 'tab:printers:Thêm máy in', link_text: 'Thêm máy in' }
+    no_default: { advice: 'Mở Settings > Bluetooth & devices > Printers & scanners, chọn máy in hay dùng rồi bấm Set as default.' }
+    printer_offline: { fix: [prn.restart_spooler], advice: 'Kiểm tra máy in đã bật, còn giấy, không kẹt giấy, cáp mạng / USB còn cắm.' }
+    printer_unreachable:
+      advice: 'Kiểm tra máy in đã bật và cắm cáp mạng. Máy in đổi IP thì gỡ máy in rồi thêm lại bằng IP mới.'
+      link: 'tab:printers:Máy in trên máy'
+      link_text: 'Xem máy in'
+    share_unreachable:
+      advice: 'Máy chia sẻ máy in phải đang bật và cùng mạng. Trên máy đó, chạy mục "Máy chia sẻ máy in: cho máy khác kết nối vào".'
+      link: 'action:prn.share_host_fix'
+      link_text: 'Mở mục đó'
+    share_rpc: { fix: [prn.share_client_fix] }
+  more:
+    - { target: 'tab:printers:Máy in trên máy', text: 'Gỡ máy in lỗi rồi thêm lại' }
+    - { target: 'action:prn.share_check', text: 'Kiểm tra chi tiết share máy in Win11 ↔ Win10' }
+
+- id: domain
+  title: Lỗi domain, không vào được ổ chung
+  short: Domain, ổ chung
+  tile: Không đăng nhập được, ổ chung báo không có quyền, lỗi trust relationship
+  icon: shield
+  check: domain
+  keywords: ['domain', 'ổ chung', 'ổ mạng', 'share', 'đăng nhập', 'trust relationship', 'kerberos', 'giờ', 'gpo', 'không có quyền']
+  findings:
+    not_joined: { link: 'page:newpc', link_text: 'Cài máy mới' }
+    dns_no_dc:
+      fix: [net.flush_dns]
+      advice: 'Máy đang ở ngoài công ty thì bật VPN. Ở công ty mà vẫn báo thì DNS của card mạng phải là địa chỉ máy chủ domain.'
+    dc_unreachable: { advice: 'Máy phải ở trong mạng công ty (hoặc bật VPN). Kiểm tra cáp mạng / Wi-Fi công ty.', link: 'guide:network', link_text: 'Kiểm tra mạng' }
+    dc_ports: { advice: 'Firewall hoặc phần mềm diệt virus đang chặn kết nối tới máy chủ domain: báo IT kiểm tra.' }
+    time_skew: { fix: [dom.time_sync] }
+    trust_broken: { fix: [dom.repair_trust] }
+    gpo_old: { fix: [dom.gpupdate], checked: true }
+    share_tip: { fix: [dom.klist_purge] }
+  more:
+    - { target: 'guide:network', text: 'Kiểm tra mạng' }
+    - { target: 'fixes:Domain & đăng nhập', text: 'Xem mọi mục sửa domain' }
+
+- id: slow
+  title: Máy chậm, đầy ổ
+  short: Máy chậm
+  tile: Dọn rác, tắt bớt chương trình chạy cùng Windows
+  icon: gauge
+  check: slow
+  keywords: ['máy chậm', 'đầy ổ', 'hết dung lượng', 'lag', 'treo', 'khởi động chậm', 'ram', 'ổ c đầy']
+  findings:
+    disk_low: { link: 'tab:optimize:Dọn rác', link_text: 'Dọn rác' }
+    ram_low: { fix: [opt.visual_effects_performance], checked: true }
+    memory_busy: { advice: 'Đóng bớt tab trình duyệt và chương trình không dùng.' }
+    uptime: { advice: 'Lưu bài và khởi động lại máy (Start > Power > Restart).' }
+    startup_many: { link: 'tab:optimize:Khởi động cùng Windows', link_text: 'Tắt bớt' }
+    hdd: { advice: 'Báo IT xem thay ổ SSD.' }
+  more:
+    - { target: 'tab:optimize:File lớn', text: 'Tìm file lớn chiếm chỗ' }
+    - { target: 'page:optimize', text: 'Tối ưu khác (quảng cáo, hiệu năng)' }
+
+- id: office
+  title: Lỗi Office, Outlook
+  short: Office
+  tile: Sửa Office, kích hoạt Office, Teams lỗi
+  icon: document
+  check: office
+  keywords: ['office', 'word', 'excel', 'outlook', 'teams', 'kích hoạt office', 'office lỗi', 'treo']
+  findings:
+    no_office: { link: 'page:software', link_text: 'Cài Office' }
+    c2r: { fix: [off.quick_repair], checked: true }
+    not_activated: { fix: [off.activate_volume], advice: 'Kích hoạt cần Internet. Key MAK hết lượt thì báo IT.' }
+    msi_repair: { advice: 'Đóng Word, Excel, Outlook trước khi sửa.' }
+    apps_open: { advice: 'Lưu bài, đóng Word, Excel, Outlook rồi bấm Kiểm tra lại.' }
+    teams: { fix: [off.teams_cache] }
+  more:
+    - { target: 'action:off.online_repair', text: 'Sửa Office trực tuyến (lâu hơn, cần Internet)' }
+    - { target: 'fixes:Office', text: 'Xem mọi mục sửa Office' }
+
+- id: windows_update
+  title: Windows Update lỗi
+  short: Windows Update
+  tile: Cập nhật không chạy, báo lỗi, kẹt phần trăm
+  icon: refresh
+  check: windows_update
+  keywords: ['windows update', 'cập nhật', 'update lỗi', 'kẹt cập nhật', 'bản vá']
+  findings:
+    service_disabled: { fix: [wu.reset] }
+    reboot_pending: { advice: 'Lưu bài, khởi động lại máy rồi chạy lại tình huống này.' }
+    recent_failures: { fix: [wu.reset, wu.scan_install] }
+    outdated: { fix: [wu.scan_install] }
+    no_history: { fix: [wu.scan_install], checked: true }
+    history_error: { fix: [wu.reset] }
+    disk_low: { link: 'tab:optimize:Dọn rác', link_text: 'Dọn rác' }
+  more:
+    - { target: 'action:wu.history', text: 'Xem lịch sử cập nhật và mã lỗi' }
+    - { target: 'action:sys.sfc_dism', text: 'Sửa file hệ thống (DISM + SFC)' }

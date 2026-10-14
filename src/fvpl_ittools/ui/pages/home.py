@@ -42,11 +42,11 @@ class TileSpec:
 TILES = (
     TileSpec("Cài máy mới", "Đặt tên, vào domain, cài phần mềm, cấu hình chuẩn", "newpc", "page:newpc", accent=True),
     TileSpec("Cài phần mềm", "Office, Symantec, UniKey, Chrome… chọn là cài", "download", "page:software"),
-    TileSpec("Không vào được mạng", "Mất mạng, mạng chậm, không vào được trang web", "wifi", "fixes:Mạng & Internet"),
-    TileSpec("Không in được", "Kẹt lệnh in, máy in báo lỗi, máy in share Win11 ↔ Win10", "printer", "page:printers"),
-    TileSpec("Máy chậm, đầy ổ", "Dọn rác, tắt bớt chương trình chạy cùng Windows", "gauge", "page:optimize"),
-    TileSpec("Lỗi Office, Outlook", "Sửa Office, kích hoạt Office, Teams lỗi", "document", "fixes:Office"),
-    TileSpec("Windows Update lỗi", "Cập nhật không chạy, báo lỗi, kẹt phần trăm", "refresh", "fixes:Windows Update"),
+    TileSpec("Không vào được mạng", "Mất mạng, mạng chậm, không vào được trang web", "wifi", "guide:network"),
+    TileSpec("Không in được", "Kẹt lệnh in, máy in báo lỗi, máy in share Win11 ↔ Win10", "printer", "guide:printing"),
+    TileSpec("Máy chậm, đầy ổ", "Dọn rác, tắt bớt chương trình chạy cùng Windows", "gauge", "guide:slow"),
+    TileSpec("Lỗi Office, Outlook", "Sửa Office, kích hoạt Office, Teams lỗi", "document", "guide:office"),
+    TileSpec("Windows Update lỗi", "Cập nhật không chạy, báo lỗi, kẹt phần trăm", "refresh", "guide:windows_update"),
     TileSpec("Kiểm tra máy", "Thông tin máy, serial, lưu kiểm kê", "clipboard", "page:overview"),
 )
 

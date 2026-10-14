@@ -9,12 +9,13 @@ Cập nhật lần cuối: 14/10/2026, sau khi xong đợt P1 của giao diện 
 | Giai đoạn | **GĐ1, GĐ2 (wizard Cài máy mới), phần lớn GĐ3 xong phần code.** Còn chạy thử các mục đổi hệ thống bằng quyền admin trên VM (danh sách bên dưới) rồi mới coi là xong |
 | Nhánh | Code mới làm trên `featured`. Chỉ merge về `main` khi được duyệt |
 | Phiên bản | 0.2.0, xem [CHANGELOG.md](../CHANGELOG.md) (trang Phần mềm nằm ở mục "Chưa phát hành") |
-| Test | 344 test pytest, tất cả đều qua (khoảng 45 giây) |
+| Test | 355 test pytest, tất cả đều qua (khoảng 50 giây) |
 | Bản exe | `python packaging\build.py`: thư mục 64MB, zip 27MB. `--test` chạy selftest trên exe, gồm cả đọc thông tin máy |
 
 Đã có:
 - **Khung giao diện** (`ui/main_window.py`): thanh trên (ô tìm, thông tin máy, nút Cơ bản / Chuyên gia), sidebar có icon (`ui/icons.py`) + ô kho bộ cài, thanh trạng thái, ngăn kéo log. Mọi chỗ mở trang đi qua `MainWindow.navigate(đích)` (`page:`, `fixes:<nhóm>`, `action:`, `pack:`, `app:`, `tab:<trang>:<tab>`, `shortcut:`, `store`). Chế độ lưu ở `prefs.json` (`ui_mode`); trang nào có `set_mode` thì được gọi khi đổi chế độ.
 - **Trang chủ** (`ui/pages/home.py`): ô tình huống (`TILES`), khung Tình trạng máy (`core/health.py`, lấy dữ liệu trang Thông tin máy).
+- **Sửa lỗi theo tình huống**: `data/scenarios.yaml` + script chỉ đọc `data/scripts/scenarios/*.ps1` (gọi `Add-Finding`), `core/scenarios.py` (nạp, chạy kiểm tra, `plan()` chọn mục sửa), màn hình `ui/pages/scenario.py` (đích `guide:<id>`, không có trên sidebar). Gửi cho IT: `core/support_report.py`.
 - **Tìm Ctrl+K**: `core/search.py` (bỏ dấu, chấm điểm), `MainWindow.build_index()` gom trang, mục YAML (khoá `keywords`), gói, công cụ (`TOOLS`), Mở nhanh, phần mềm; bảng tìm `ui/components/command_palette.py`.
 - Trang **Thông tin máy** (trước là Tổng quan): hệ điều hành, kích hoạt, phần cứng, mạng (DNS có trỏ về DC không), bảo mật; copy chữ, xuất HTML; **Lưu kiểm kê** (`core/assets.py`): `Inventory\<máy>.json` cạnh tool trên USB / SSD và file tổng hợp `KiemKe.xlsx` (tool tự ghi file .xlsx, không cần thư viện).
 - Trang **Sửa lỗi**: các mục mạng, domain, Windows Update, hệ thống, Office và 4 gói sửa nhanh.
