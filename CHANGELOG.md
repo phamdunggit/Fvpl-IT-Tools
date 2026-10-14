@@ -4,6 +4,11 @@
 
 ### Thêm
 
+- Trang **Tiện ích** (GĐ4):
+  - Tab **Event log**: lỗi Critical và Error của System, Application trong 24 giờ / 7 / 30 ngày, gộp theo nguồn + mã sự kiện (số lần, lần gần nhất), Critical và lỗi lặp nhiều lên đầu; gợi ý tiếng Việt cho các lỗi hay gặp (Kernel-Power 41, ổ đĩa, NTFS, NETLOGON 5719, Group Policy, dịch vụ, crash ứng dụng, DCOM vô hại…). Chỉ đọc, chạy nền.
+  - Tab **Công cụ khác**: **sao lưu driver** (`pnputil /export-driver` vào `DriverBackup\<máy>-<ngày>` cạnh tool) và **cài lại driver** từ thư mục sao lưu; **sửa HOSTS** (sao lưu rồi mở bằng Notepad quyền admin); **tìm chương trình đang khoá file / thư mục** (Windows Restart Manager, không cần handle.exe), kết thúc tiến trình có hỏi lại; **mật khẩu Wi-Fi đã lưu** (xuất ra thư mục tạm, đọc rồi xoá ngay; không ghi log).
+  - Mở nhanh thêm **Chẩn đoán RAM** (mdsched).
+- [docs/KE-HOACH-GIAO-DIEN.md](docs/KE-HOACH-GIAO-DIEN.md): kế hoạch làm mới giao diện (trang chủ theo tình huống, chế độ Cơ bản / Chuyên gia, tìm Ctrl+K, thanh tiến độ, chọn bản Office, sửa lỗi có hướng dẫn), chờ duyệt.
 - **Wizard Cài máy mới** (trang Cài máy mới, 8 bước, tiến độ lưu lại để làm tiếp sau khi khởi động lại):
   - Bước 1: chọn phòng ban, **thêm mã phòng mới** (ghi vào `departments` trong site.yaml, giữ chú thích), **gợi ý tên** `<tiền tố><mã><2 số>` theo số lớn nhất đang có trong AD (máy chưa join thì hỏi AD bằng tài khoản join), báo tên đã có (KB5020276); người dùng chính, profile phần mềm.
   - Bước 2: chép tool vào `%ProgramData%\FVPL-ITTools\app` (chỉ admin ghi được), đổi tên + join domain vào OU chung trong một lần khởi động lại, hẹn tool tự mở lại (`--resume`) khi admin đăng nhập; lỗi join kèm gợi ý theo nguyên nhân.

@@ -20,6 +20,7 @@ wizard-templates.json
 # Báo cáo cài máy và kiểm kê (ghi vào Reports, Inventory cạnh tool): có tên máy, serial, người dùng thật.
 /Reports/
 /Inventory/
+/DriverBackup/
 *.iso
 *.ISO
 

@@ -160,7 +160,7 @@ Lưu ý:
 | **Tối ưu & dọn dẹp** | Dọn rác (quét trước rồi mới xoá), tìm file lớn, tắt chương trình khởi động cùng Windows, tắt quảng cáo / theo dõi |
 | **Phần mềm** | Mục 4–6 ở trên |
 | **Cấu hình** | Gói Cấu hình chuẩn máy mới và các tuỳ chọn hay dùng (hiện đuôi file, menu chuột phải kiểu cũ…) |
-| **Tiện ích** | Mở nhanh công cụ quản trị; ping / tracert / kiểm tra cổng; tab **LAPS & BitLocker**: tra mật khẩu admin cục bộ và khoá khôi phục BitLocker của một máy (xem [BITLOCKER-LAPS-GPO.md](BITLOCKER-LAPS-GPO.md)) |
+| **Tiện ích** | Mở nhanh công cụ quản trị (có Chẩn đoán RAM); ping / tracert / kiểm tra cổng; tab **Event log**: lỗi gần đây của Windows gộp theo loại, kèm gợi ý cách xử lý; tab **Công cụ khác**: sao lưu / cài lại driver (trước khi cài lại Windows), sửa file HOSTS, tìm chương trình đang khoá file không xoá được, xem mật khẩu Wi-Fi đã lưu; tab **LAPS & BitLocker**: tra mật khẩu admin cục bộ và khoá khôi phục BitLocker của một máy (xem [BITLOCKER-LAPS-GPO.md](BITLOCKER-LAPS-GPO.md)) |
 | **Nhật ký** | Các thay đổi registry tool đã làm, **hoàn tác** theo từng lần chạy |
 
 ---

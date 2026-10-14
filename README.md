@@ -10,6 +10,7 @@ Chức năng chính:
 - **Cài phần mềm**: Office 2010 / 2013 / 2016 bản volume từ ISO (key MAK, kích hoạt, gỡ Microsoft 365 cài sẵn), Symantec Endpoint Protection (managed qua SEPM), UniKey, ứng dụng winget; theo profile phòng ban.
 - **Sửa lỗi**: mạng, domain, máy in (share Win11 ↔ Win10), Windows Update, hệ thống, Office, bảo mật; gói sửa nhanh.
 - **Tối ưu & dọn dẹp**, **kiểm kê** ra USB/SSD (`KiemKe.xlsx`), **LAPS & BitLocker** (tra mật khẩu, khoá khôi phục).
+- **Tiện ích**: Event log có gợi ý tiếng Việt, sao lưu / cài lại driver, sửa HOSTS, tìm chương trình khoá file, mật khẩu Wi-Fi.
 
 | Tài liệu | Nội dung |
 |---|---|
@@ -17,6 +18,7 @@ Chức năng chính:
 | [docs/TIEN-DO.md](docs/TIEN-DO.md) | **Xem nhanh:** đã làm tới đâu, còn lại gì |
 | [docs/HANDOFF.md](docs/HANDOFF.md) | **Đọc đầu tiên:** trạng thái, quy tắc, luồng chạy, việc chưa kiểm, việc tiếp theo |
 | [PLAN.md](PLAN.md) | Kế hoạch tổng: chức năng, kiến trúc, lộ trình, câu hỏi còn mở |
+| [docs/KE-HOACH-GIAO-DIEN.md](docs/KE-HOACH-GIAO-DIEN.md) | Kế hoạch làm mới giao diện (chờ duyệt) |
 | [docs/ACTIONS.md](docs/ACTIONS.md) | Tham chiếu khai báo mục sửa lỗi / tweak bằng YAML |
 | [docs/SOFTWARE.md](docs/SOFTWARE.md) | Khai báo danh mục phần mềm và profile phòng ban (apps.yaml) |
 | [docs/BITLOCKER-LAPS-GPO.md](docs/BITLOCKER-LAPS-GPO.md) | Hướng dẫn triển khai GPO, Windows LAPS, BitLocker cho công ty |

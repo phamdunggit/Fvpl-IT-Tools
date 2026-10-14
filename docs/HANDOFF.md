@@ -1,6 +1,6 @@
 # Bàn giao: đọc file này trước khi làm tiếp
 
-Cập nhật lần cuối: 13/10/2026, sau khi xong wizard Cài máy mới (GĐ2).
+Cập nhật lần cuối: 14/10/2026, sau khi xong một phần tiện ích GĐ4 và lập kế hoạch làm mới giao diện.
 
 ## Trạng thái
 
@@ -9,14 +9,14 @@ Cập nhật lần cuối: 13/10/2026, sau khi xong wizard Cài máy mới (GĐ2
 | Giai đoạn | **GĐ1, GĐ2 (wizard Cài máy mới), phần lớn GĐ3 xong phần code.** Còn chạy thử các mục đổi hệ thống bằng quyền admin trên VM (danh sách bên dưới) rồi mới coi là xong |
 | Nhánh | Code mới làm trên `featured`. Chỉ merge về `main` khi được duyệt |
 | Phiên bản | 0.2.0, xem [CHANGELOG.md](../CHANGELOG.md) (trang Phần mềm nằm ở mục "Chưa phát hành") |
-| Test | 298 test pytest, tất cả đều qua (khoảng 37 giây) |
+| Test | 305 test pytest, tất cả đều qua (khoảng 42 giây) |
 | Bản exe | `python packaging\build.py`: thư mục 64MB, zip 27MB. `--test` chạy selftest trên exe, gồm cả đọc thông tin máy |
 
 Đã có:
 - Trang **Tổng quan**: hệ điều hành, kích hoạt, phần cứng, mạng (DNS có trỏ về DC không), bảo mật; copy chữ, xuất HTML; **Lưu kiểm kê** (`core/assets.py`): `Inventory\<máy>.json` cạnh tool trên USB / SSD và file tổng hợp `KiemKe.xlsx` (tool tự ghi file .xlsx, không cần thư viện).
 - Trang **Sửa lỗi**: các mục mạng, domain, Windows Update, hệ thống, Office và 4 gói sửa nhanh.
 - Trang **Máy in**: danh sách máy in (kể cả share của người đang đăng nhập), gỡ máy in / driver, in thử; thêm máy in qua IP (driver từ file .inf) và máy in share; tab Sửa lỗi có các mục share máy in Win11 ↔ Win10 (`printers/`, `30-printers.yaml`).
-- Trang **Cấu hình**: 1 mục mẫu (Hiện đuôi file). Trang **Tiện ích**: mở nhanh 29 công cụ quản trị, công cụ mạng.
+- Trang **Cấu hình**: 1 mục mẫu (Hiện đuôi file). Trang **Tiện ích**: mở nhanh 30 công cụ quản trị, công cụ mạng, Event log (`core/eventlog.py`), Công cụ khác (`ui/pages/system_tools.py`: sao lưu / cài lại driver `core/drivers.py`, HOSTS, file bị khoá `core/lockedfiles.py`, Wi-Fi `core/wifi.py`), LAPS & BitLocker.
 - Trang **Phần mềm**: danh mục `apps.yaml` (share hoặc bản đóng gói), profile phòng ban, đánh dấu đã cài, cài lần lượt qua winget / MSI / EXE / portable. Cách khai báo: [SOFTWARE.md](SOFTWARE.md).
 - Trang **Cài máy mới**: wizard 8 bước (`ui/pages/newpc.py`, `newpc/`): kiểm tra trước, thông tin máy (mã phòng lưu vào site.yaml, gợi ý tên bằng AD), đổi tên + join, sau khởi động lại, phần mềm, cấu hình chuẩn, Windows Update, báo cáo. Tiến độ lưu ở `newpc-wizard.json` trong thư mục dữ liệu; bước 2 chép tool vào `%ProgramData%\FVPL-ITTools\app` và hẹn tác vụ `FVPL-ITTools-TiepTucCaiMay` mở lại tool (`--resume`) khi admin đăng nhập.
 - Trang **Tối ưu & dọn dẹp** (GĐ3): dọn rác có quét trước (`cleanup/junk.py`), chương trình khởi động cùng Windows (`cleanup/startup.py`), tối ưu / quyền riêng tư / nguồn điện / gỡ app cài sẵn (`75-optimize.yaml`).
@@ -166,11 +166,16 @@ Hai bản USB / SSD:
 - [ ] `deploy.py ssd` ra SSD thật, chạy tool từ SSD trên máy chưa vào domain: trang Phần mềm ghi "kho trên ổ mang theo", cài Office từ ISO trên SSD (mount ISO từ ổ USB/SSD).
 - [ ] Bản USB: kho là share; máy chưa join thì báo không vào được kho, không treo.
 
+Tiện ích GĐ4. Đã chạy thật trên máy dev (chỉ đọc): Event log (thấy Kernel-Power 41, NETLOGON 5719 kèm gợi ý), tìm chương trình khoá file, xuất mật khẩu Wi-Fi (thư mục tạm bị xoá sau khi đọc). Còn:
+- [ ] **Sao lưu driver** bằng quyền admin: thư mục `DriverBackup\<máy>-<ngày>` trên USB có đủ .inf; **cài lại driver** từ thư mục đó trên máy vừa cài lại Windows (mã 3010 → báo cần khởi động lại).
+- [ ] **Sửa HOSTS:** bản sao lưu nằm cạnh file gốc, Notepad mở được bằng quyền admin và lưu được.
+- [ ] **Kết thúc tiến trình** đang khoá file: chương trình của người dùng khác (cần admin), tiến trình hệ thống bị từ chối và báo rõ.
+
 ## Việc tiếp theo
 
-1. **Chạy danh sách trên** trên VM, sửa những gì sai. Khi đó GĐ1, GĐ2 mới xong. Wizard cần VM chưa join + domain test.
-2. Thứ tự việc còn lại ở [TIEN-DO.md](TIEN-DO.md) (driver Dell / Lenovo, kiểm kê ra ổ mang theo, hướng dẫn BitLocker / LAPS / GPO, GĐ4). Câu trả lời của PLAN mục 11 (13/10/2026) quyết định các việc đó.
-3. Wizard chưa có **mẫu** (lưu bộ lựa chọn "Kế toán – Laptop" để lần sau chọn lại), PLAN mục 5.2.
+1. **Giao diện mới:** chờ bồ duyệt [KE-HOACH-GIAO-DIEN.md](KE-HOACH-GIAO-DIEN.md), rồi làm đợt P0 (thanh tiến độ `ProgressEvent`, thẻ chọn bản Office `choice: office`, banner + chọn kho bộ cài). Chỉ thay tầng `ui`, giữ nguyên `core` / `actions` / `software` / `newpc`.
+2. **Chạy danh sách trên** trên VM, sửa những gì sai. Khi đó GĐ1, GĐ2 mới xong. Wizard cần VM chưa join + domain test.
+3. GĐ4 còn lại ở [TIEN-DO.md](TIEN-DO.md): chuyển dữ liệu máy cũ, sửa PATH, báo bản mới, ký số exe, bản 1.0.
 
 ## Bẫy đã gặp
 

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import time
 
 import pytest
@@ -52,6 +53,11 @@ def window(qt_app, monkeypatch):
     sizes = {"user_temp": 3 * 1024**3, "windows_old": 8 * 1024**3, "recycle_bin": 500 * 1024**2}
     monkeypatch.setattr(junk, "scan_all", lambda env, cancel=None: [
         junk.Scan(item, sizes.get(item.id, 0), 10 if item.id in sizes else 0) for item in junk.CATEGORIES])
+    # Tiện ích: event log giả.
+    from fvpl_ittools.core import eventlog
+    monkeypatch.setattr(eventlog, "read_errors", lambda hours, cancel=None: eventlog.parse(json.dumps([
+        {"log": "System", "source": "Microsoft-Windows-Kernel-Power", "id": 41, "level": 1, "count": 2,
+         "latest": "12/10/2026 07:43", "sort": "2026-10-12T07:43:00", "message": "The system has rebooted"}])))
     # Khởi động cùng Windows: không đọc Task Scheduler thật.
     from fvpl_ittools.cleanup import startup
     monkeypatch.setattr(startup, "task_entries", lambda cancel=None: [])
@@ -207,6 +213,67 @@ def test_secrets_panel_shows_password_but_never_logs_it(window, qt_app, monkeypa
     panel.computer.setText("sai tên!")
     panel.lookup("laps")
     assert "Tên máy" in panel.result.toPlainText()
+
+
+def _utilities(window):
+    from fvpl_ittools.ui.pages import utilities as utilities_module
+    return window.findChild(utilities_module.UtilitiesPage)
+
+
+def _wait(qt_app, condition, timeout=5):
+    deadline = time.monotonic() + timeout
+    while not condition() and time.monotonic() < deadline:
+        qt_app.processEvents()
+        time.sleep(0.01)
+    assert condition()
+
+
+def test_event_log_tab(window, qt_app):
+    window.select_page("Tiện ích")
+    page = _utilities(window)
+    page.tabs.setCurrentWidget(page.events)  # tab hiện lần đầu thì tự đọc
+    _wait(qt_app, lambda: page.events.tree.topLevelItemCount() == 1)
+    item = page.events.tree.topLevelItem(0)
+    assert item.text(0) == "Critical" and item.text(1) == "2" and item.text(6).startswith("💡")
+    page.events.tree.setCurrentItem(item)
+    assert page.events.detail.toPlainText().startswith("Gợi ý: Máy tắt đột ngột")
+
+
+def test_tools_tab_locked_file_wifi_hosts(window, qt_app, monkeypatch, tmp_path, state_dir):
+    from fvpl_ittools.core import wifi
+    from fvpl_ittools.ui.pages import system_tools
+    tools = _utilities(window).tools
+
+    file = tmp_path / "khoa.txt"
+    with open(file, "w", encoding="utf-8") as handle:
+        handle.write("x")
+        tools.lock_path.setText(str(file))
+        tools.find_lockers()
+        _wait(qt_app, lambda: tools.find_button.isEnabled())
+        assert tools.lock_tree.topLevelItemCount() >= 1
+    runs = []
+    monkeypatch.setattr(window.controller, "run", lambda actions, **kw: runs.append([a.apply[0].command for a in actions]))
+    monkeypatch.setattr(system_tools.QMessageBox, "question", lambda *args: system_tools.QMessageBox.StandardButton.Yes)
+    tools.lockers = [system_tools.lockedfiles.Locker(4321, "notepad.exe", "", "Ứng dụng")]
+    tools._done("lockers", tools.lockers)
+    tools.lock_tree.setCurrentItem(tools.lock_tree.topLevelItem(0))
+    tools.kill_selected()
+    assert runs == [["taskkill /PID 4321 /F"]]
+
+    secret = "Mk@Wifi2026!"
+    monkeypatch.setattr(wifi, "saved_profiles", lambda: [wifi.WifiProfile("Office", "Office-5G", "WPA2PSK", secret)])
+    tools.show_wifi()
+    _wait(qt_app, lambda: tools.wifi_tree.topLevelItemCount() == 1)
+    assert tools.wifi_tree.topLevelItem(0).text(3) == secret
+    assert secret not in window.log_panel.plain_text()
+    tools.clear_wifi()
+    assert tools.wifi_tree.topLevelItemCount() == 0
+
+    opened = []
+    monkeypatch.setattr(system_tools.subprocess, "Popen", opened.append)
+    tools.edit_hosts()
+    assert opened and opened[0][-1].lower().endswith("hosts")
+    assert list((state_dir / "backup").glob("hosts_*"))  # đã sao lưu trước khi mở
 
 
 def test_newpc_page_shows_checks_and_time_fix(window, qt_app, monkeypatch):

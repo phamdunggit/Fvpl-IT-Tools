@@ -50,6 +50,8 @@ Nguyên tắc chung cho mọi tính năng:
 
 ## 4. Giao diện
 
+> **14/10/2026:** giao diện bên dưới là bản đầu. Kế hoạch làm mới (trang chủ theo tình huống, chế độ Cơ bản / Chuyên gia, tìm Ctrl+K, thanh tiến độ, chọn bản Office): [docs/KE-HOACH-GIAO-DIEN.md](docs/KE-HOACH-GIAO-DIEN.md).
+
 ```
 ┌────────────────────────────────────────────────────────────────────────┐
 │ FVPL IT Toolkit    FVPL-KT05 · <domain> · Win11 25H2 · Admin ✔         │
@@ -275,13 +277,13 @@ Danh sách mặc định gợi ý (**cần bồ chốt**; đã đưa phần có 
 | Chức năng | Chi tiết | Ưu tiên |
 |---|---|---|
 | Ping / tracert / nslookup / kiểm tra cổng | Nằm chung trang Chẩn đoán mạng | P1 |
-| Sao lưu và cài lại driver | `pnputil /export-driver * <thư mục>`. Hữu ích trước khi cài lại Windows | P2 |
-| Xem nhanh Event Log | Lỗi Critical và Error trong 24 giờ / 7 ngày gần nhất | P2 |
-| Sửa file HOSTS | Có sao lưu trước | P2 |
+| Sao lưu và cài lại driver ✔ | `pnputil /export-driver * <thư mục>` vào `DriverBackup\` cạnh tool; cài lại bằng `pnputil /add-driver /subdirs /install`. Tiện ích → Công cụ khác | P2 |
+| Xem nhanh Event Log ✔ | Lỗi Critical và Error trong 24 giờ / 7 / 30 ngày, gộp theo loại, gợi ý tiếng Việt cho lỗi hay gặp. Tiện ích → Event log | P2 |
+| Sửa file HOSTS ✔ | Sao lưu rồi mở bằng Notepad (quyền admin) | P2 |
 | Sửa biến PATH | | P3 |
-| Tìm process đang khoá file | Dùng Windows Restart Manager API, không cần thêm `handle.exe` | P3 |
-| Xem mật khẩu Wi-Fi đã lưu | Chỉ dành cho IT | P3 |
-| Chạy chẩn đoán RAM | `mdsched` | P3 |
+| Tìm process đang khoá file ✔ | Windows Restart Manager API (ctypes), file hoặc thư mục; kết thúc tiến trình có hỏi lại | P3 |
+| Xem mật khẩu Wi-Fi đã lưu ✔ | `netsh wlan export profile key=clear` ra thư mục tạm, đọc XML, xoá ngay; không ghi log | P3 |
+| Chạy chẩn đoán RAM ✔ | `mdsched`, ở Tiện ích → Mở nhanh | P3 |
 | Chuyển dữ liệu từ máy cũ sang máy mới | Desktop, Documents, Downloads, bookmark Chrome/Edge, chữ ký Outlook, danh sách máy in, danh sách phần mềm | P3 |
 
 ### 5.8 Phần dùng chung (log, sao lưu, hoàn tác)
