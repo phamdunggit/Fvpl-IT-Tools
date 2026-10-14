@@ -5,6 +5,7 @@
 - id: drv.vendor_update
   name: Cập nhật driver, BIOS của hãng (Dell, Lenovo)
   category: Driver & BIOS
+  keywords: ['driver', 'bios', 'dell', 'lenovo', 'dell command update', 'system update', 'cập nhật driver']
   risk: caution
   reboot: true
   undo: none

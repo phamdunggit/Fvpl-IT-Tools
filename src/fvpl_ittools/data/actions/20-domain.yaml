@@ -3,6 +3,7 @@
 - id: dom.check_dc
   name: Kiểm tra kết nối với domain
   category: Domain & đăng nhập
+  keywords: ['domain', 'dc', 'máy chủ', 'trust', 'secure channel', 'đăng nhập domain', '5719']
   risk: safe
   requires_domain: true
   description: >
@@ -40,6 +41,7 @@
 - id: dom.repair_trust
   name: Sửa lỗi trust relationship
   category: Domain & đăng nhập
+  keywords: ['trust relationship', 'không đăng nhập được domain', 'secure channel', 'domain']
   risk: caution
   requires_domain: true
   needs_credential: domain
@@ -61,6 +63,7 @@
 - id: dom.time_sync
   name: Đồng bộ giờ
   category: Domain & đăng nhập
+  keywords: ['giờ', 'đồng hồ', 'lệch giờ', 'w32tm', 'time', 'kerberos']
   risk: safe
   description: >
     Lấy lại giờ từ nguồn giờ của máy: DC với máy trong domain, time.windows.com với máy ngoài domain.
@@ -90,6 +93,7 @@
 - id: dom.gpupdate
   name: Cập nhật Group Policy
   category: Domain & đăng nhập
+  keywords: ['gpo', 'group policy', 'chính sách', 'gpupdate']
   risk: safe
   requires_domain: true
   description: >
@@ -103,6 +107,7 @@
 - id: dom.gpresult
   name: Báo cáo GPO đang áp
   category: Domain & đăng nhập
+  keywords: ['gpo', 'group policy', 'gpresult', 'chính sách đang áp']
   risk: safe
   requires_domain: true
   description: >
@@ -125,6 +130,7 @@
 - id: dom.klist_purge
   name: Xoá vé Kerberos
   category: Domain & đăng nhập
+  keywords: ['kerberos', 'klist', 'quyền truy cập', 'ổ chung', 'share']
   risk: safe
   requires_domain: true
   description: >

@@ -3,6 +3,7 @@
 - id: sec.enable_rdp
   name: Bật Remote Desktop
   category: Bảo mật và truy cập
+  keywords: ['remote desktop', 'rdp', 'điều khiển từ xa', 'mstsc', '3389']
   risk: caution
   description: >
     Cho phép kết nối Remote Desktop vào máy này (bắt buộc xác thực NLA) và mở luật firewall nhóm Remote Desktop
@@ -23,6 +24,7 @@
 - id: sec.bitlocker_backup_ad
   name: Sao lưu khoá BitLocker lên AD
   category: Bảo mật và truy cập
+  keywords: ['bitlocker', 'khoá khôi phục', 'recovery key', 'ad']
   risk: safe
   requires_domain: true
   description: >
@@ -47,6 +49,7 @@
 - id: sec.bitlocker_enable
   name: Bật BitLocker ổ hệ thống (khoá lưu lên AD)
   category: Bảo mật và truy cập
+  keywords: ['bitlocker', 'mã hoá ổ', 'tpm', 'recovery key']
   risk: caution
   requires_domain: true
   description: >
@@ -98,6 +101,7 @@
 - id: sec.bitlocker_suspend
   name: Tạm dừng BitLocker cho một lần khởi động lại
   category: Bảo mật và truy cập
+  keywords: ['bitlocker', 'tạm dừng', 'cập nhật bios', 'recovery key']
   risk: safe
   description: >
     Dùng trước khi cập nhật BIOS / firmware bằng tay, đổi thiết lập BIOS hoặc Secure Boot: lần khởi động lại tiếp theo
@@ -114,6 +118,7 @@
 - id: sec.laps_check
   name: Kiểm tra Windows LAPS trên máy này
   category: Bảo mật và truy cập
+  keywords: ['laps', 'mật khẩu admin', 'local admin', 'mật khẩu quản trị']
   risk: safe
   description: >
     Máy đã nhận chính sách LAPS chưa (GPO WS - LAPS), lưu mật khẩu vào đâu, rồi chạy xử lý LAPS ngay (không chờ chu
@@ -161,6 +166,7 @@
 - id: sec.defender_scan
   name: Cập nhật và quét nhanh bằng Microsoft Defender
   category: Bảo mật và truy cập
+  keywords: ['defender', 'virus', 'diệt virus', 'quét virus', 'mã độc']
   risk: safe
   description: >
     Tải chữ ký virus mới rồi quét nhanh (vùng hay bị nhiễm: bộ nhớ, khởi động, thư mục hệ thống), khoảng 5–15 phút.

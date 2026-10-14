@@ -3,6 +3,7 @@
 - id: wu.history
   name: Lịch sử cập nhật và mã lỗi
   category: Windows Update
+  keywords: ['windows update', 'cập nhật', 'mã lỗi', 'lịch sử cập nhật', 'kb']
   risk: safe
   admin: false
   description: >
@@ -39,6 +40,7 @@
 - id: wu.scan_install
   name: Quét và cài bản cập nhật Windows
   category: Windows Update
+  keywords: ['windows update', 'cập nhật windows', 'update', 'bản vá', 'kb']
   risk: safe
   description: >
     Tìm và cài các bản cập nhật phần mềm còn thiếu (không gồm driver) qua Windows Update API, theo nguồn máy đang
@@ -82,6 +84,7 @@
 - id: wu.component_cleanup
   name: Dọn kho thành phần (WinSxS)
   category: Windows Update
+  keywords: ['winsxs', 'dọn ổ', 'đầy ổ', 'dism', 'cập nhật']
   risk: safe
   description: >
     Xoá các bản thành phần Windows cũ đã được bản cập nhật mới thay thế (DISM /StartComponentCleanup), thường giải
@@ -93,6 +96,7 @@
 - id: wu.reset
   name: Reset Windows Update
   category: Windows Update
+  keywords: ['windows update lỗi', 'cập nhật lỗi', 'kẹt cập nhật', 'softwaredistribution', 'catroot2', '0x80070002', '0x8024']
   risk: caution
   description: >
     Dừng các dịch vụ cập nhật, đổi tên thư mục SoftwareDistribution và catroot2 thành .old (bản .old

@@ -463,3 +463,12 @@ class UtilitiesPage(QWidget):
         if any(action.page == "utilities" for action in app.actions):
             self.tabs.addTab(ActionsPage("utilities", "", "", "", app, controller, show_header=False), "Mục khác")
         root.addWidget(self.tabs, 1)
+
+    EXPERT_TABS = ("Event log", "LAPS && BitLocker", "Mục khác")  # chế độ Cơ bản ẩn các tab này
+
+    def set_mode(self, mode: str) -> None:
+        for index in range(self.tabs.count()):
+            if self.tabs.tabText(index) in self.EXPERT_TABS:
+                self.tabs.setTabVisible(index, mode == "expert")
+        if not self.tabs.isTabVisible(self.tabs.currentIndex()):
+            self.tabs.setCurrentIndex(0)

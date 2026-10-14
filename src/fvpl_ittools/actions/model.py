@@ -127,6 +127,7 @@ class Action:
     gpo: tuple[GpoRef, ...] = ()
     needs_credential: str | None = None
     requires_domain: bool = False
+    keywords: tuple[str, ...] = ()  # từ người dùng hay gõ khi tìm (Ctrl+K): từ đồng nghĩa, mã lỗi
     source: str = ""
 
     def supports_build(self, build: int) -> bool:

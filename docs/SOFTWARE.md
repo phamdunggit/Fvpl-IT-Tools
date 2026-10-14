@@ -1,11 +1,11 @@
 # Danh mục phần mềm (apps.yaml)
 
-Trang **Phần mềm** đọc danh mục từ `apps.yaml`:
+Trang **Cài phần mềm** đọc danh mục từ `apps.yaml`:
 
 1. `<kho bộ cài>\config\apps.yaml`. Kho bộ cài là thư mục `SOFT` cạnh file exe (bản SSD) nếu có, không thì `share_root` trong `site.yaml` (bản USB, cần vào được share). IT sửa file này là xong, không phải build lại tool. `{share}` trong danh mục trỏ tới kho đang dùng.
 2. Không có thì dùng bản đóng gói kèm tool: `src/fvpl_ittools/data/apps.yaml` (danh sách gợi ý, chưa chốt).
 
-Khai báo sai thì ứng dụng / profile đó bị loại, khung log báo lỗi tiếng Việt kèm tên file và số thứ tự; phần còn lại vẫn dùng được. Sửa bản đóng gói thì chạy `pytest` (test `test_bundled_catalog_loads_without_errors`). Sửa bản trên share thì mở tool, vào trang Phần mềm, xem khung log.
+Khai báo sai thì ứng dụng / profile đó bị loại, khung log báo lỗi tiếng Việt kèm tên file và số thứ tự; phần còn lại vẫn dùng được. Sửa bản đóng gói thì chạy `pytest` (test `test_bundled_catalog_loads_without_errors`). Sửa bản trên share thì mở tool, vào trang Cài phần mềm, xem khung log.
 
 ## Ứng dụng
 
@@ -51,7 +51,7 @@ apps:
 | `scope` | mọi ứng dụng | `user` nếu bộ cài chỉ cài cho tài khoản đang chạy nó (ví dụ Zalo). Khi IT mở tool bằng tài khoản khác, ứng dụng này bị khoá để không cài nhầm vào tài khoản IT. |
 | `timeout` | mọi ứng dụng | Số giây tối đa, mặc định 1800. |
 | `conflicts` | mọi ứng dụng | Mẫu tên (giống `detect.uninstall_name`) của phần mềm không cài chung được. Máy đang có phần mềm khớp mẫu (chỉ tính mục hiện trong Programs and Features) thì ứng dụng bị khoá kèm lý do. Ví dụ Office bản volume: `'Microsoft 365*\|Microsoft Office Professional*'`. |
-| `choice` | mọi ứng dụng | Tên nhóm chọn một, ví dụ `office`. Các ứng dụng cùng `choice` không nằm trong cây mà hiện thành **thẻ chọn một** ở đầu trang Phần mềm (thêm thẻ "Không cài"); chọn được một bản. Profile có một ứng dụng của nhóm thì bấm Chọn theo profile sẽ chọn sẵn bản đó. |
+| `choice` | mọi ứng dụng | Tên nhóm chọn một, ví dụ `office`. Các ứng dụng cùng `choice` không nằm trong cây mà hiện thành **thẻ chọn một** ở đầu trang Cài phần mềm (thêm thẻ "Không cài"); chọn được một bản. Profile có một ứng dụng của nhóm thì bấm Chọn theo profile sẽ chọn sẵn bản đó. |
 | `description` | mọi ứng dụng | Hiện khi rê chuột lên tên ứng dụng (thẻ chọn: rê lên thẻ). |
 
 Chỗ giữ chỗ trong đường dẫn và tham số: `{share}` (= `share_root` trong site.yaml), `{programfiles}`, `{programfiles_x86}`.
@@ -71,7 +71,7 @@ profiles:
 
 Profile kế thừa được nhiều tầng; ứng dụng của profile cha đứng trước, trùng thì chỉ tính một lần. Kế thừa vòng tròn, kế thừa profile không có hoặc đang khai báo sai thì profile đó bị loại.
 
-Bấm **Chọn theo profile** trên trang Phần mềm sẽ tick các ứng dụng của profile mà máy chưa có và cài được.
+Bấm **Chọn theo profile** trên trang Cài phần mềm sẽ tick các ứng dụng của profile mà máy chưa có và cài được.
 
 ## Cài như thế nào
 
@@ -85,7 +85,7 @@ Bấm **Chọn theo profile** trên trang Phần mềm sẽ tick các ứng dụ
 
 Các ứng dụng cài **lần lượt**; một ứng dụng lỗi thì vẫn cài tiếp ứng dụng sau. Xong lượt, tool kiểm tra lại phần mềm đã cài và hỏi khởi động lại nếu có bộ cài cần. Nút **Thử lại mục lỗi** cài lại các ứng dụng vừa lỗi.
 
-Kho bộ cài: thư mục `SOFT` cạnh tool (bản SSD), nếu không có thì kho IT đã chọn bằng nút **Chọn kho…** ở đầu trang Phần mềm (nhớ cho lần sau, trong `%APPDATA%\FVPL-ITTools\prefs.json`), cuối cùng là `share_root` trong site.yaml. Kho không có `config\apps.yaml` thì tool dùng danh mục mặc định đóng gói kèm (đã có Office 2016 / 2013 / 2010 với tên ISO như ở mục dưới, và Microsoft 365 qua winget).
+Kho bộ cài: thư mục `SOFT` cạnh tool (bản SSD), nếu không có thì kho IT đã chọn bằng nút **Chọn kho…** ở đầu trang Cài phần mềm (nhớ cho lần sau, trong `%APPDATA%\FVPL-ITTools\prefs.json`), cuối cùng là `share_root` trong site.yaml. Kho không có `config\apps.yaml` thì tool dùng danh mục mặc định đóng gói kèm (đã có Office 2016 / 2013 / 2010 với tên ISO như ở mục dưới, và Microsoft 365 qua winget).
 
 Ứng dụng bị khoá (hiện "Không cài được", rê chuột lên để xem lý do) khi: tool không có quyền admin; máy đang có phần mềm khớp `conflicts`; máy chưa có winget; chưa khai báo `share_root`, không vào được share hoặc không thấy bộ cài; ứng dụng `scope: user` mà tool chạy bằng tài khoản khác.
 
@@ -101,13 +101,13 @@ Office 2010 / 2013 / 2016 bản volume (ISO `SW_DVD5_Office_..._MLF`) cài bằn
     installer: '{share}\Installers\Office\SW_DVD5_Office_2016_64Bit_English_MLF_X20-42479.ISO'
     args: '/config "{share}\config\office\office2016-standard.xml"'
     detect: { uninstall_name: 'Microsoft Office Standard 2016*' }
-    # Máy mới hay có Microsoft 365 cài sẵn: không cài chung được, trang Phần mềm báo và chỉ cách gỡ.
+    # Máy mới hay có Microsoft 365 cài sẵn: không cài chung được, trang Cài phần mềm báo và chỉ cách gỡ.
     conflicts: 'Microsoft 365*|Microsoft Office 365*|Microsoft Office Home*|Microsoft Office Professional*|Microsoft Office Standard 2013*|Microsoft Office Standard 2010*'
     timeout: 3600
 ```
 
 Cài xong mà chưa kích hoạt (máy chưa có Internet lúc cài): mục **Kích hoạt Office bản volume (MAK)** ở trang Sửa lỗi.
-Khai báo thêm `choice: office` cho các bản Office để trang Phần mềm hiện thẻ chọn một bản. Máy có Microsoft 365 / Office cài sẵn kiểu Click-to-Run thì khi chọn Office bản volume, trang Phần mềm hiện cảnh báo và tick sẵn **Gỡ trước khi cài**: lượt cài chạy mục gỡ trước, cài các phần mềm khác, cài Office sau cùng (Office lỗi vì chưa khởi động lại thì khởi động lại rồi bấm Thử lại mục lỗi). Office bản MSI khác đang cài thì vẫn phải gỡ bằng tay.
+Khai báo thêm `choice: office` cho các bản Office để trang Cài phần mềm hiện thẻ chọn một bản. Máy có Microsoft 365 / Office cài sẵn kiểu Click-to-Run thì khi chọn Office bản volume, trang Cài phần mềm hiện cảnh báo và tick sẵn **Gỡ trước khi cài**: lượt cài chạy mục gỡ trước, cài các phần mềm khác, cài Office sau cùng (Office lỗi vì chưa khởi động lại thì khởi động lại rồi bấm Thử lại mục lỗi). Office bản MSI khác đang cài thì vẫn phải gỡ bằng tay.
 Gỡ Microsoft 365 cài sẵn: mục **Gỡ Microsoft 365 / Office cài sẵn (Click-to-Run)**. Cách dùng từng bước:
 [HUONG-DAN-SU-DUNG.md](HUONG-DAN-SU-DUNG.md) mục 4–5.
 

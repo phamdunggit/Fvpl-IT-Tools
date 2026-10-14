@@ -204,6 +204,8 @@ class ActionsPage(QWidget):
         self._by_id = {action.id: action for action in self.actions}
         self._all_actions = {action.id: action for action in app.actions}
         self.pack_buttons: dict[str, QPushButton] = {}
+        self.mode = "expert"  # cửa sổ chính đặt theo chế độ Cơ bản / Chuyên gia
+        self._revealed: str | None = None  # mục Nâng cao được mở từ tìm kiếm dù đang ở chế độ Cơ bản
 
         root = QVBoxLayout(self)
         root.setSpacing(10)
@@ -241,6 +243,10 @@ class ActionsPage(QWidget):
         toolbar.addWidget(self.preview_button)
         toolbar.addWidget(self.run_button)
         root.addLayout(toolbar)
+        self.mode_note = QLabel()
+        self.mode_note.setObjectName("PageSubtitle")
+        self.mode_note.hide()
+        root.addWidget(self.mode_note)
 
         splitter = QSplitter(Qt.Orientation.Horizontal)
         self.tree = QTreeWidget()
@@ -406,19 +412,63 @@ class ActionsPage(QWidget):
         self.detail.show_action(self._by_id.get(action_id) if action_id else None)
 
     def _filter(self, text: str) -> None:
+        """Lọc theo chữ tìm (tên, mô tả, từ khoá). Gõ đúng tên một nhóm thì chỉ hiện nhóm đó.
+        Chế độ Cơ bản ẩn mục Nâng cao."""
         needle = fold(text.strip())
-        for index in range(self.tree.topLevelItemCount()):
-            category = self.tree.topLevelItem(index)
-            category_match = needle in fold(category.text(0))
+        categories = [self.tree.topLevelItem(index) for index in range(self.tree.topLevelItemCount())]
+        exact = bool(needle) and any(fold(category.text(0)) == needle for category in categories)
+        hidden_advanced = 0
+        for category in categories:
+            name = fold(category.text(0))
+            category_match = name == needle if exact else needle in name
             visible = 0
             for child_index in range(category.childCount()):
                 child = category.child(child_index)
                 action = self._by_id[child.data(0, ACTION_ID_ROLE)]
-                haystack = fold(f"{action.name} {action.description} {action.id}")
-                show = not needle or category_match or needle in haystack
+                haystack = fold(f"{action.name} {action.description} {action.id} {' '.join(action.keywords)}")
+                show = not needle or category_match or (not exact and needle in haystack)
+                if show and self.mode == "basic" and action.risk is Risk.ADVANCED and action.id != self._revealed:
+                    show = False
+                    hidden_advanced += 1
                 child.setHidden(not show)
                 visible += show
             category.setHidden(visible == 0)
+        self.mode_note.setText(f"{hidden_advanced} mục Nâng cao đang ẩn: bật chế độ Chuyên gia (góc trên bên phải) để thấy."
+                               if hidden_advanced else "")
+        self.mode_note.setVisible(bool(hidden_advanced))
+
+    # ------------------------------------------------------------ chế độ, điều hướng
+
+    def set_mode(self, mode: str) -> None:
+        self.mode = mode
+        self._revealed = None
+        if self.actions:
+            self._filter(self.search.text())
+
+    def show_category(self, category: str) -> None:
+        """Chỉ hiện một nhóm (ô "Không vào được mạng" ở Trang chủ)."""
+        if self.actions:
+            self.search.setText(category)
+
+    def focus_action(self, action_id: str) -> bool:
+        """Chọn và cuộn tới một mục (từ tìm kiếm Ctrl+K hoặc Trang chủ)."""
+        item = self._items.get(action_id)
+        if item is None:
+            return False
+        self._revealed = action_id
+        self.search.clear()
+        self._filter("")
+        self.tree.setCurrentItem(item)
+        self.tree.scrollToItem(item)
+        self.tree.setFocus()
+        return True
+
+    def focus_pack(self, pack_id: str) -> bool:
+        button = self.pack_buttons.get(pack_id)
+        if button is None:
+            return False
+        button.setFocus()
+        return True
 
     def _busy_changed(self, busy: bool) -> None:
         self.run_button.setEnabled(not busy)

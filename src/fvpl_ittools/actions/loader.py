@@ -41,7 +41,7 @@ PACKS_FILE = paths.DATA_DIR / "packs.yaml"
 _ID_PATTERN = re.compile(r"^[a-z0-9_]+(\.[a-z0-9_]+)+$")
 _ACTION_KEYS = {
     "id", "name", "category", "page", "risk", "scope", "admin", "reboot", "os",
-    "description", "check", "apply", "undo", "after", "gpo", "needs_credential", "requires_domain",
+    "description", "check", "apply", "undo", "after", "gpo", "needs_credential", "requires_domain", "keywords",
 }
 _STEP_KINDS = ("cmd", "powershell", "registry", "service", "builtin")
 _STEP_COMMON = {"timeout", "ok_codes", "reboot_codes", "messages"}
@@ -107,6 +107,11 @@ def parse_action(raw: Any, source: str = "") -> Action:
     requires_domain = _flag(raw, "requires_domain", False)
     min_build, max_build = _parse_os(raw.get("os"))
     description = _optional_text(raw, "description")
+    keywords = raw.get("keywords") or []
+    if isinstance(keywords, str):
+        keywords = [part.strip() for part in keywords.split(",")]
+    if not isinstance(keywords, list) or not all(isinstance(item, str) for item in keywords):
+        raise ActionError("'keywords' là danh sách từ, ví dụ [máy in, printer, 0x0000011b]")
 
     apply_raw = raw.get("apply")
     if not isinstance(apply_raw, list) or not apply_raw:
@@ -153,6 +158,7 @@ def parse_action(raw: Any, source: str = "") -> Action:
         gpo=gpo,
         needs_credential=needs_credential,
         requires_domain=requires_domain,
+        keywords=tuple(item.strip() for item in keywords if item.strip()),
         source=source,
     )
 

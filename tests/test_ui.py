@@ -129,7 +129,7 @@ def test_utilities_page_opens_shortcuts_and_runs_network_tools(window, monkeypat
 def test_software_page_profiles_and_install(window, qt_app, monkeypatch):
     from fvpl_ittools.core.executor import ActionResult, Status
     from fvpl_ittools.ui.pages import software as software_module
-    window.select_page("Phần mềm")
+    window.select_page("software")
     page = window.software
     deadline = time.monotonic() + 10
     while (page.loading or page.state is None) and time.monotonic() < deadline:
@@ -372,7 +372,7 @@ def test_newpc_templates(window, qt_app, monkeypatch, tmp_path):
 
 def test_software_page_preselects_extra_apps(window, qt_app):
     page = window.software
-    window.select_page("Phần mềm")
+    window.select_page("software")
     deadline = time.monotonic() + 10
     while (page.loading or page.state is None) and time.monotonic() < deadline:
         qt_app.processEvents()
@@ -410,7 +410,7 @@ def test_software_page_removes_click_to_run_office_first(window, qt_app, monkeyp
 
     monkeypatch.setattr(scan, "scan", fake_scan)
     page = window.software
-    window.select_page("Phần mềm")
+    window.select_page("software")
     _wait_scan(qt_app, page)
     page.rescan()
     _wait_scan(qt_app, page)
@@ -431,7 +431,7 @@ def test_software_page_choose_store_remembers_folder(window, qt_app, monkeypatch
     from fvpl_ittools.core import prefs
     from fvpl_ittools.ui.pages import software as software_module
     page = window.software
-    window.select_page("Phần mềm")
+    window.select_page("software")
     _wait_scan(qt_app, page)
     store = tmp_path / "Kho"
     (store / "config").mkdir(parents=True)
@@ -878,3 +878,74 @@ def test_printers_page_fix_tab_has_pack_and_share_fixes(window):
     assert list(fixes.pack_buttons) == ["pack.printer"]
     assert {"prn.share_check", "prn.share_host_fix", "prn.share_client_fix",
             "prn.share_host_privacy_off"} <= set(fixes._by_id)
+
+
+def test_home_tiles_and_health_navigate(window, qt_app):
+    home = window.home
+    assert window.stack.currentWidget() is home and len(home.tiles) == 8
+    deadline = time.monotonic() + 10
+    while window.overview.loading and time.monotonic() < deadline:
+        qt_app.processEvents()
+        time.sleep(0.01)
+    qt_app.processEvents()
+    assert any(item.target == "page:optimize" for item in home.health_items)  # ổ C trong dữ liệu mẫu gần đầy
+    network = next(tile for tile in home.tiles if tile.spec.title == "Không vào được mạng")
+    network.click()
+    fixes = window.fixes
+    assert window.stack.currentWidget() is fixes and fixes.search.text() == "Mạng & Internet"
+    visible = [fixes.tree.topLevelItem(i).text(0) for i in range(fixes.tree.topLevelItemCount())
+               if not fixes.tree.topLevelItem(i).isHidden()]
+    assert visible == ["Mạng & Internet"]
+    window.navigate("page:home")
+    printer = next(tile for tile in home.tiles if tile.spec.title == "Không in được")
+    printer.click()
+    assert window.stack.currentWidget() is window.printers
+
+
+def test_mode_switch_hides_advanced_and_expert_tabs(window, qt_app):
+    from fvpl_ittools.core import prefs
+    assert window.mode == "basic" and window.log_panel.isHidden()
+    fixes = window.fixes
+    advanced = fixes._items["sys.reregister_shell"]
+    assert advanced.isHidden() and not fixes.mode_note.isHidden()
+    tabs = window.utilities.tabs
+    titles = [tabs.tabText(i) for i in range(tabs.count()) if tabs.isTabVisible(i)]
+    assert "Event log" not in titles and "Công cụ mạng" in titles
+    window.header.mode_buttons["expert"].click()
+    assert window.mode == "expert" and prefs.get("ui_mode") == "expert"
+    assert not advanced.isHidden() and fixes.mode_note.isHidden() and not window.log_panel.isHidden()
+    assert all(tabs.isTabVisible(i) for i in range(tabs.count()))
+    window.set_mode("basic")
+    window.navigate("action:sys.reregister_shell")  # mở từ tìm kiếm: vẫn hiện mục đó dù đang Cơ bản
+    assert window.stack.currentWidget() is fixes and fixes.tree.currentItem() is advanced and not advanced.isHidden()
+
+
+def test_command_palette_searches_and_opens(window, qt_app):
+    window.open_search("xoa lenh in bi ket")
+    palette = window.palette
+    targets = palette.results()
+    assert targets and targets[0] == "action:prn.clear_queue"
+    palette.activate_current()
+    printers = window.printers
+    assert window.stack.currentWidget() is printers and printers.tabs.tabText(printers.tabs.currentIndex()) == "Sửa lỗi"
+    assert printers.fixes.tree.currentItem() is printers.fixes._items["prn.clear_queue"]
+
+    window.open_search("0x0000011b")
+    assert "action:prn.share_check" in palette.results()
+    window.open_search("windows update")  # chế độ Cơ bản: mục Nâng cao ẩn, có ghi chú
+    assert "action:sys.reregister_shell" not in palette.results()
+    window.open_search("event log")
+    assert "Nâng cao" in palette.count.text()
+    palette.hide()
+
+    window.navigate("tab:optimize:File lớn")
+    assert window.stack.currentWidget() is window.optimize
+    assert window.optimize.tabs.tabText(window.optimize.tabs.currentIndex()) == "File lớn"
+    window.navigate("app:7zip")
+    software = window.software
+    deadline = time.monotonic() + 10
+    while (software.loading or software.state is None or software._wanted_focus) and time.monotonic() < deadline:
+        qt_app.processEvents()
+        time.sleep(0.01)
+    assert window.stack.currentWidget() is software
+    assert [app.id for app in software.checked_apps()] == ["7zip"]

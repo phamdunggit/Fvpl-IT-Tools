@@ -4,7 +4,7 @@ Cập nhật: 14/10/2026. File này được cập nhật trước mỗi commit.
 
 ## Đang làm
 
-- **Làm mới giao diện** theo [kế hoạch](KE-HOACH-GIAO-DIEN.md) (bồ đã duyệt 14/10/2026). **Đợt P0 xong** (xem bảng dưới). Tiếp theo: đợt P1 (bộ khung mới kiểu Windows 11, trang chủ theo tình huống, chế độ Cơ bản / Chuyên gia, tìm Ctrl+K).
+- **Làm mới giao diện** theo [kế hoạch](KE-HOACH-GIAO-DIEN.md) (bồ đã duyệt 14/10/2026). **Xong đợt P0 và P1** (xem bảng dưới). Tiếp theo: đợt P2 (sửa lỗi theo tình huống từng bước, trang Phần mềm dạng thẻ, wizard theo mockup, tên dễ hiểu, "Gửi cho IT").
 
 ## Đã xong (code xong, **chưa chạy thử bằng quyền admin trên máy ảo**)
 
@@ -13,13 +13,14 @@ Cập nhật: 14/10/2026. File này được cập nhật trước mỗi commit.
 | Cài phần mềm công ty | **Office 2010 / 2013 / 2016** bản volume cài im lặng từ ISO (key MAK trong file XML), chặn khi máy có Microsoft 365 cài sẵn + mục gỡ nó, mục **kích hoạt Office** và xem trạng thái; **Symantec Endpoint Protection** (MSI im lặng, managed qua SEPM bằng SyLink.xml); UniKey, UltraViewer, ứng dụng winget; profile phòng ban. Cách dùng: [HUONG-DAN-SU-DUNG.md](HUONG-DAN-SU-DUNG.md) mục 4–6 |
 | Hướng dẫn sử dụng | [HUONG-DAN-SU-DUNG.md](HUONG-DAN-SU-DUNG.md): chuẩn bị kho bộ cài, wizard, cài Office / Symantec, các trang, khi có lỗi |
 | LAPS, BitLocker | [Hướng dẫn GPO, Windows LAPS, BitLocker](BITLOCKER-LAPS-GPO.md) (từng bước, lộ trình 4 tuần). Trong tool: tab **LAPS & BitLocker** ở trang Tiện ích (tra mật khẩu LAPS, bắt đổi, tra khoá BitLocker của máy khác; không ghi vào log); mục Kiểm tra Windows LAPS, Bật BitLocker (chỉ khi đủ điều kiện an toàn), Tạm dừng BitLocker |
-| Kiểm kê | Nút "Lưu kiểm kê" (trang Tổng quan, wizard bước 7): `Inventory\` cạnh tool trên USB / SSD, file tổng hợp `KiemKe.xlsx` một dòng một máy (đã thử mở bằng Excel) |
+| Kiểm kê | Nút "Lưu kiểm kê" (trang Thông tin máy, wizard bước 7): `Inventory\` cạnh tool trên USB / SSD, file tổng hợp `KiemKe.xlsx` một dòng một máy (đã thử mở bằng Excel) |
 | GĐ0 Nền móng | Khung app, chạy lệnh nền, YAML, log, hoàn tác, restore point, đóng gói exe |
 | GĐ1 Tổng quan + Sửa lỗi | Trang Tổng quan (copy, xuất HTML); các mục sửa lỗi P1; gói sửa nhanh; Tiện ích (mở nhanh 29 công cụ, ping/tracert/nslookup/cổng) |
-| GĐ2 Cài máy mới | **Wizard 8 bước:** kiểm tra trước; tên `FVPL-<mã phòng><2 số>` (thêm mã phòng mới, lưu vào site.yaml; gợi ý số kế tiếp từ AD); đổi tên + join OU chung; tự mở lại sau khi khởi động lại; gpupdate, nhóm IT vào Administrators; phần mềm theo profile; cấu hình chuẩn (có vi-VN); driver / BIOS của hãng (Dell Command \| Update, Lenovo System Update) + Windows Update; báo cáo HTML trên máy và ổ mang theo. **Mẫu** (ví dụ "Kế toán – Laptop": phòng, profile, phần mềm thêm như bản Office) chọn lại một lần là xong. Trang Phần mềm (winget, share MSI/EXE/ISO/portable); danh mục công ty trong `SOFT` |
+| GĐ2 Cài máy mới | **Wizard 8 bước:** kiểm tra trước; tên `FVPL-<mã phòng><2 số>` (thêm mã phòng mới, lưu vào site.yaml; gợi ý số kế tiếp từ AD); đổi tên + join OU chung; tự mở lại sau khi khởi động lại; gpupdate, nhóm IT vào Administrators; phần mềm theo profile; cấu hình chuẩn (có vi-VN); driver / BIOS của hãng (Dell Command \| Update, Lenovo System Update) + Windows Update; báo cáo HTML trên máy và ổ mang theo. **Mẫu** (ví dụ "Kế toán – Laptop": phòng, profile, phần mềm thêm như bản Office) chọn lại một lần là xong. Trang Cài phần mềm (winget, share MSI/EXE/ISO/portable); danh mục công ty trong `SOFT` |
 | Hai bản mang theo | **USB** (tool + cài qua share) và **SSD** (tool + kho `SOFT` cạnh exe, không cần mạng); `packaging/deploy.py usb/ssd` chép ra ổ |
 | GĐ3 Tối ưu & dọn dẹp | Dọn rác có quét trước (8 loại, có cache trình duyệt); tìm file lớn; khởi động cùng Windows (khoá Run, thư mục Startup, **task chạy lúc đăng nhập / bật máy**); hiệu ứng hình ảnh cho máy yếu; dịch vụ cập nhật Edge / Chrome / Adobe sang Manual; chặn app "đồng hành" driver; tắt quảng cáo / theo dõi; power; gỡ app cài sẵn; các mục sửa lỗi P2 (hosts, firewall, Windows Update, WMI, MSI, Teams, RDP, BitLocker, Defender…) |
-| Giao diện mới, đợt P0 | **Thanh tiến độ** cho mọi lượt chạy nhiều mục (mục n/N, % tải về của winget, từng mục ✔ / ✖ kèm lý do, dừng sau mục đang chạy, thẻ kết quả + Thử lại mục lỗi) ở trang Phần mềm, wizard bước 3 / 5 / 6 và khung log; **thẻ chọn bản Office** (Không cài / 2016 / 2013 / 2010 / 365), có cả khi chạy bản zip không kèm kho; máy có Microsoft 365 cài sẵn thì tick **Gỡ trước khi cài**; **banner kho bộ cài + Chọn kho…** (nhớ cho lần sau) |
+| Giao diện mới, đợt P1 | **Khung kiểu Windows 11** (màu, chữ Segoe UI Variable, icon nét mảnh tự vẽ, thanh trên trắng, sidebar có icon, thanh trạng thái dưới cùng, khung log thành ngăn kéo "Chi tiết kỹ thuật"); **Trang chủ**: 8 ô theo việc cần làm, khung **Tình trạng máy này** có nút sửa, banner cài dở; **chế độ Cơ bản / Chuyên gia** (Cơ bản ẩn mục Nâng cao, tab Event log / LAPS, gập log; nhớ lựa chọn); **tìm Ctrl+K** (bỏ dấu, mã lỗi, từ khoá cho 51 mục sửa lỗi / máy in; mở đúng trang, tab, mục) |
+| Giao diện mới, đợt P0 | **Thanh tiến độ** cho mọi lượt chạy nhiều mục (mục n/N, % tải về của winget, từng mục ✔ / ✖ kèm lý do, dừng sau mục đang chạy, thẻ kết quả + Thử lại mục lỗi) ở trang Cài phần mềm, wizard bước 3 / 5 / 6 và khung log; **thẻ chọn bản Office** (Không cài / 2016 / 2013 / 2010 / 365), có cả khi chạy bản zip không kèm kho; máy có Microsoft 365 cài sẵn thì tick **Gỡ trước khi cài**; **banner kho bộ cài + Chọn kho…** (nhớ cho lần sau) |
 | GĐ4 Tiện ích (một phần) | Trang Tiện ích thêm tab **Event log** (lỗi Critical / Error 24 giờ / 7 / 30 ngày, gộp theo loại, gợi ý tiếng Việt) và **Công cụ khác**: sao lưu / cài lại driver (`DriverBackup\` cạnh tool), sao lưu rồi sửa HOSTS, tìm chương trình đang khoá file, mật khẩu Wi-Fi đã lưu; Chẩn đoán RAM ở Mở nhanh |
 | Trang Máy in | Danh sách máy in (kể cả share của người đang đăng nhập), gỡ máy in / driver, in thử; thêm qua IP (driver từ file .inf) và qua share; **sửa share máy in Win11 ↔ Win10** |
 | Câu hỏi PLAN mục 11 | Đã trả lời hết (13/10/2026) |
@@ -28,12 +29,13 @@ Cập nhật: 14/10/2026. File này được cập nhật trước mỗi commit.
 
 | # | Việc | Ghi chú |
 |---|---|---|
-| 1 | Làm mới giao diện, đợt P1 → P3 | [Kế hoạch](KE-HOACH-GIAO-DIEN.md) mục 7 |
+| 1 | Làm mới giao diện, đợt P2 → P3 | [Kế hoạch](KE-HOACH-GIAO-DIEN.md) mục 7 |
 | 2 | GĐ4 còn lại: chuyển dữ liệu máy cũ, sửa PATH, báo bản mới, ký số exe, bản 1.0 | |
 
 ## Bồ cần làm
 
-- Chạy thử bản build mới: trang Phần mềm (chọn bản Office, Chọn kho…, thanh tiến độ khi cài). Kho `SOFT` trên SSD cần
+- Chạy thử bản build mới: Trang chủ, ô tìm Ctrl+K, nút Cơ bản / Chuyên gia; trang Cài phần mềm (chọn bản Office, Chọn
+  kho…, thanh tiến độ khi cài). Kho `SOFT` trên SSD cần
   thêm dòng `choice: office` cho các bản Office trong `config\apps.yaml` (bản trên máy dev đã thêm; chép lại kho ra SSD
   bằng `deploy.py ssd` hoặc sửa tay).
 - Đọc [hướng dẫn GPO, LAPS, BitLocker](BITLOCKER-LAPS-GPO.md), làm theo lộ trình ở mục 5 (bắt đầu bằng nhóm máy thử).

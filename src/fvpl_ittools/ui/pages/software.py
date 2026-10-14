@@ -82,6 +82,8 @@ class ScanLoader(QObject):
 
 
 class SoftwarePage(QWidget):
+    store_changed = Signal()  # vừa quét xong hoặc đổi kho: thanh bên cập nhật dòng "Kho bộ cài"
+
     def __init__(self, app: AppContext, controller: RunController):
         super().__init__()
         self.app = app
@@ -92,6 +94,7 @@ class SoftwarePage(QWidget):
         self.choice_groups: dict[str, ChoiceGroup] = {}
         self._started = False
         self._wanted_profile: tuple[str, tuple[str, ...]] | None = None  # (profile, ứng dụng thêm) chờ quét xong
+        self._wanted_focus: str | None = None  # ứng dụng chọn từ tìm kiếm, chờ quét xong
         self.loader = ScanLoader(app, self)
         self.loader.done.connect(self._scanned)
 
@@ -99,7 +102,7 @@ class SoftwarePage(QWidget):
         root.setContentsMargins(24, 20, 24, 12)
         root.setSpacing(10)
         page_header(
-            root, "Phần mềm",
+            root, "Cài phần mềm",
             "Chọn bản Office và các phần mềm cần cài rồi bấm Cài. Tool cài lần lượt, không cần bấm Next; "
             "một mục lỗi thì vẫn cài tiếp mục sau.",
         )
@@ -230,6 +233,33 @@ class SoftwarePage(QWidget):
         self._update_buttons()
         if self._wanted_profile is not None:
             self.preselect_profile(*self._wanted_profile)
+        if self._wanted_focus is not None:
+            self.focus_app(self._wanted_focus)
+        self.store_changed.emit()
+
+    def focus_app(self, app_id: str) -> None:
+        """Ứng dụng chọn từ tìm kiếm (Ctrl+K): chọn sẵn để cài và cuộn tới. Chưa quét xong thì làm sau."""
+        self.views.setCurrentIndex(SELECT_VIEW)
+        if self.state is None or self.loading:
+            self._wanted_focus = app_id
+            if not self.loading:
+                self._started = True
+                self.rescan()
+            return
+        self._wanted_focus = None
+        app = self.state.catalog.app(app_id)
+        if app is None:
+            return
+        if app.choice:
+            if not self.choice_groups[app.choice].select(app.id):
+                self.controller.say(Level.INFO, f"{app.name}: {self._choice_note(app)[2] or 'không chọn được'}")
+            return
+        item = self._items[app.id]
+        if not self.state.detections[app.id].installed and blocked_reason(app, self.state.senv) is None:
+            item.setCheckState(0, Qt.CheckState.Checked)
+        self.search.clear()
+        self.tree.setCurrentItem(item)
+        self.tree.scrollToItem(item)
 
     def preselect_profile(self, profile_id: str, extra_apps: list[str] | tuple[str, ...] = ()) -> None:
         """Chọn profile, tick sẵn ứng dụng của nó và các ứng dụng thêm (wizard Cài máy mới gọi).

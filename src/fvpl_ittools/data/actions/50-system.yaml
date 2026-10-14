@@ -3,6 +3,7 @@
 - id: sys.sfc_dism
   name: Quét và sửa file hệ thống (DISM + SFC)
   category: Hệ thống
+  keywords: ['sfc', 'dism', 'file hệ thống', 'windows lỗi', 'scannow', 'hỏng file']
   risk: safe
   description: >
     Sửa kho thành phần Windows bằng DISM /RestoreHealth (tải file sạch từ Windows Update), rồi chạy
@@ -22,6 +23,7 @@
 - id: sys.chkdsk_scan
   name: Kiểm tra ổ đĩa hệ thống
   category: Hệ thống
+  keywords: ['chkdsk', 'ổ đĩa', 'ổ cứng', 'bad sector', 'kiểm tra ổ']
   risk: safe
   description: >
     Chạy chkdsk /scan trên ổ hệ thống khi Windows đang chạy, không cần khởi động lại, không khoá ổ.
@@ -36,6 +38,7 @@
 - id: sys.chkdsk_schedule
   name: Hẹn sửa ổ đĩa khi khởi động lại
   category: Hệ thống
+  keywords: ['chkdsk', 'ổ đĩa', 'sửa ổ', 'ntfs', 'bad sector']
   risk: caution
   reboot: true
   description: >
@@ -50,6 +53,7 @@
 - id: sys.restart_explorer
   name: Khởi động lại Explorer
   category: Hệ thống
+  keywords: ['explorer', 'taskbar', 'thanh tác vụ', 'màn hình treo', 'desktop']
   risk: safe
   admin: false
   description: >
@@ -61,6 +65,7 @@
 - id: sys.rebuild_icon_cache
   name: Xây lại cache icon và thumbnail
   category: Hệ thống
+  keywords: ['icon', 'biểu tượng', 'thumbnail', 'ảnh thu nhỏ', 'icon trắng']
   risk: safe
   scope: user
   admin: false
@@ -74,6 +79,7 @@
 - id: sys.fix_audio
   name: Sửa mất âm thanh
   category: Hệ thống
+  keywords: ['âm thanh', 'loa', 'mất tiếng', 'audio', 'sound', 'tai nghe']
   risk: safe
   description: >
     Khởi động lại hai dịch vụ âm thanh của Windows (Audio Endpoint Builder và Windows Audio).
@@ -85,6 +91,7 @@
 - id: sys.device_errors
   name: Liệt kê thiết bị lỗi
   category: Hệ thống
+  keywords: ['driver', 'thiết bị lỗi', 'device manager', 'dấu chấm than', 'phần cứng']
   risk: safe
   admin: false
   description: >
@@ -111,6 +118,7 @@
 - id: sys.scan_devices
   name: Quét lại phần cứng
   category: Hệ thống
+  keywords: ['driver', 'thiết bị', 'usb', 'phần cứng', 'không nhận thiết bị']
   risk: safe
   os: { min_build: 19041 }
   description: >
@@ -122,6 +130,7 @@
 - id: sys.repair_wmi
   name: Sửa WMI
   category: Hệ thống
+  keywords: ['wmi', 'winmgmt', 'thông tin máy lỗi']
   risk: caution
   description: >
     Kiểm tra kho WMI và tự dựng lại nếu hỏng (winmgmt /salvagerepository). Dùng khi trang Tổng quan, phần mềm quản
@@ -136,6 +145,7 @@
 - id: sys.repair_msi
   name: Sửa Windows Installer
   category: Hệ thống
+  keywords: ['windows installer', 'msi', 'không cài được phần mềm', '1603', '1618']
   risk: caution
   description: >
     Đăng ký lại dịch vụ Windows Installer (msiexec /unregister rồi /regserver). Dùng khi cài hoặc gỡ phần mềm .msi
@@ -157,6 +167,7 @@
 - id: sys.reregister_shell
   name: Sửa Start, Search, Settings không mở
   category: Hệ thống
+  keywords: ['start', 'search', 'settings', 'menu start không mở', 'tìm kiếm không mở']
   risk: advanced
   admin: false
   description: >

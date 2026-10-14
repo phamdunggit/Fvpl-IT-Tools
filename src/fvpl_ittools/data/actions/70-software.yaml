@@ -3,6 +3,7 @@
 - id: sw.repair_winget
   name: Sửa / cài lại winget
   category: Phần mềm
+  keywords: ['winget', 'cài phần mềm lỗi', 'app installer']
   risk: safe
   description: >
     Dùng khi trang Phần mềm báo "Máy chưa có winget" hoặc lệnh winget không chạy. Đăng ký lại App Installer cho

@@ -4,6 +4,7 @@
 - id: prn.list
   name: Liệt kê máy in và lệnh in đang chờ
   category: Máy in
+  keywords: ['máy in', 'printer', 'lệnh in', 'hàng đợi', 'queue']
   page: printers
   risk: safe
   admin: false
@@ -28,6 +29,7 @@
 - id: prn.clear_queue
   name: Xoá lệnh in bị kẹt
   category: Máy in
+  keywords: ['máy in', 'printer', 'kẹt lệnh in', 'in không được', 'spooler', 'hàng đợi']
   page: printers
   risk: safe
   description: >
@@ -60,6 +62,7 @@
 - id: prn.restart_spooler
   name: Khởi động lại Print Spooler
   category: Máy in
+  keywords: ['máy in', 'printer', 'spooler', 'print spooler', 'dịch vụ in', 'in không được']
   page: printers
   risk: safe
   description: >
@@ -76,6 +79,7 @@
 - id: prn.share_check
   name: Kiểm tra share máy in (Win11 ↔ Win10)
   category: Share máy in Win11 ↔ Win10
+  keywords: ['máy in', 'máy in share', 'chia sẻ máy in', 'win11', 'win10', 'rpc', '0x0000011b', '0x00000709', '0x0000007c', '0x00000bcb']
   page: printers
   risk: safe
   admin: false
@@ -192,6 +196,7 @@
 - id: prn.share_host_fix
   name: "Máy chia sẻ máy in: cho máy khác kết nối vào"
   category: Share máy in Win11 ↔ Win10
+  keywords: ['máy in', 'máy in share', 'chia sẻ máy in', 'firewall', 'file and printer sharing', 'named pipes']
   page: printers
   risk: caution
   description: >
@@ -240,6 +245,7 @@
 - id: prn.share_client_fix
   name: "Máy kết nối máy in share: dùng Named Pipes (lỗi 0x00000709, 0x0000007c)"
   category: Share máy in Win11 ↔ Win10
+  keywords: ['máy in', 'máy in share', '0x00000709', '0x0000007c', 'named pipes', 'rpc', 'win11']
   page: printers
   risk: caution
   os: { min_build: 22621 }
@@ -266,6 +272,7 @@
 - id: prn.share_host_privacy_off
   name: "Máy chia sẻ máy in: bỏ yêu cầu mã hoá RPC (lỗi 0x0000011b)"
   category: Share máy in Win11 ↔ Win10
+  keywords: ['máy in', 'máy in share', '0x0000011b', 'rpc', 'mã hoá', 'RpcAuthnLevelPrivacyEnabled']
   page: printers
   risk: advanced
   description: >

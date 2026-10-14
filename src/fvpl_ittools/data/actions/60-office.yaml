@@ -7,6 +7,7 @@
 - id: off.quick_repair
   name: Sửa Office nhanh (Quick Repair)
   category: Office
+  keywords: ['office', 'word', 'excel', 'outlook', 'sửa office', 'office lỗi', 'treo']
   risk: safe
   description: >
     Sửa Office không cần Internet, khoảng 5–10 phút. Dùng khi Word/Excel/Outlook mở lên bị treo,
@@ -36,6 +37,7 @@
 - id: off.online_repair
   name: Sửa Office trực tuyến (Online Repair)
   category: Office
+  keywords: ['office', 'word', 'excel', 'outlook', 'sửa office', 'cài lại office']
   risk: caution
   description: >
     Gỡ rồi cài lại Office từ Internet, giữ nguyên bản và license. Lâu hơn (20–60 phút, tải khoảng 3–4GB)
@@ -66,6 +68,7 @@
 - id: off.update
   name: Cập nhật Office
   category: Office
+  keywords: ['office', 'cập nhật office', 'update']
   risk: safe
   description: >
     Yêu cầu Office Click-to-Run kiểm tra và cài bản cập nhật mới theo kênh đang dùng. Office tải và cài ngầm; ứng
@@ -88,6 +91,7 @@
 - id: off.teams_cache
   name: Xoá cache Teams
   category: Office
+  keywords: ['teams', 'cache', 'teams trắng', 'không đăng nhập teams']
   risk: safe
   scope: user
   admin: false
@@ -128,6 +132,7 @@
 - id: off.remove_c2r
   name: Gỡ Microsoft 365 / Office cài sẵn (Click-to-Run)
   category: Office
+  keywords: ['microsoft 365', 'office 365', 'gỡ office', 'click-to-run', 'c2r', 'office cài sẵn']
   risk: caution
   undo: none
   description: >
@@ -180,6 +185,7 @@
 - id: off.activate_volume
   name: Kích hoạt Office bản volume (MAK) và xem trạng thái
   category: Office
+  keywords: ['kích hoạt office', 'office', 'mak', 'ospp', 'active office', 'bản quyền office']
   risk: safe
   description: >
     Dùng sau khi cài Office 2010 / 2013 / 2016 bản volume ở trang Phần mềm (key MAK điền sẵn trong file XML của kho

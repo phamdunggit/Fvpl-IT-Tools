@@ -9,7 +9,7 @@ import threading
 from pathlib import Path
 
 from PySide6.QtCore import QObject, Qt, Signal
-from PySide6.QtWidgets import QHBoxLayout, QLabel, QLayout, QWidget
+from PySide6.QtWidgets import QHBoxLayout, QLabel, QLayout, QSizePolicy, QWidget
 
 from ..core import shell
 
@@ -49,6 +49,7 @@ def badge(text: str, kind: str) -> QLabel:
     """Nhãn bo tròn; kind: safe / caution / advanced / neutral / warn (màu khai báo trong theme)."""
     label = QLabel(text)
     label.setProperty("badge", kind)
+    label.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)  # không bị ép đè lên nhãn bên cạnh
     return label
 
 

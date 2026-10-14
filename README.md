@@ -10,6 +10,7 @@ Chức năng chính:
 - **Cài phần mềm**: Office 2010 / 2013 / 2016 bản volume từ ISO (key MAK, kích hoạt, gỡ Microsoft 365 cài sẵn), Symantec Endpoint Protection (managed qua SEPM), UniKey, ứng dụng winget; theo profile phòng ban.
 - **Sửa lỗi**: mạng, domain, máy in (share Win11 ↔ Win10), Windows Update, hệ thống, Office, bảo mật; gói sửa nhanh.
 - **Tối ưu & dọn dẹp**, **kiểm kê** ra USB/SSD (`KiemKe.xlsx`), **LAPS & BitLocker** (tra mật khẩu, khoá khôi phục).
+- **Giao diện**: Trang chủ theo việc cần làm, tình trạng máy kèm nút sửa, tìm mọi chức năng bằng Ctrl+K, chế độ Cơ bản (cho người hỗ trợ) / Chuyên gia (cho IT), thanh tiến độ khi cài / sửa.
 - **Tiện ích**: Event log có gợi ý tiếng Việt, sao lưu / cài lại driver, sửa HOSTS, tìm chương trình khoá file, mật khẩu Wi-Fi.
 
 | Tài liệu | Nội dung |

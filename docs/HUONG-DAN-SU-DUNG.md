@@ -27,7 +27,7 @@ Chép ra ổ sau khi build (trên máy có mã nguồn):
 ```
 
 Tool tự chọn **kho bộ cài**: có thư mục `SOFT` cạnh file exe thì dùng nó, không thì dùng share `share_root` trong
-`site.yaml`. Trang Phần mềm luôn ghi đang dùng kho nào.
+`site.yaml`. Trang Cài phần mềm luôn ghi đang dùng kho nào.
 
 ### 1.2 `site.yaml`
 
@@ -63,11 +63,11 @@ SOFT\
 gửi ra ngoài.
 
 **Tool tìm kho ở đâu:** thư mục `SOFT` nằm cạnh file exe (bản SSD) → kho đã chọn bằng nút **Chọn kho…** → `share_root`
-trong site.yaml. Đầu trang Phần mềm luôn có một dòng cho biết đang dùng kho nào, có đủ bộ cài không. Chạy bản zip
+trong site.yaml. Đầu trang Cài phần mềm luôn có một dòng cho biết đang dùng kho nào, có đủ bộ cài không. Chạy bản zip
 không kèm `SOFT` thì dòng đó báo **Chưa có kho bộ cài**: bấm **Chọn kho…**, chọn thư mục `SOFT` (trên SSD, USB hoặc
 thư mục chung trên mạng). Tool nhớ kho đã chọn cho lần sau trên máy đó.
 
-Trong `config\apps.yaml`, các bản Office có dòng `choice: office` để trang Phần mềm gom chúng thành thẻ chọn một bản
+Trong `config\apps.yaml`, các bản Office có dòng `choice: office` để trang Cài phần mềm gom chúng thành thẻ chọn một bản
 (xem [SOFTWARE.md](SOFTWARE.md)).
 
 **SyLink.xml cho Symantec:** gói "All Clients" tải từ Broadcom là bản *unmanaged* (không báo về SEPM). Muốn client tự
@@ -79,9 +79,22 @@ vào SEPM của công ty: trong SEPM console → **Clients** → chuột phải 
 
 ## 2. Mở tool
 
-Chạy `FVPL-ITTools.exe`, bấm **Yes** ở UAC. Thanh trên cùng cho biết tên máy, domain, bản Windows, có quyền admin không,
-và cảnh báo nếu tool chạy bằng tài khoản khác người đang đăng nhập (thiết lập theo người dùng vẫn áp đúng người đang
-đăng nhập). Khung **Nhật ký chạy** dưới cùng hiện từng lệnh và kết quả; nút **Mở thư mục log** để gửi log khi cần.
+Chạy `FVPL-ITTools.exe`, bấm **Yes** ở UAC.
+
+- **Trang chủ** mở đầu tiên: các ô theo việc cần làm (Cài máy mới, Cài phần mềm, Không vào được mạng, Không in được,
+  Máy chậm / đầy ổ, Lỗi Office, Windows Update lỗi, Kiểm tra máy) và khung **Tình trạng máy này** (domain, ổ C còn
+  trống, Office đã kích hoạt chưa, bao lâu chưa cập nhật Windows…). Dòng nào có vấn đề thì có nút sửa ngay bên cạnh.
+  Máy đang cài dở bằng wizard thì có dòng **Đang cài dở máy … · Làm tiếp**.
+- **Ô tìm** trên cùng (hoặc phím **Ctrl+K**): gõ việc cần làm, gõ không dấu cũng được, gõ được cả mã lỗi. Ví dụ
+  "may in khong in duoc", "mạng chậm", "cài zalo", "0x0000011b", "mật khẩu wifi". Enter hoặc bấm vào một dòng: tool mở
+  đúng trang / tab và chọn sẵn mục đó, **không tự chạy** gì.
+- **Cơ bản / Chuyên gia** (góc trên bên phải): chế độ **Cơ bản** ẩn các mục Nâng cao và các tab chuyên sâu (Event log,
+  LAPS & BitLocker), gập khung log. **Chuyên gia** hiện đủ mọi thứ và mở sẵn khung log. Tool nhớ chế độ đã chọn.
+- Thanh trên cùng cho biết tên máy, domain, bản Windows, có quyền admin không, và cảnh báo nếu tool chạy bằng tài khoản
+  khác người đang đăng nhập (thiết lập theo người dùng vẫn áp đúng người đang đăng nhập).
+- **Thanh dưới cùng** cho biết đang chạy gì ("Mục 3/8: Cài Zalo · 45%") hoặc kết quả lượt vừa chạy. Bấm **Chi tiết kỹ
+  thuật (log)** để mở / đóng khung log (từng lệnh và kết quả; nút **Mở thư mục log** để gửi log khi cần).
+- Góc dưới sidebar: kho bộ cài đang dùng, **Đổi kho…** để chọn kho khác.
 
 ---
 
@@ -95,7 +108,7 @@ Trang **Cài máy mới**, làm lần lượt từ trên xuống. Danh sách bư
 | 1. Thông tin máy | Chọn **Mẫu** nếu có (ví dụ "Kế toán – Laptop"), hoặc chọn phòng ban, bấm **Gợi ý tên** (hỏi AD lấy số kế tiếp), ghi người dùng, chọn profile và **phần mềm thêm** (bản Office). **Lưu thành mẫu…** để lần sau chọn lại |
 | 2. Đổi tên + join | Nhập tài khoản join. Tool chép mình vào máy, đổi tên và join OU trong một lần khởi động lại, hẹn tự mở lại |
 | 3. Sau khởi động lại | Đăng nhập bằng tài khoản domain có quyền admin: tool tự mở, bấm **Chạy các bước sau khởi động lại** |
-| 4. Cài phần mềm | Sang trang Phần mềm: bản Office của mẫu đã chọn sẵn, các ứng dụng đã tick sẵn theo profile + phần mềm thêm, bấm **Cài N mục** (xem mục 4–6) |
+| 4. Cài phần mềm | Sang trang Cài phần mềm: bản Office của mẫu đã chọn sẵn, các ứng dụng đã tick sẵn theo profile + phần mềm thêm, bấm **Cài N mục** (xem mục 4–6) |
 | 5. Cấu hình chuẩn | Múi giờ, định dạng vi-VN, tắt Fast Startup, .NET 3.5, restore point… |
 | 6. Driver + Windows Update | Dell Command \| Update / Lenovo System Update rồi Windows Update |
 | 7. Báo cáo | HTML trên máy và trong `Reports\` cạnh tool; đồng thời lưu kiểm kê. Bấm **Kết thúc wizard** khi xong |
@@ -107,15 +120,15 @@ lỗi và vì sao). Chạy xong bấm **Xong** để quay lại bước.
 
 ## 4. Cài Office 2010 / 2013 / 2016 (bản volume)
 
-Mỗi người dùng một bản Office, nên bản Office chọn ở thẻ **Microsoft Office** đầu trang **Phần mềm** (hoặc ở **phần
-mềm thêm** / mẫu của wizard, trang Phần mềm sẽ chọn sẵn). Thẻ chỉ cho chọn **một** bản: Không cài / Office 2016 /
+Mỗi người dùng một bản Office, nên bản Office chọn ở thẻ **Microsoft Office** đầu trang **Cài phần mềm** (hoặc ở **phần
+mềm thêm** / mẫu của wizard, trang Cài phần mềm sẽ chọn sẵn). Thẻ chỉ cho chọn **một** bản: Không cài / Office 2016 /
 2013 / 2010 / Microsoft 365. Dòng nhỏ dưới tên mỗi bản cho biết cài được không: "Cài từ kho bộ cài", "Đã cài",
 "Cần kho bộ cài" (bấm **Chọn kho…** ở dòng trên), "Không thấy bộ cài trong kho"…
 
 1. **Máy có Microsoft 365 / Office cài sẵn?** Máy Dell, Lenovo mới thường có. Chọn bản Office cần cài: dưới thẻ hiện
    cảnh báo "Máy đang có Microsoft 365…" và ô **Gỡ trước khi cài** đã tick. Để nguyên tick: lượt cài sẽ gỡ bản cài sẵn
    trước (5–15 phút, đóng Word / Excel / Outlook trước), cài các phần mềm khác, cài Office sau cùng. Nếu Office báo lỗi
-   vì máy chưa khởi động lại sau khi gỡ: khởi động lại, mở lại trang Phần mềm, bấm **Thử lại mục lỗi**.
+   vì máy chưa khởi động lại sau khi gỡ: khởi động lại, mở lại trang Cài phần mềm, bấm **Thử lại mục lỗi**.
    (Vẫn gỡ riêng được ở **Sửa lỗi → Office → Gỡ Microsoft 365 / Office cài sẵn (Click-to-Run)**.)
 2. **Cài:** bấm **Cài N mục** ở góc dưới. Trang chuyển sang **thanh tiến độ**: "Mục 3/7: Cài Office 2016 · Đang cài
    đặt", mỗi mục có ✔ / ✖ / đang chạy; ứng dụng tải từ Internet có % tải về. Office cài im lặng từ ISO (tool tự mount,
@@ -126,7 +139,7 @@ mềm thêm** / mẫu của wizard, trang Phần mềm sẽ chọn sẵn). Thẻ
 3. **Kích hoạt:** nếu lúc cài máy chưa có Internet hoặc chưa điền key, chạy **Sửa lỗi → Office → Kích hoạt Office bản
    volume (MAK) và xem trạng thái**. Dòng ✔ "đã kích hoạt" là xong; ✖ thì xem lời báo (thiếu Internet, key MAK hết
    lượt…).
-4. **Kiểm tra:** trang **Tổng quan**, dòng **Kích hoạt Office**. Mở thử Word, Excel bằng tài khoản người dùng.
+4. **Kiểm tra:** trang **Thông tin máy**, dòng **Kích hoạt Office**. Mở thử Word, Excel bằng tài khoản người dùng.
 
 Lưu ý:
 
@@ -142,15 +155,15 @@ Lưu ý:
 
 1. Đã chép `SyLink.xml` của SEPM vào thư mục gói client (mục 1.3). Không có file này máy vẫn cài được nhưng là bản
    *unmanaged*, không báo về SEPM.
-2. Trang **Phần mềm**, nhóm **Diệt virus**, tick **Symantec Endpoint Protection 14.3 RU9**, bấm **Cài N mục**.
+2. Trang **Cài phần mềm**, nhóm **Diệt virus**, tick **Symantec Endpoint Protection 14.3 RU9**, bấm **Cài N mục**.
    Tool chạy `Sep64.msi` im lặng (`SYMREBOOT=ReallySuppress`: không tự khởi động lại), log MSI nằm trong thư mục logs.
 3. **Khởi động lại máy** (tool hỏi nếu bộ cài báo cần khởi động lại; không hỏi thì vẫn nên khởi động lại một lần).
 4. **Kiểm tra:**
    - Biểu tượng Symantec dưới khay hệ thống không còn báo lỗi. Mở client → **Help → Troubleshooting → Management**:
      thấy tên máy chủ SEPM và nhóm (managed). Hoặc trên SEPM console thấy máy trong nhóm.
-   - Trang **Tổng quan**, phần Bảo mật: dòng **Diệt virus: Symantec Endpoint Protection: đang bật, đã cập nhật**;
+   - Trang **Thông tin máy**, phần Bảo mật: dòng **Diệt virus: Symantec Endpoint Protection: đang bật, đã cập nhật**;
      Microsoft Defender tự chuyển sang không chạy vì máy có phần mềm diệt virus khác.
-5. Máy đã có Symantec thì trang Phần mềm hiện "Đã cài" kèm phiên bản. Cài lại / nâng cấp: gỡ bản cũ trước (Settings →
+5. Máy đã có Symantec thì trang Cài phần mềm hiện "Đã cài" kèm phiên bản. Cài lại / nâng cấp: gỡ bản cũ trước (Settings →
    Apps), hoặc đẩy bản mới từ SEPM.
 
 ---
@@ -172,11 +185,12 @@ Lưu ý:
 
 | Trang | Dùng khi |
 |---|---|
-| **Tổng quan** | Xem nhanh máy: Windows, kích hoạt, phần cứng, serial, mạng, bảo mật. **Copy thông tin** dán vào ticket / Zalo; **Xuất HTML**; **Lưu kiểm kê** (ghi vào `Inventory\` cạnh tool và cập nhật `KiemKe.xlsx`) |
+| **Trang chủ** | Bắt đầu từ đây: ô theo việc cần làm, tình trạng máy kèm nút sửa (mục 2) |
+| **Thông tin máy** | Xem nhanh máy: Windows, kích hoạt, phần cứng, serial, mạng, bảo mật. **Copy thông tin** dán vào ticket / Zalo; **Xuất HTML**; **Lưu kiểm kê** (ghi vào `Inventory\` cạnh tool và cập nhật `KiemKe.xlsx`) |
 | **Sửa lỗi** | Mạng, domain, Windows Update, hệ thống, Office, bảo mật. Không chắc lỗi ở đâu thì bấm một **gói sửa nhanh** trên cùng. Mỗi mục ghi rõ lệnh sẽ chạy, mức rủi ro, hoàn tác được không |
 | **Máy in** | Danh sách máy in, gỡ máy in / driver lỗi, in thử; thêm máy in qua IP (driver từ file .inf) hoặc share; tab Sửa lỗi có các mục **share máy in Win11 ↔ Win10** (bắt đầu bằng mục Kiểm tra share máy in) |
 | **Tối ưu & dọn dẹp** | Dọn rác (quét trước rồi mới xoá), tìm file lớn, tắt chương trình khởi động cùng Windows, tắt quảng cáo / theo dõi |
-| **Phần mềm** | Mục 4–6 ở trên |
+| **Cài phần mềm** | Mục 4–6 ở trên |
 | **Cấu hình** | Gói Cấu hình chuẩn máy mới và các tuỳ chọn hay dùng (hiện đuôi file, menu chuột phải kiểu cũ…) |
 | **Tiện ích** | Mở nhanh công cụ quản trị (có Chẩn đoán RAM); ping / tracert / kiểm tra cổng; tab **Event log**: lỗi gần đây của Windows gộp theo loại, kèm gợi ý cách xử lý; tab **Công cụ khác**: sao lưu / cài lại driver (trước khi cài lại Windows), sửa file HOSTS, tìm chương trình đang khoá file không xoá được, xem mật khẩu Wi-Fi đã lưu; tab **LAPS & BitLocker**: tra mật khẩu admin cục bộ và khoá khôi phục BitLocker của một máy (xem [BITLOCKER-LAPS-GPO.md](BITLOCKER-LAPS-GPO.md)) |
 | **Nhật ký** | Các thay đổi registry tool đã làm, **hoàn tác** theo từng lần chạy |

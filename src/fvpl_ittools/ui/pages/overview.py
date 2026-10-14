@@ -102,6 +102,7 @@ def render_html(sections: list[inventory.Section], tool_rows) -> str:
 
 class OverviewPage(QWidget):
     alerts_changed = Signal(list)
+    data_changed = Signal()  # một phần thông tin vừa đọc xong (Trang chủ cập nhật khung Tình trạng máy)
 
     def __init__(self, app: AppContext, controller: RunController):
         super().__init__()
@@ -119,7 +120,7 @@ class OverviewPage(QWidget):
         root.setContentsMargins(24, 20, 24, 12)
         root.setSpacing(10)
         page_header(
-            root, "Tổng quan",
+            root, "Thông tin máy",
             "Thông tin máy để kiểm tra nhanh và dán vào ticket. Phần chi tiết đọc nền trong vài giây.",
         )
 
@@ -186,10 +187,14 @@ class OverviewPage(QWidget):
     # ------------------------------------------------------------ nạp
 
     def showEvent(self, event) -> None:
+        self.ensure_loaded()
+        super().showEvent(event)
+
+    def ensure_loaded(self) -> None:
+        """Đọc thông tin máy lần đầu (khi trang này hoặc Trang chủ hiện ra)."""
         if not self._started:
             self._started = True
             self.refresh()
-        super().showEvent(event)
 
     def refresh(self) -> None:
         self.failed = {}
@@ -222,6 +227,7 @@ class OverviewPage(QWidget):
                 self.controller.say(Level.WARN, f"Tổng quan: không đọc được phần {name}: {message}")
         self._render()
         self.alerts_changed.emit(inventory.alerts(self.data, self.basics()))
+        self.data_changed.emit()
 
     def _render(self) -> None:
         # Giữ vị trí cuộn khi một phần đọc xong và trang được vẽ lại.

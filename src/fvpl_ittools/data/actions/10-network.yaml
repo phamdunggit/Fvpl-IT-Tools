@@ -3,6 +3,7 @@
 - id: net.diagnose
   name: Chẩn đoán mạng
   category: Mạng & Internet
+  keywords: ['mất mạng', 'không vào được mạng', 'internet', 'mạng chậm', 'ping', 'dns', 'ip', 'wifi', 'lan', 'ổ chung']
   risk: safe
   admin: false
   description: >
@@ -63,6 +64,7 @@
 - id: net.flush_dns
   name: Xoá cache DNS
   category: Mạng & Internet
+  keywords: ['dns', 'flushdns', 'không vào được trang web', 'web lỗi']
   risk: safe
   description: >
     Xoá bộ nhớ đệm phân giải tên miền. Dùng khi vào web hoặc ổ mạng bị trỏ sai
@@ -73,6 +75,7 @@
 - id: net.renew_ip
   name: Xin lại IP
   category: Mạng & Internet
+  keywords: ['ip', 'dhcp', 'ipconfig', 'renew', '169.254', 'mất mạng']
   risk: safe
   description: >
     Trả IP rồi xin IP mới từ DHCP cho các card mạng thật đang kết nối (bỏ qua card ảo, VPN và
@@ -99,6 +102,7 @@
 - id: net.reset_proxy
   name: Xoá proxy của người dùng
   category: Mạng & Internet
+  keywords: ['proxy', 'không vào được web', 'trình duyệt', 'internet options']
   risk: safe
   scope: user
   admin: false
@@ -121,6 +125,7 @@
 - id: net.reset_winhttp_proxy
   name: Xoá proxy hệ thống (WinHTTP)
   category: Mạng & Internet
+  keywords: ['proxy', 'winhttp', 'netsh', 'windows update không tải được']
   risk: safe
   description: >
     Xoá proxy mà các dịch vụ Windows dùng (Windows Update, Defender, Office cập nhật...), khác với proxy
@@ -133,6 +138,7 @@
 - id: net.restart_adapters
   name: Khởi động lại card mạng
   category: Mạng & Internet
+  keywords: ['card mạng', 'wifi', 'lan', 'mất mạng', 'adapter']
   risk: safe
   description: >
     Tắt rồi bật lại các card mạng thật (LAN, Wi-Fi), bỏ qua card đang bị tắt có chủ ý. Mạng mất
@@ -167,6 +173,7 @@
 - id: net.reset_winsock
   name: Reset Winsock và TCP/IP
   category: Mạng & Internet
+  keywords: ['winsock', 'tcpip', 'netsh', 'mất mạng', 'mạng lỗi']
   risk: caution
   reboot: true
   description: >
@@ -185,6 +192,7 @@
 - id: net.restore_hosts
   name: Khôi phục file hosts mặc định
   category: Mạng & Internet
+  keywords: ['hosts', 'chặn web', 'không vào được trang']
   risk: caution
   description: >
     Sao lưu file hosts hiện tại (hosts.fvpl-<thời gian>.bak cùng thư mục) rồi đưa về nội dung mặc định của Windows.
@@ -228,6 +236,7 @@
 - id: net.reset_firewall
   name: Reset Windows Firewall
   category: Mạng & Internet
+  keywords: ['firewall', 'tường lửa', 'chặn kết nối']
   risk: caution
   description: >
     Sao lưu cấu hình firewall ra file .wfw trong thư mục reports của tool, rồi đưa firewall về mặc định (bỏ mọi luật
