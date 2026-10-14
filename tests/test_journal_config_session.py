@@ -65,3 +65,26 @@ def test_process_and_session_user():
     assert logged_on is not None
     assert logged_on.sid == me.sid
     assert session.hive_loaded(me.sid)
+
+
+def test_software_source_uses_chosen_store_when_no_soft_next_to_tool(tmp_path):
+    chosen = tmp_path / "Kho"
+    chosen.mkdir()
+    site = config.SiteConfig(share_root=r"\\files.corp.example\IT$")
+    source = config.software_source(site, app_root=tmp_path / "khac", chosen=str(chosen))
+    assert (source.root, source.kind) == (str(chosen), "chosen") and "kho đã chọn" in source.label
+    gone = config.software_source(site, app_root=tmp_path / "khac", chosen=str(tmp_path / "mat"))
+    assert gone.kind == "share"  # kho đã chọn không còn thì dùng share_root
+    (tmp_path / "ssd" / "SOFT").mkdir(parents=True)
+    assert config.software_source(site, app_root=tmp_path / "ssd", chosen=str(chosen)).kind == "local"
+
+
+def test_prefs_round_trip(tmp_path):
+    from fvpl_ittools.core import prefs
+    assert prefs.get(prefs.SOFTWARE_ROOT) is None
+    prefs.put(prefs.SOFTWARE_ROOT, r"D:\SOFT")
+    assert prefs.get(prefs.SOFTWARE_ROOT) == r"D:\SOFT"
+    prefs.put(prefs.SOFTWARE_ROOT, None)
+    assert prefs.load() == {}
+    prefs.prefs_path().write_text("{hỏng", encoding="utf-8")
+    assert prefs.load() == {}

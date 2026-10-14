@@ -24,6 +24,7 @@ def state_dir(tmp_path, monkeypatch):
     folder = tmp_path / "state"
     folder.mkdir()
     monkeypatch.setattr(paths, "_state_dir", folder)
+    monkeypatch.setenv("FVPL_ITTOOLS_PREFS", str(tmp_path / "prefs.json"))  # không đụng %APPDATA% thật
     return folder
 
 

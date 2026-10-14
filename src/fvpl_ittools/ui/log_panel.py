@@ -1,4 +1,4 @@
-"""Khung log ở dưới cùng cửa sổ: hiện output trực tiếp, có nút Huỷ."""
+"""Khung log ở dưới cùng cửa sổ: hiện output trực tiếp, tiến độ của lượt đang chạy (mục n/N, %), có nút Huỷ."""
 
 from __future__ import annotations
 
@@ -6,9 +6,9 @@ import html
 
 from PySide6.QtCore import Signal
 from PySide6.QtGui import QTextCursor
-from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QPlainTextEdit, QPushButton, QVBoxLayout
+from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QPlainTextEdit, QProgressBar, QPushButton, QVBoxLayout
 
-from ..core import paths
+from ..core import paths, progress
 from ..core.executor import Level, LogEvent
 from .theme import LOG_COLORS, OUTPUT_MARK_COLORS
 from .widgets import open_path
@@ -28,7 +28,19 @@ class LogPanel(QFrame):
 
         bar = QHBoxLayout()
         bar.addWidget(QLabel("Nhật ký chạy"))
+        bar.addSpacing(16)
+        # Tiến độ của mọi lượt chạy, dù đang ở trang nào.
+        self.progress_label = QLabel()
+        self.progress_label.setObjectName("LogProgress")
+        self.progress_bar = QProgressBar()
+        self.progress_bar.setRange(0, 1000)
+        self.progress_bar.setTextVisible(False)
+        self.progress_bar.setFixedSize(160, 6)
+        bar.addWidget(self.progress_label)
+        bar.addWidget(self.progress_bar)
         bar.addStretch(1)
+        self.tracker: progress.Tracker | None = None
+        self._show_progress(False)
         self.cancel_button = QPushButton("Huỷ")
         self.cancel_button.setEnabled(False)
         self.cancel_button.clicked.connect(self.cancel_requested)
@@ -74,6 +86,22 @@ class LogPanel(QFrame):
 
     def set_busy(self, busy: bool) -> None:
         self.cancel_button.setEnabled(busy)
+        if not busy:
+            self.tracker = None
+            self._show_progress(False)
+
+    def on_progress(self, event: object) -> None:
+        if isinstance(event, progress.BatchStarted):
+            self.tracker = progress.Tracker(event)
+        elif not (isinstance(event, progress.ItemUpdate) and self.tracker is not None and self.tracker.apply(event)):
+            return
+        self.progress_label.setText(self.tracker.headline())
+        self.progress_bar.setValue(int(self.tracker.fraction * 1000))
+        self._show_progress(True)
+
+    def _show_progress(self, visible: bool) -> None:
+        self.progress_label.setVisible(visible)
+        self.progress_bar.setVisible(visible)
 
     def plain_text(self) -> str:
         return self.view.toPlainText()

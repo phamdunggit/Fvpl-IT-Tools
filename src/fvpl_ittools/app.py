@@ -7,12 +7,12 @@ import logging
 import os
 import subprocess
 import sys
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 
 from .actions import loader
 from .actions.model import Action, Pack
-from .core import config, paths, session, sysinfo, winapi
+from .core import config, paths, prefs, session, sysinfo, winapi
 from .core.executor import Env
 from .core.journal import UndoJournal
 from .newpc import state as wizard_state
@@ -37,6 +37,11 @@ class AppContext:
         """True khi IT mở tool bằng tài khoản khác người đang đăng nhập."""
         return self.env.user_hive_sid is not None
 
+    def use_software_root(self, root: str) -> None:
+        """Đổi kho bộ cài ngay trong phiên (nút "Chọn kho…"); $ShareRoot của các mục chạy sau cũng đổi theo."""
+        self.software = config.SoftwareSource(root, "chosen")
+        self.env = replace(self.env, share_root=root)
+
 
 def build_context(log_file: Path | None = None) -> AppContext:
     machine = sysinfo.quick_machine_info()
@@ -48,7 +53,8 @@ def build_context(log_file: Path | None = None) -> AppContext:
     site = config.load_site_config()
     for error in site.errors:
         log.warning("%s", error)
-    software =config.software_source(site, extra_local=wizard_state.origin_soft(wizard_state.active()))
+    software = config.software_source(site, extra_local=wizard_state.origin_soft(wizard_state.active()),
+                                      chosen=str(prefs.get(prefs.SOFTWARE_ROOT) or ""))
     env = Env(
         is_admin=winapi.is_admin(),
         build=machine.build,

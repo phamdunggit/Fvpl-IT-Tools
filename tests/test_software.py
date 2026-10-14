@@ -39,7 +39,7 @@ def senv(**overrides):
 def test_bundled_catalog_loads_without_errors():
     loaded = catalog.load_catalog_file(catalog.BUNDLED_FILE)
     assert loaded.errors == []
-    assert {"chrome", "office", "unikey", "zalo"} <= {app.id for app in loaded.apps}
+    assert {"chrome", "office2016", "unikey", "zalo"} <= {app.id for app in loaded.apps}
     assert {"van-phong", "ke-toan", "it"} <= {profile.id for profile in loaded.profiles}
 
 
@@ -301,3 +301,47 @@ def test_generated_scripts_parse(env, tmp_path):
     result = shell.run_powershell(_PARSE, variables={"ScriptsFile": str(file)}, timeout=120)
     assert json.loads(result.output.strip().splitlines()[-1]) == []
     assert os.path.exists(catalog.BUNDLED_FILE)
+
+
+def test_choice_groups_and_removable_conflicts():
+    office = share_app(id="office2016", choice="office", conflicts="Microsoft 365*")
+    office13 = share_app(id="office2013", choice="office")
+    loaded = catalog.Catalog(apps=[winget_app(), office, office13])
+    assert {key: [app.id for app in apps] for key, apps in loaded.choices().items()} == {"office": ["office2016", "office2013"]}
+    assert loaded.choice_title("office") == "Microsoft Office"
+    with pytest.raises(CatalogError, match="choice"):
+        share_app(choice="Bản Office")
+    entries = [InstalledEntry("Microsoft 365 Apps for business - en-us", "16.0", click_to_run=True)]
+    assert [entry.name for entry in detect.conflicting_entries(office, entries)] == [entries[0].name]
+    clash = senv(conflicts=(("office2016", entries[0].name),), removable=frozenset({"office2016"}))
+    assert install.blocked_reason(office, clash) is not None  # chưa chọn gỡ trước thì vẫn khoá
+    assert install.blocked_reason(office, clash, remove_conflicts=True) is None
+    manual = senv(conflicts=(("office2016", "Microsoft Office Standard 2013"),))  # MSI: phải gỡ bằng tay
+    assert install.blocked_reason(office, manual, remove_conflicts=True) is not None
+
+
+def test_bundled_catalog_has_office_choice():
+    loaded = catalog.load_catalog_file(catalog.BUNDLED_FILE)
+    office = [app.id for app in loaded.choices()["office"]]
+    assert office == ["office2016", "office2013", "office2010", "office365"]
+    assert "office2016" in [app.id for app in loaded.profile_apps("van-phong")]
+    assert all("{share}" in loaded.app(app_id).installer for app_id in office[:3])
+
+
+def test_inspect_store_counts_installers(tmp_path):
+    assert catalog.inspect_store(str(tmp_path / "khong-co")) == (False, 0)
+    (tmp_path / "config").mkdir()
+    (tmp_path / "config" / "apps.yaml").write_text("apps: []\n", encoding="utf-8")
+    (tmp_path / "Office.ISO").write_bytes(b"")
+    (tmp_path / "Symantec").mkdir()
+    (tmp_path / "Symantec" / "Sep64.msi").write_bytes(b"")
+    (tmp_path / "Symantec" / "ghi-chu.txt").write_text("x", encoding="utf-8")
+    assert catalog.inspect_store(str(tmp_path)) == (True, 2)
+
+
+def test_install_scripts_report_phase():
+    app = share_app(installer=r"{share}\x.iso", args="")
+    script = install.iso_script(app, SHARE)
+    assert "Write-Output '##PROGRESS - Đang mở file ISO'" in script
+    assert script.index("##PROGRESS - Đang cài đặt") < script.index("Start-Process")
+    assert "##PROGRESS - Đang cài đặt" in install.msi_script(share_app(installer=r"{share}\a.msi"), SHARE)

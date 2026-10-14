@@ -30,8 +30,10 @@ _WINGET_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9.\-_+]*$")
 _PLACEHOLDER = re.compile(r"\{([a-z_0-9]+)\}")
 _APP_KEYS = {
     "id", "name", "group", "source", "winget_id", "type", "installer", "path", "setup", "args", "exe", "folder",
-    "autostart", "detect", "scope", "description", "timeout", "conflicts",
+    "autostart", "detect", "scope", "description", "timeout", "conflicts", "choice",
 }
+# Tên hiển thị của nhóm chọn một (khoá `choice`); nhóm không có ở đây thì lấy tên nhóm (group) của ứng dụng đầu.
+CHOICE_TITLES = {"office": "Microsoft Office"}
 _PROFILE_KEYS = {"name", "extends", "apps", "description"}
 
 
@@ -59,6 +61,7 @@ class App:
     scope: str = "machine"             # user: bộ cài chỉ cài cho tài khoản đang chạy nó
     description: str = ""
     timeout: int = 1800
+    choice: str = ""                   # các ứng dụng cùng `choice` (ví dụ office) chỉ chọn được một
 
     @property
     def source_label(self) -> str:
@@ -87,6 +90,18 @@ class Catalog:
 
     def app(self, app_id: str) -> App | None:
         return next((app for app in self.apps if app.id == app_id), None)
+
+    def choices(self) -> dict[str, list[App]]:
+        """Các nhóm chọn một theo thứ tự trong file: {choice: [ứng dụng…]}."""
+        groups: dict[str, list[App]] = {}
+        for app in self.apps:
+            if app.choice:
+                groups.setdefault(app.choice, []).append(app)
+        return groups
+
+    def choice_title(self, choice: str) -> str:
+        apps = self.choices().get(choice) or []
+        return CHOICE_TITLES.get(choice) or (apps[0].group if apps else choice)
 
     def profile_apps(self, profile_id: str) -> list[App]:
         """Các ứng dụng của profile, gồm cả profile được kế thừa (ứng dụng của profile cha đứng trước)."""
@@ -124,6 +139,35 @@ def uses_share(app: App) -> bool:
 
 def share_catalog_path(share_root: str) -> Path | None:
     return Path(share_root) / SHARE_RELATIVE if share_root else None
+
+
+INSTALLER_SUFFIXES = (".iso", ".msi", ".exe")
+
+
+def inspect_store(folder: str, limit: int = 500) -> tuple[bool, int]:
+    """(có config\\apps.yaml không, số file bộ cài .iso / .msi / .exe ở thư mục gốc và thư mục con cấp 1)."""
+    root = Path(folder)
+    try:
+        has_catalog = (root / SHARE_RELATIVE).is_file()
+    except OSError:
+        has_catalog = False
+    count = 0
+    folders = [root]
+    try:
+        for entry in os.scandir(root):
+            if entry.is_dir(follow_symlinks=False):
+                folders.append(Path(entry.path))
+    except OSError:
+        return has_catalog, 0
+    for current in folders:
+        try:
+            count += sum(1 for entry in os.scandir(current)
+                         if entry.is_file() and entry.name.lower().endswith(INSTALLER_SUFFIXES))
+        except OSError:
+            continue
+        if count >= limit:
+            break
+    return has_catalog, count
 
 
 def load_catalog(share_root: str = "") -> Catalog:
@@ -239,9 +283,14 @@ def parse_app(raw: Any) -> App:
         raise CatalogError("'conflicts' là mẫu tên trong Programs and Features, ví dụ 'Microsoft 365*|Microsoft Office Professional*'")
     conflict_names = tuple(part.strip() for part in (conflicts or "").split("|") if part.strip())
 
+    choice = _text(raw, "choice")
+    if choice and not _ID.match(choice):
+        raise CatalogError("'choice' là tên nhóm chọn một, chữ thường không dấu (ví dụ office)")
+
     args = _text(raw, "args")
     _check_placeholders(args, "args")
     values: dict[str, Any] = {
+        "choice": choice,
         "conflict_names": conflict_names,
         "id": app_id,
         "name": _text(raw, "name", required=True),

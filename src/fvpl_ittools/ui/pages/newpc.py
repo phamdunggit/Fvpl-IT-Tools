@@ -44,6 +44,7 @@ from ...core.executor import BatchResult, Level, RunContext, Status
 from ...newpc import naming, precheck, report, state as wizard_state, steps
 from ...newpc import templates as templates_module
 from ...software import catalog as catalog_module
+from ..components.progress_panel import ProgressPanel
 from ..controller import RunController
 from ..credential_dialog import ask_credential
 from ..widgets import Worker, open_as_user, open_path, page_header
@@ -339,11 +340,18 @@ class NewPcPage(QWidget):
         self.stack.addWidget(self._framed(self._config_panel()))
         self.stack.addWidget(self._framed(self._update_panel()))
         self.stack.addWidget(self._framed(self._report_panel()))
+        # Bên phải: nội dung bước, hoặc khung tiến độ khi bước đang chạy nhiều mục (bước 3, 5, 6).
+        self.right = QStackedWidget()
+        self.right.addWidget(self.stack)
+        self.progress = ProgressPanel(controller)
+        self.progress.dismissed.connect(lambda: self.right.setCurrentWidget(self.stack))
+        self.right.addWidget(self.progress)
         body.addWidget(self.step_list)
-        body.addWidget(self.stack, 1)
+        body.addWidget(self.right, 1)
         root.addLayout(body, 1)
 
         self.step_list.currentRowChanged.connect(self._step_changed)
+        self.step_list.itemClicked.connect(lambda _item: self.right.setCurrentWidget(self.stack))
         self.reset_button.clicked.connect(self.reset)
         controller.busy_changed.connect(lambda _busy: self._update_buttons())
         controller.finished.connect(self._run_finished)
@@ -893,6 +901,7 @@ class NewPcPage(QWidget):
             QMessageBox.warning(self, "Sai cấu hình", str(exc))
             return
         self._pending = "after"
+        self._show_progress("Sau khởi động lại")
         self.controller.run(actions, stop_on_error=False)
 
     # ------------------------------------------------------------ bước 4, 5, 6
@@ -918,6 +927,7 @@ class NewPcPage(QWidget):
         if pack is None:
             return
         self._pending = "config"
+        self._show_progress("Cấu hình chuẩn")
         self.controller.run([self._actions[action_id] for action_id in pack.actions], stop_on_error=False)
 
     def update_actions(self) -> list:
@@ -931,6 +941,7 @@ class NewPcPage(QWidget):
         actions = self.update_actions()
         if actions:
             self._pending = "update"
+            self._show_progress("Driver và Windows Update")
             self.controller.run(actions, stop_on_error=False)
 
     def _run_finished(self, result: object) -> None:
@@ -1044,7 +1055,14 @@ class NewPcPage(QWidget):
 
     # ------------------------------------------------------------ chung
 
+    def _show_progress(self, title: str) -> None:
+        if not self.controller.busy:  # đang có việc khác chạy thì controller từ chối, không mở khung tiến độ
+            self.progress.watch(title)
+            self.right.setCurrentWidget(self.progress)
+
     def _step_changed(self, row: int) -> None:
+        # Bước xong tự chuyển sang bước sau nhưng khung tiến độ vẫn hiện kết quả tới khi IT bấm Xong
+        # hoặc bấm vào một bước trong danh sách.
         if row >= 0:
             self.stack.setCurrentIndex(row)
 

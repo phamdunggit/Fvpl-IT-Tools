@@ -50,25 +50,33 @@ class SoftwareSource:
     Bản USB: không có SOFT, lấy share_root trong site.yaml (cài qua mạng).
     """
     root: str = ""
-    kind: str = ""  # local | share | "" (chưa có)
+    kind: str = ""  # local | chosen | share | "" (chưa có)
 
     @property
     def label(self) -> str:
         if self.kind == "local":
             return f"kho trên ổ mang theo {self.root}"
+        if self.kind == "chosen":
+            return f"kho đã chọn {self.root}"
         if self.kind == "share":
             return f"share {self.root}"
         return "chưa có (không có thư mục SOFT cạnh tool, chưa khai báo share_root trong site.yaml)"
 
 
-def software_source(site: SiteConfig, app_root: Path | None = None, extra_local: Path | None = None) -> SoftwareSource:
-    """`extra_local`: thư mục SOFT trên ổ SSD lúc bắt đầu wizard Cài máy mới, khi tool đã chạy tiếp từ bản chép
-    trong ProgramData sau khi khởi động lại."""
+def software_source(site: SiteConfig, app_root: Path | None = None, extra_local: Path | None = None,
+                    chosen: str = "") -> SoftwareSource:
+    """Thứ tự: SOFT cạnh tool → `extra_local` → `chosen` → share_root trong site.yaml.
+
+    `extra_local`: thư mục SOFT trên ổ SSD lúc bắt đầu wizard Cài máy mới, khi tool đã chạy tiếp từ bản chép
+    trong ProgramData sau khi khởi động lại. `chosen`: kho IT chọn bằng nút "Chọn kho…" (lưu trong prefs.json),
+    chỉ dùng khi còn tồn tại."""
     local = (app_root if app_root is not None else paths.app_root()) / LOCAL_REPO
     if local.is_dir():
         return SoftwareSource(str(local), "local")
     if extra_local is not None and extra_local.is_dir():
         return SoftwareSource(str(extra_local), "local")
+    if chosen and os.path.isdir(chosen):
+        return SoftwareSource(chosen, "chosen")
     if site.share_root:
         return SoftwareSource(site.share_root, "share")
     return SoftwareSource()

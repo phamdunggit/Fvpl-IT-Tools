@@ -18,6 +18,7 @@ log = logging.getLogger(__name__)
 
 class RunController(QObject):
     event = Signal(object)              # LogEvent
+    progress = Signal(object)           # progress.BatchStarted / progress.ItemUpdate
     busy_changed = Signal(bool)
     finished = Signal(object)           # BatchResult, list[bool] (hoàn tác) hoặc None khi lỗi
     journal_changed = Signal()
@@ -29,6 +30,7 @@ class RunController(QObject):
         self.app = app
         self._create_restore_point = True
         self._cancel = threading.Event()
+        self._stop_after = threading.Event()
         self._worker: threading.Thread | None = None
         self.last_results: dict[str, ActionResult] = {}
         self._done.connect(self._on_done)
@@ -84,6 +86,16 @@ class RunController(QObject):
             self._cancel.set()
             self.say(Level.WARN, "Đang huỷ…")
 
+    def stop_after_current(self) -> None:
+        """Chạy nốt mục đang chạy (không cắt ngang bộ cài), các mục sau không chạy nữa."""
+        if self.busy and not self._stop_after.is_set():
+            self._stop_after.set()
+            self.say(Level.WARN, "Sẽ dừng sau khi xong mục đang chạy.")
+
+    @property
+    def stopping(self) -> bool:
+        return self._stop_after.is_set() or self._cancel.is_set()
+
     def wait(self, timeout: float) -> None:
         worker = self._worker
         if worker is not None:
@@ -98,6 +110,8 @@ class RunController(QObject):
             emit=self.event.emit,
             cancel=self._cancel,
             create_restore_point=self._create_restore_point,
+            report=self.progress.emit,
+            stop_after=self._stop_after,
         )
 
     def _start(self, job: Callable[[], object]) -> None:
@@ -105,6 +119,7 @@ class RunController(QObject):
             self.say(Level.WARN, "Đang có việc chạy, chờ xong rồi bấm lại.")
             return
         self._cancel.clear()
+        self._stop_after.clear()
 
         def worker() -> None:
             result = None

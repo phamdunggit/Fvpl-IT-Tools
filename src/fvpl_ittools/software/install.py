@@ -15,8 +15,10 @@ import re
 from dataclasses import dataclass
 
 from ..actions.model import Action, CmdStep, PowerShellStep
-from ..core import shell
+from ..core import progress, shell
 from .catalog import App, expand
+
+_INSTALLING = progress.marker(progress.INSTALLING) + "\n"
 
 WINGET_OK = (0, 0x8A15002B, 0x8A150061, 0x8A15010D)  # cài xong / đã có sẵn, không có bản mới hơn
 WINGET_REBOOT = (3010, 1641, 0x8A150109)
@@ -57,13 +59,18 @@ class SoftwareEnv:
     share_ok: bool
     missing: frozenset[str] = frozenset()  # id ứng dụng share không thấy bộ cài
     conflicts: tuple[tuple[str, str], ...] = ()  # (id ứng dụng, tên phần mềm đang cài không cài chung được)
+    removable: frozenset[str] = frozenset()  # id ứng dụng mà mọi phần mềm xung đột là Office Click-to-Run (gỡ được)
 
 
-def blocked_reason(app: App, senv: SoftwareEnv) -> str | None:
+REMOVE_C2R = "off.remove_c2r"
+
+
+def blocked_reason(app: App, senv: SoftwareEnv, remove_conflicts: bool = False) -> str | None:
+    """Lý do không cài được, None nếu cài được. `remove_conflicts`: lượt cài sẽ gỡ Office Click-to-Run trước."""
     if not senv.is_admin:
         return "Cần mở tool bằng quyền admin"
     conflict = dict(senv.conflicts).get(app.id)
-    if conflict:
+    if conflict and not (remove_conflicts and app.id in senv.removable):
         return (f"Máy đang có {conflict}, không cài chung được: gỡ trước (Office cài sẵn thì chạy mục "
                 "Gỡ Microsoft 365 / Office cài sẵn ở trang Sửa lỗi), rồi bấm Kiểm tra lại")
     if app.source == "winget" and not senv.winget:
@@ -117,6 +124,7 @@ def msi_script(app: App, share_root: str) -> str:
         f"$extra = {shell.ps_quote(expand(app.args, share_root))}\n"
         "if ($extra) { $arguments += ' ' + $extra }\n"
         "Write-Output \"msiexec $arguments\"\n"
+        + _INSTALLING
         + _RUN_INSTALLER
         + "Write-Output \"Log cài đặt: $log\"\nexit $code"
     )
@@ -129,6 +137,7 @@ def exe_script(app: App, share_root: str) -> str:
         "$folder = Split-Path -Parent $program\n"
         f"$arguments = {shell.ps_quote(expand(app.args, share_root))}\n"
         "Write-Output \"$program $arguments\"\n"
+        + _INSTALLING
         + _RUN_INSTALLER
         + "exit $code"
     )
@@ -142,6 +151,7 @@ def iso_script(app: App, share_root: str) -> str:
         "if (-not (Test-Path -LiteralPath $image -PathType Leaf)) { exit 20 }\n"
         "# ISO đang được mount sẵn (IT tự mở) thì dùng luôn và để nguyên khi xong.\n"
         "$mountedBefore = [bool](Get-DiskImage -ImagePath $image).Attached\n"
+        + progress.marker("Đang mở file ISO") + "\n"
         "if (-not $mountedBefore) { Write-Output \"Mount $image…\"; Mount-DiskImage -ImagePath $image | Out-Null }\n"
         "$code = 0\n"
         "try {\n"
@@ -152,6 +162,7 @@ def iso_script(app: App, share_root: str) -> str:
         f"        $program = Join-Path $folder {shell.ps_quote(app.setup)}\n"
         f"        $arguments = {shell.ps_quote(expand(app.args, share_root))}\n"
         "        Write-Output \"$program $arguments\"\n"
+        "        " + _INSTALLING
         + indented
         + "    }\n"
         "}\n"
@@ -171,6 +182,7 @@ def portable_script(app: App, share_root: str) -> str:
         "if (-not (Test-Path -LiteralPath $source -PathType Container)) { exit 20 }\n"
         f"$target = Join-Path $env:ProgramFiles {shell.ps_quote(app.install_folder)}\n"
         "Write-Output \"Chép $source vào $target…\"\n"
+        + progress.marker("Đang chép file") + "\n"
         "robocopy $source $target /E /R:1 /W:1 /NP /NFL /NDL /NJH /NJS\n"
         "# robocopy: mã dưới 8 là chép được\n"
         "if ($LASTEXITCODE -ge 8) { exit $LASTEXITCODE }\n"

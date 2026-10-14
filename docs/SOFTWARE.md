@@ -51,7 +51,8 @@ apps:
 | `scope` | mọi ứng dụng | `user` nếu bộ cài chỉ cài cho tài khoản đang chạy nó (ví dụ Zalo). Khi IT mở tool bằng tài khoản khác, ứng dụng này bị khoá để không cài nhầm vào tài khoản IT. |
 | `timeout` | mọi ứng dụng | Số giây tối đa, mặc định 1800. |
 | `conflicts` | mọi ứng dụng | Mẫu tên (giống `detect.uninstall_name`) của phần mềm không cài chung được. Máy đang có phần mềm khớp mẫu (chỉ tính mục hiện trong Programs and Features) thì ứng dụng bị khoá kèm lý do. Ví dụ Office bản volume: `'Microsoft 365*\|Microsoft Office Professional*'`. |
-| `description` | mọi ứng dụng | Hiện khi rê chuột lên tên ứng dụng. |
+| `choice` | mọi ứng dụng | Tên nhóm chọn một, ví dụ `office`. Các ứng dụng cùng `choice` không nằm trong cây mà hiện thành **thẻ chọn một** ở đầu trang Phần mềm (thêm thẻ "Không cài"); chọn được một bản. Profile có một ứng dụng của nhóm thì bấm Chọn theo profile sẽ chọn sẵn bản đó. |
+| `description` | mọi ứng dụng | Hiện khi rê chuột lên tên ứng dụng (thẻ chọn: rê lên thẻ). |
 
 Chỗ giữ chỗ trong đường dẫn và tham số: `{share}` (= `share_root` trong site.yaml), `{programfiles}`, `{programfiles_x86}`.
 
@@ -61,7 +62,7 @@ Chỗ giữ chỗ trong đường dẫn và tham số: `{share}` (= `share_root`
 profiles:
   van-phong:
     name: Văn phòng
-    apps: [chrome, office, unikey]
+    apps: [chrome, office2016, unikey]
   ke-toan:
     name: Kế toán
     extends: van-phong          # một tên hoặc danh sách tên
@@ -84,6 +85,8 @@ Bấm **Chọn theo profile** trên trang Phần mềm sẽ tick các ứng dụ
 
 Các ứng dụng cài **lần lượt**; một ứng dụng lỗi thì vẫn cài tiếp ứng dụng sau. Xong lượt, tool kiểm tra lại phần mềm đã cài và hỏi khởi động lại nếu có bộ cài cần. Nút **Thử lại mục lỗi** cài lại các ứng dụng vừa lỗi.
 
+Kho bộ cài: thư mục `SOFT` cạnh tool (bản SSD), nếu không có thì kho IT đã chọn bằng nút **Chọn kho…** ở đầu trang Phần mềm (nhớ cho lần sau, trong `%APPDATA%\FVPL-ITTools\prefs.json`), cuối cùng là `share_root` trong site.yaml. Kho không có `config\apps.yaml` thì tool dùng danh mục mặc định đóng gói kèm (đã có Office 2016 / 2013 / 2010 với tên ISO như ở mục dưới, và Microsoft 365 qua winget).
+
 Ứng dụng bị khoá (hiện "Không cài được", rê chuột lên để xem lý do) khi: tool không có quyền admin; máy đang có phần mềm khớp `conflicts`; máy chưa có winget; chưa khai báo `share_root`, không vào được share hoặc không thấy bộ cài; ứng dụng `scope: user` mà tool chạy bằng tài khoản khác.
 
 ## Office bản volume (MSI) và phần mềm diệt virus
@@ -104,6 +107,7 @@ Office 2010 / 2013 / 2016 bản volume (ISO `SW_DVD5_Office_..._MLF`) cài bằn
 ```
 
 Cài xong mà chưa kích hoạt (máy chưa có Internet lúc cài): mục **Kích hoạt Office bản volume (MAK)** ở trang Sửa lỗi.
+Khai báo thêm `choice: office` cho các bản Office để trang Phần mềm hiện thẻ chọn một bản. Máy có Microsoft 365 / Office cài sẵn kiểu Click-to-Run thì khi chọn Office bản volume, trang Phần mềm hiện cảnh báo và tick sẵn **Gỡ trước khi cài**: lượt cài chạy mục gỡ trước, cài các phần mềm khác, cài Office sau cùng (Office lỗi vì chưa khởi động lại thì khởi động lại rồi bấm Thử lại mục lỗi). Office bản MSI khác đang cài thì vẫn phải gỡ bằng tay.
 Gỡ Microsoft 365 cài sẵn: mục **Gỡ Microsoft 365 / Office cài sẵn (Click-to-Run)**. Cách dùng từng bước:
 [HUONG-DAN-SU-DUNG.md](HUONG-DAN-SU-DUNG.md) mục 4–5.
 

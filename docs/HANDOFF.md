@@ -1,6 +1,6 @@
 # Bàn giao: đọc file này trước khi làm tiếp
 
-Cập nhật lần cuối: 14/10/2026, sau khi xong một phần tiện ích GĐ4 và lập kế hoạch làm mới giao diện.
+Cập nhật lần cuối: 14/10/2026, sau khi xong đợt P0 của giao diện mới (thanh tiến độ, chọn bản Office, chọn kho bộ cài).
 
 ## Trạng thái
 
@@ -9,7 +9,7 @@ Cập nhật lần cuối: 14/10/2026, sau khi xong một phần tiện ích GĐ
 | Giai đoạn | **GĐ1, GĐ2 (wizard Cài máy mới), phần lớn GĐ3 xong phần code.** Còn chạy thử các mục đổi hệ thống bằng quyền admin trên VM (danh sách bên dưới) rồi mới coi là xong |
 | Nhánh | Code mới làm trên `featured`. Chỉ merge về `main` khi được duyệt |
 | Phiên bản | 0.2.0, xem [CHANGELOG.md](../CHANGELOG.md) (trang Phần mềm nằm ở mục "Chưa phát hành") |
-| Test | 305 test pytest, tất cả đều qua (khoảng 42 giây) |
+| Test | 335 test pytest, tất cả đều qua (khoảng 55 giây) |
 | Bản exe | `python packaging\build.py`: thư mục 64MB, zip 27MB. `--test` chạy selftest trên exe, gồm cả đọc thông tin máy |
 
 Đã có:
@@ -17,7 +17,8 @@ Cập nhật lần cuối: 14/10/2026, sau khi xong một phần tiện ích GĐ
 - Trang **Sửa lỗi**: các mục mạng, domain, Windows Update, hệ thống, Office và 4 gói sửa nhanh.
 - Trang **Máy in**: danh sách máy in (kể cả share của người đang đăng nhập), gỡ máy in / driver, in thử; thêm máy in qua IP (driver từ file .inf) và máy in share; tab Sửa lỗi có các mục share máy in Win11 ↔ Win10 (`printers/`, `30-printers.yaml`).
 - Trang **Cấu hình**: 1 mục mẫu (Hiện đuôi file). Trang **Tiện ích**: mở nhanh 30 công cụ quản trị, công cụ mạng, Event log (`core/eventlog.py`), Công cụ khác (`ui/pages/system_tools.py`: sao lưu / cài lại driver `core/drivers.py`, HOSTS, file bị khoá `core/lockedfiles.py`, Wi-Fi `core/wifi.py`), LAPS & BitLocker.
-- Trang **Phần mềm**: danh mục `apps.yaml` (share hoặc bản đóng gói), profile phòng ban, đánh dấu đã cài, cài lần lượt qua winget / MSI / EXE / portable. Cách khai báo: [SOFTWARE.md](SOFTWARE.md).
+- Trang **Phần mềm**: banner kho bộ cài + **Chọn kho…** (`core/prefs.py`, `AppContext.use_software_root`), thẻ chọn bản Office (`choice` trong `apps.yaml`, `ui/components/choice.py`; gỡ Office Click-to-Run trước khi cài nếu IT tick), danh mục `apps.yaml` (kho hoặc bản đóng gói), profile phòng ban, đánh dấu đã cài, cài lần lượt qua winget / MSI / EXE / portable, khung tiến độ khi cài. Cách khai báo: [SOFTWARE.md](SOFTWARE.md).
+- **Tiến độ:** `executor._run_batch` phát `progress.BatchStarted` / `ItemUpdate` qua `RunContext.report` (→ signal `RunController.progress`); `RunContext.output` đọc phần trăm từ output. Giao diện: `ui/components/progress_panel.py` (gọi `watch(title)` ngay trước `controller.run`), thanh nhỏ trong khung log. Dừng mềm: `RunController.stop_after_current()`.
 - Trang **Cài máy mới**: wizard 8 bước (`ui/pages/newpc.py`, `newpc/`): kiểm tra trước, thông tin máy (mã phòng lưu vào site.yaml, gợi ý tên bằng AD), đổi tên + join, sau khởi động lại, phần mềm, cấu hình chuẩn, Windows Update, báo cáo. Tiến độ lưu ở `newpc-wizard.json` trong thư mục dữ liệu; bước 2 chép tool vào `%ProgramData%\FVPL-ITTools\app` và hẹn tác vụ `FVPL-ITTools-TiepTucCaiMay` mở lại tool (`--resume`) khi admin đăng nhập.
 - Trang **Tối ưu & dọn dẹp** (GĐ3): dọn rác có quét trước (`cleanup/junk.py`), chương trình khởi động cùng Windows (`cleanup/startup.py`), tối ưu / quyền riêng tư / nguồn điện / gỡ app cài sẵn (`75-optimize.yaml`).
 - Trang **Nhật ký**: hoàn tác thay đổi registry.
@@ -171,9 +172,15 @@ Tiện ích GĐ4. Đã chạy thật trên máy dev (chỉ đọc): Event log (t
 - [ ] **Sửa HOSTS:** bản sao lưu nằm cạnh file gốc, Notepad mở được bằng quyền admin và lưu được.
 - [ ] **Kết thúc tiến trình** đang khoá file: chương trình của người dùng khác (cần admin), tiến trình hệ thống bị từ chối và báo rõ.
 
+Giao diện mới đợt P0. Đã chạy thử offscreen với dữ liệu giả (chụp ảnh trang Phần mềm, khung tiến độ, thẻ kết quả) và test tự động; chưa cài thật. Còn:
+- [ ] **winget có in phần trăm không** khi tool chạy nó (output bị chuyển hướng): cài Chrome / 7-Zip, xem thanh "Đang tải về N%" có chạy không. Không có thì thanh chạy qua lại, tiến độ tổng vẫn đúng theo số mục.
+- [ ] **Gỡ trước khi cài** trên máy Dell / Lenovo có Microsoft 365 cài sẵn: gỡ xong cài Office 2016 ngay trong lượt có được không, hay phải khởi động lại rồi Thử lại mục lỗi (khi đó ghi vào hướng dẫn).
+- [ ] **Dừng sau mục đang chạy** trong lúc cài Office: Office cài xong mới dừng, các mục sau "Đã dừng".
+- [ ] **Chọn kho…** trỏ tới thư mục SOFT trên USB / mạng (UNC): mở lại tool vẫn nhớ; rút USB thì banner báo không vào được kho.
+
 ## Việc tiếp theo
 
-1. **Giao diện mới:** chờ bồ duyệt [KE-HOACH-GIAO-DIEN.md](KE-HOACH-GIAO-DIEN.md), rồi làm đợt P0 (thanh tiến độ `ProgressEvent`, thẻ chọn bản Office `choice: office`, banner + chọn kho bộ cài). Chỉ thay tầng `ui`, giữ nguyên `core` / `actions` / `software` / `newpc`.
+1. **Giao diện mới, đợt P1** theo [KE-HOACH-GIAO-DIEN.md](KE-HOACH-GIAO-DIEN.md) mục 7: theme + icon, header, sidebar có icon, Trang chủ (ô tình huống + tình trạng máy), chế độ Cơ bản / Chuyên gia (`prefs.json`), tìm Ctrl+K. Chỉ thay tầng `ui`, giữ nguyên `core` / `actions` / `software` / `newpc`.
 2. **Chạy danh sách trên** trên VM, sửa những gì sai. Khi đó GĐ1, GĐ2 mới xong. Wizard cần VM chưa join + domain test.
 3. GĐ4 còn lại ở [TIEN-DO.md](TIEN-DO.md): chuyển dữ liệu máy cũ, sửa PATH, báo bản mới, ký số exe, bản 1.0.
 

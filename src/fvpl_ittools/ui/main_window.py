@@ -159,6 +159,7 @@ class MainWindow(QMainWindow):
         self.sidebar.currentRowChanged.connect(self.stack.setCurrentIndex)
         self.sidebar.setCurrentRow(0)
         self.controller.event.connect(self.log_panel.append)
+        self.controller.progress.connect(self.log_panel.on_progress)
         self.controller.busy_changed.connect(self.log_panel.set_busy)
         self.log_panel.cancel_requested.connect(self.controller.cancel)
         self.controller.finished.connect(self._finished)

@@ -6,6 +6,7 @@ và `cancel` để huỷ giữa chừng.
 
 from __future__ import annotations
 
+import itertools
 import logging
 import subprocess
 import threading
@@ -26,7 +27,7 @@ from ..actions.model import (
     ServiceStep,
     Step,
 )
-from . import paths, pslib, registry, safety, shell
+from . import paths, progress, pslib, registry, safety, shell
 from .journal import JournalEntry, RegChange, UndoJournal
 from .log import forget_secret, mask, register_secret
 from .session import UserIdentity
@@ -100,12 +101,30 @@ class RunContext:
     create_restore_point: bool = True
     restore_point: Callable[..., safety.RestorePointResult] = safety.create_restore_point
     credential: tuple[str, str] | None = None  # (tài khoản, mật khẩu) cho mục needs_credential, chỉ giữ trong RAM
+    report: Callable[[object], None] = lambda event: None  # nhận progress.BatchStarted / ItemUpdate
+    stop_after: threading.Event = field(default_factory=threading.Event)  # dừng sau mục đang chạy
+    current: tuple[int, int] | None = None  # (lượt, vị trí) của mục đang chạy, để gắn phần trăm đọc từ output
+    _last_hint: tuple[int | None, str] = (None, "")
 
     def say(self, level: Level, text: str, progress: bool = False) -> None:
         text = mask(text)
         if not progress:
             log.log(_LOG_LEVELS.get(level, logging.INFO), "%s", text)
         self.emit(LogEvent(level, text, progress))
+
+    def output(self, text: str, is_progress: bool = False) -> None:
+        """Một dòng output của lệnh: đọc phần trăm / giai đoạn cho thanh tiến độ, rồi in ra log."""
+        hint = progress.parse(text) if self.current is not None else None
+        if hint is not None:
+            key = (None if hint.percent is None else int(hint.percent), hint.phase)
+            if key != self._last_hint:
+                self._last_hint = key
+                batch_id, index = self.current
+                self.report(progress.ItemUpdate(batch_id, index, progress.RUNNING, hint.percent, hint.phase))
+            if hint.hide:
+                return
+        if text.strip():
+            self.say(Level.OUTPUT, text.rstrip(), is_progress)
 
 
 @dataclass
@@ -253,10 +272,7 @@ def preview(actions: list[Action], env: Env) -> list[str]:
 
 
 def _echo(ctx: RunContext) -> shell.LineCallback:
-    def on_line(text: str, progress: bool) -> None:
-        if text.strip():
-            ctx.say(Level.OUTPUT, text.rstrip(), progress)
-    return on_line
+    return ctx.output
 
 
 def _shell_outcome(result: shell.ShellResult, step: Step, timeout: float) -> StepOutcome:
@@ -396,38 +412,61 @@ def run_batch(actions: list[Action], ctx: RunContext, stop_on_error: bool = Fals
         forget_secret(password)
 
 
+_BATCH_IDS = itertools.count(1)
+
+
 def _run_batch(actions: list[Action], ctx: RunContext, stop_on_error: bool) -> BatchResult:
     batch = BatchResult()
-    runnable: list[Action] = []
-    for action in actions:
+    batch_id = next(_BATCH_IDS)
+    runnable: list[tuple[int, Action]] = []  # (vị trí trong lượt, mục)
+    plan: list[progress.PlanItem] = []
+    for index, action in enumerate(actions):
         reason = blocked_reason(action, ctx.env)
         if reason is None and action.needs_credential and ctx.credential is None:
             reason = "Chưa nhập tài khoản domain"
+        plan.append(progress.PlanItem(action.id, action.name, reason or ""))
         if reason:
             batch.results.append(ActionResult(action, Status.SKIPPED, reason))
             ctx.say(Level.WARN, f"Bỏ qua “{action.name}”: {reason}")
         else:
-            runnable.append(action)
+            runnable.append((index, action))
+    ctx.report(progress.BatchStarted(batch_id, tuple(plan)))
 
-    if runnable and ctx.create_restore_point and any(action.risk is not Risk.SAFE for action in runnable):
+    def finish_rest(rest: list[tuple[int, Action]], status: Status, reason: str) -> None:
+        for index, action in rest:
+            batch.results.append(ActionResult(action, status, reason))
+            ctx.report(progress.ItemUpdate(batch_id, index, status.value, message=reason))
+
+    if runnable and ctx.create_restore_point and any(action.risk is not Risk.SAFE for _, action in runnable):
+        ctx.report(progress.ItemUpdate(batch_id, progress.BATCH, phase="Đang tạo điểm khôi phục (restore point)"))
         _make_restore_point(ctx)
 
     hooks: list[str] = []
-    for index, action in enumerate(runnable):
-        if ctx.cancel.is_set():
+    for position, (index, action) in enumerate(runnable):
+        if ctx.cancel.is_set() or ctx.stop_after.is_set():
             batch.cancelled = True
-            batch.results += [ActionResult(rest, Status.CANCELLED, "Đã huỷ trước khi chạy") for rest in runnable[index:]]
+            reason = "Đã huỷ trước khi chạy" if ctx.cancel.is_set() else "Đã dừng theo yêu cầu, chưa chạy"
+            if ctx.stop_after.is_set() and not ctx.cancel.is_set():
+                ctx.say(Level.WARN, f"Dừng theo yêu cầu, còn {len(runnable) - position} mục chưa chạy.")
+            finish_rest(runnable[position:], Status.CANCELLED, reason)
             break
-        result = run_action(action, ctx)
+        ctx.report(progress.ItemUpdate(batch_id, index, progress.RUNNING))
+        ctx.current, ctx._last_hint = (batch_id, index), (None, "")
+        try:
+            result = run_action(action, ctx)
+        finally:
+            ctx.current = None
         batch.results.append(result)
+        ctx.report(progress.ItemUpdate(batch_id, index, result.status.value, message=result.message,
+                                       reboot=result.reboot_required))
         if result.status is Status.CANCELLED:
             batch.cancelled = True
         if result.changed:
             hooks += [hook for hook in action.after if hook not in hooks]
-        if stop_on_error and result.status is Status.FAILED and index + 1 < len(runnable):
+        if stop_on_error and result.status is Status.FAILED and position + 1 < len(runnable):
             reason = f"Dừng vì “{action.name}” lỗi"
-            ctx.say(Level.WARN, f"{reason}, bỏ qua {len(runnable) - index - 1} mục còn lại.")
-            batch.results += [ActionResult(rest, Status.SKIPPED, reason) for rest in runnable[index + 1:]]
+            ctx.say(Level.WARN, f"{reason}, bỏ qua {len(runnable) - position - 1} mục còn lại.")
+            finish_rest(runnable[position + 1:], Status.SKIPPED, reason)
             break
 
     # Việc làm sau (ví dụ khởi động lại Explorer) chỉ chạy một lần cho cả lượt.

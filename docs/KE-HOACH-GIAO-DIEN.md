@@ -1,6 +1,6 @@
 # Kế hoạch làm mới giao diện
 
-Lập: 14/10/2026. Trạng thái: **chờ duyệt**. Đã có mockup 6 màn hình (canvas trên claude.ai, gửi riêng cho bồ, chưa share). Chưa sửa code giao diện.
+Lập: 14/10/2026. Trạng thái: **đã duyệt 14/10/2026, đợt P0 xong** (thanh tiến độ, thẻ chọn bản Office, banner + chọn kho bộ cài, thẻ kết quả). Mockup 6 màn hình: canvas trên claude.ai (gửi riêng cho bồ, chưa share).
 
 ## 1. Vì sao làm
 
@@ -186,7 +186,7 @@ Giữ nguyên logic wizard hiện tại, chỉ làm lại phần hiển thị nh
 
 | Đợt | Nội dung | Xong khi |
 |---|---|---|
-| **P0** · giải quyết ngay phần bồ thấy thiếu | `ProgressEvent` + `ProgressPanel` cho trang Phần mềm và wizard; thẻ chọn bản Office + `choice` trong danh mục; banner kho bộ cài + "Chọn kho…"; `ResultCard` sau khi cài | Cài 8 phần mềm thấy "mục n/8", % từng mục (winget), mục lỗi có lý do; chạy bản phát hành không có `SOFT` vẫn thấy Office 2016 / 2013 / 2010 (mờ, "Cần kho bộ cài"), chọn kho xong thì cài được |
+| **P0** · giải quyết ngay phần bồ thấy thiếu ✔ 14/10/2026 | `ProgressEvent` + `ProgressPanel` cho trang Phần mềm và wizard; thẻ chọn bản Office + `choice` trong danh mục; banner kho bộ cài + "Chọn kho…"; `ResultCard` sau khi cài | Cài 8 phần mềm thấy "mục n/8", % từng mục (winget), mục lỗi có lý do; chạy bản phát hành không có `SOFT` vẫn thấy Office 2016 / 2013 / 2010 (mờ, "Cần kho bộ cài"), chọn kho xong thì cài được |
 | **P1** · bộ khung mới | Theme + icon + thành phần; header, `NavBar`, thanh trạng thái, ngăn kéo log; Trang chủ (ô + tình trạng máy); chế độ Cơ bản / Chuyên gia; tìm Ctrl+K + `keywords` cho mọi mục P1 | Giao diện giống mockup 1, 2; tìm "may in" ra đủ mục máy in; chế độ Cơ bản không hiện mục Nâng cao |
 | **P2** · dễ dùng cho người không chuyên | `scenarios.yaml` + 7 tình huống; làm lại trang Phần mềm (thẻ) và wizard theo mockup; `basic_name`, viết lại mô tả; "Gửi cho IT"; thông báo khay hệ thống | Một người không làm IT tự làm được "Không in được" và "Cài phần mềm" không cần hỏi (thử với 2–3 người) |
 | **P3** · hoàn thiện | Làm lại các trang còn lại (Máy in, Tối ưu, Cấu hình, Tiện ích, Nhật ký); tiến độ trên taskbar Windows (`ITaskbarList3`); ước tính thời gian từ số liệu thật; lần đầu mở app có hướng dẫn nhanh 3 bước; rà bàn phím, cỡ chữ 150% | Mọi trang theo bộ khung mới; ảnh chụp trong hướng dẫn sử dụng là giao diện mới |

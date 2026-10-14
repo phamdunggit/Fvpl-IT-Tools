@@ -4,6 +4,11 @@
 
 ### Thêm
 
+- **Giao diện mới, đợt P0** ([kế hoạch](docs/KE-HOACH-GIAO-DIEN.md)):
+  - **Thanh tiến độ**: executor báo từng mục bắt đầu / xong / lỗi kèm số thứ tự (`core/progress.py`), đọc phần trăm từ output (winget "12 MB / 80 MB", DISM, robocopy, dòng `##PROGRESS` của script). Trang Phần mềm và wizard bước 3 / 5 / 6 hiện khung tiến độ: "Mục 4/8: Cài Google Chrome · Đang tải về 45%", thanh tổng, đếm Xong / Đang chạy / Chờ / Lỗi, từng mục có trạng thái và lý do lỗi, thời gian đã chạy; nút **Dừng sau mục đang chạy** (không cắt ngang bộ cài) và **Huỷ ngay**. Chạy xong có thẻ kết quả (mục lỗi và lý do, cần khởi động lại) + **Thử lại mục lỗi**. Khung log có thanh tiến độ nhỏ cho mọi lượt chạy.
+  - **Chọn bản Office** bằng thẻ chọn một ở đầu trang Phần mềm (khoá mới `choice` trong `apps.yaml`). Danh mục đóng gói kèm tool có sẵn Office 2016 / 2013 / 2010 (ISO trong kho) và Microsoft 365 (winget), nên chạy bản zip không kèm kho vẫn thấy các bản, kèm lý do chưa cài được ("Cần kho bộ cài"…). Profile / mẫu wizard có bản Office thì thẻ chọn sẵn.
+  - Máy có Microsoft 365 / Office **Click-to-Run** cài sẵn: chọn Office bản volume thì hiện cảnh báo và ô **Gỡ trước khi cài** (tick sẵn); lượt cài gỡ bản cài sẵn trước, Office cài sau cùng. Xung đột với Office MSI khác vẫn phải gỡ tay.
+  - **Banner kho bộ cài** đầu trang Phần mềm (kho nào, bao nhiêu bộ cài có sẵn, có `config\apps.yaml` không) và nút **Chọn kho…**: chọn thư mục SOFT trên SSD / USB / mạng, nhớ cho lần sau trong `%APPDATA%\FVPL-ITTools\prefs.json`.
 - Trang **Tiện ích** (GĐ4):
   - Tab **Event log**: lỗi Critical và Error của System, Application trong 24 giờ / 7 / 30 ngày, gộp theo nguồn + mã sự kiện (số lần, lần gần nhất), Critical và lỗi lặp nhiều lên đầu; gợi ý tiếng Việt cho các lỗi hay gặp (Kernel-Power 41, ổ đĩa, NTFS, NETLOGON 5719, Group Policy, dịch vụ, crash ứng dụng, DCOM vô hại…). Chỉ đọc, chạy nền.
   - Tab **Công cụ khác**: **sao lưu driver** (`pnputil /export-driver` vào `DriverBackup\<máy>-<ngày>` cạnh tool) và **cài lại driver** từ thư mục sao lưu; **sửa HOSTS** (sao lưu rồi mở bằng Notepad quyền admin); **tìm chương trình đang khoá file / thư mục** (Windows Restart Manager, không cần handle.exe), kết thúc tiến trình có hỏi lại; **mật khẩu Wi-Fi đã lưu** (xuất ra thư mục tạm, đọc rồi xoá ngay; không ghi log).

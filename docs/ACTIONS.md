@@ -119,6 +119,7 @@ Hàm, khai báo trong `src/fvpl_ittools/core/pslib.py`. Tool chỉ thêm vào sc
 |---|---|
 | `Write-Ok`, `Write-Bad`, `Write-Warn`, `Write-Line` | In dòng `✔` / `✖` / `⚠` / thường (khung log tô màu xanh / đỏ / vàng). `Write-Bad` đếm số lỗi. Ghi thẳng ra stdout nên dùng được trong hàm mà không lẫn vào giá trị trả về. |
 | `Exit-Checks` | Thoát với mã 2 nếu đã có `Write-Bad`. Đặt `messages: { 2: ... }` cho bước. |
+| `##PROGRESS` | Không phải hàm: script in dòng `Write-Output '##PROGRESS 45 Đang tải về'` (hoặc `##PROGRESS - Đang cài đặt` khi không biết phần trăm) thì thanh tiến độ của mục hiện giai đoạn và phần trăm đó. Dòng này không vào log. Output dạng `45%`, `[=== 23.4% ===]` (DISM), `12 MB / 80 MB` (winget) được tự đọc. |
 | `Test-Ping $ip [timeout]`, `Test-Port $ip $port [timeout]` | Trả True/False, có timeout ngắn (1,5–2 giây). |
 | `Get-NtpOffset $server` | Số giây giờ máy lệch so với server NTP (DC), hoặc `$null`. |
 | `Test-DnsSrv $dnsServer $name` | Hỏi thẳng một DNS server xem có bản ghi SRV không, timeout thật 1,5 giây. |

@@ -96,6 +96,53 @@ QLabel[badge="warn"] { background: #ffedd5; color: #9a3412; }
 #LogView { background: #0f172a; color: #e2e8f0; border: none; font-family: Consolas, "Cascadia Mono", monospace; font-size: 9pt; }
 
 QSplitter::handle { background: #dde3ea; }
+
+#Banner { border-radius: 8px; border: 1px solid #dde3ea; background: #ffffff; }
+#Banner[kind="ok"] { border-color: #bbf7d0; }
+#Banner[kind="warn"] { background: #fff8e1; border-color: #f2d58a; }
+#Banner[kind="bad"] { background: #fef2f2; border-color: #fecaca; }
+#Banner[kind="info"] { background: #eef4fc; border-color: #c9dbf3; }
+#BannerMark { font-size: 15pt; min-width: 22px; }
+#Banner[kind="ok"] #BannerMark { color: #15803d; }
+#Banner[kind="warn"] #BannerMark { color: #b45309; }
+#Banner[kind="bad"] #BannerMark { color: #b91c1c; }
+#Banner[kind="info"] #BannerMark { color: #2563eb; }
+#BannerTitle { font-weight: 600; color: #102a43; }
+#BannerText { color: #52606d; }
+
+#ChoiceCard { background: #ffffff; border: 1px solid #dde3ea; border-radius: 8px; }
+#ChoiceCard:hover { border-color: #9dbbe6; }
+#ChoiceCard[checked="true"] { background: #eef4fc; border: 2px solid #2563eb; }
+#ChoiceCard[disabled="true"] { background: #f8fafc; }
+#ChoiceTitle { font-weight: 600; }
+#ChoiceNote { color: #52606d; font-size: 9pt; }
+
+QProgressBar { background: #e5e9ef; border: none; border-radius: 4px; }
+QProgressBar::chunk { background: #2563eb; border-radius: 4px; }
+#OverallBar { border-radius: 5px; }
+#OverallBar::chunk { border-radius: 5px; }
+#OverallBar[kind="ok"]::chunk { background: #15803d; }
+#OverallBar[kind="warn"]::chunk { background: #b45309; }
+#ItemBar, #ItemBar::chunk { border-radius: 3px; }
+#ProgressHeadline { font-size: 12pt; font-weight: 600; color: #102a43; }
+#ProgressList { background: transparent; }
+#ProgressList > QWidget > QWidget { background: transparent; }
+#ProgressRow { border-top: 1px solid #eef1f4; }
+#ProgressMark { font-weight: 700; color: #9aa5b1; }
+#ProgressRow[state="running"] #ProgressMark, #ProgressRow[state="running"] #ProgressState { color: #2563eb; }
+#ProgressRow[state="running"] #ProgressName { font-weight: 600; }
+#ProgressRow[state="ok"] #ProgressMark, #ProgressRow[state="ok"] #ProgressState { color: #15803d; }
+#ProgressRow[state="failed"] #ProgressMark, #ProgressRow[state="failed"] #ProgressState { color: #b91c1c; }
+#ProgressRow[state="cancelled"] #ProgressMark, #ProgressRow[state="cancelled"] #ProgressState { color: #b45309; }
+#ProgressRow[state="waiting"] #ProgressName, #ProgressRow[state="skipped"] #ProgressName { color: #7b8794; }
+#ProgressState { color: #52606d; }
+#ProgressReason { color: #52606d; font-size: 9pt; }
+#ResultBox { border-radius: 6px; padding: 10px 12px; background: #dcfce7; color: #166534; }
+#ResultBox[kind="warn"] { background: #fef3c7; color: #92400e; }
+#BottomBar { background: #ffffff; border-top: 1px solid #dde3ea; }
+#BottomSummary { font-weight: 600; color: #102a43; }
+#LogPanel #LogProgress { color: #e2e8f0; font-weight: 400; }
+#LogPanel QProgressBar { background: #1e293b; }
 """
 
 

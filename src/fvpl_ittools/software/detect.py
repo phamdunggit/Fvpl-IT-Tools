@@ -25,6 +25,7 @@ class InstalledEntry:
     version: str = ""
     publisher: str = ""
     hidden: bool = False  # Programs and Features không hiện: thành phần hệ thống, bản cập nhật của phần mềm khác
+    click_to_run: bool = False  # Office / Microsoft 365 bản Click-to-Run (gỡ được bằng mục off.remove_c2r)
 
 
 @dataclass(frozen=True)
@@ -52,7 +53,7 @@ def _read_entries(root, subkey: str, view: int = 0) -> list[InstalledEntry]:
                 with winreg.OpenKey(key, child_name) as child:
                     values = {}
                     for value_name in ("DisplayName", "DisplayVersion", "Publisher", "SystemComponent",
-                                       "ParentKeyName"):
+                                       "ParentKeyName", "UninstallString"):
                         try:
                             values[value_name] = str(winreg.QueryValueEx(child, value_name)[0]).strip()
                         except OSError:
@@ -61,8 +62,9 @@ def _read_entries(root, subkey: str, view: int = 0) -> list[InstalledEntry]:
                 continue
             if values["DisplayName"]:
                 hidden = values["SystemComponent"] == "1" or bool(values["ParentKeyName"])
+                click_to_run = "officeclicktorun.exe" in values["UninstallString"].lower()
                 entries.append(InstalledEntry(values["DisplayName"], values["DisplayVersion"], values["Publisher"],
-                                              hidden))
+                                              hidden, click_to_run))
     return entries
 
 
@@ -90,13 +92,17 @@ def detect(app: App, entries: list[InstalledEntry], share_root: str = "") -> Det
     return Detection(True, best.version, best.name)
 
 
-def conflicts(app: App, entries: list[InstalledEntry]) -> list[str]:
-    """Tên phần mềm đang cài (hiện trong Programs and Features) khớp mẫu `conflicts` của ứng dụng."""
+def conflicting_entries(app: App, entries: list[InstalledEntry]) -> list[InstalledEntry]:
+    """Phần mềm đang cài (hiện trong Programs and Features) khớp mẫu `conflicts` của ứng dụng."""
     patterns = [pattern.lower() for pattern in app.conflict_names]
     if not patterns:
         return []
-    return sorted({entry.name for entry in entries
-                   if not entry.hidden and any(fnmatch.fnmatchcase(entry.name.lower(), pattern) for pattern in patterns)})
+    return [entry for entry in entries
+            if not entry.hidden and any(fnmatch.fnmatchcase(entry.name.lower(), pattern) for pattern in patterns)]
+
+
+def conflicts(app: App, entries: list[InstalledEntry]) -> list[str]:
+    return sorted({entry.name for entry in conflicting_entries(app, entries)})
 
 
 def _version_in_name(entry: InstalledEntry) -> bool:

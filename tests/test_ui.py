@@ -137,23 +137,39 @@ def test_software_page_profiles_and_install(window, qt_app, monkeypatch):
         time.sleep(0.01)
     assert page.state is not None
     assert page._items["chrome"].text(2) == "Đã cài 130.0"
-    assert page._items["office"].text(2) == "Không cài được"  # chưa có share
-    assert "share_root" in page._items["office"].toolTip(2)
+    assert page.store.title.text() == "Chưa có kho bộ cài" and page.store.button.text() == "Chọn kho…"
+
+    # Office là nhóm chọn một, không nằm trong cây; bản trong kho bị khoá khi chưa có kho, bản winget chọn được.
+    assert "office2016" not in page._items
+    office = page.choice_groups["office"]
+    cards = {card.option.key: card.option for card in office.cards}
+    assert list(cards) == ["", "office2016", "office2013", "office2010", "office365"]
+    assert cards["office2016"].title == "Office 2016" and not cards["office2016"].enabled
+    assert cards["office2016"].note == "Cần kho bộ cài" and "share_root" in cards["office2016"].tooltip
+    assert cards["office365"].enabled and "Tải từ Internet" in cards["office365"].note
+    assert office.selected() == ""
 
     page.profile.setCurrentIndex(page.profile.findData("it"))
     page.pick_profile()
     picked = {app.id for app in page.checked_apps()}
     assert "putty" in picked and "foxit" in picked  # foxit kế thừa từ van-phong
-    assert "chrome" not in picked and "office" not in picked and "unikey" not in picked
+    assert "chrome" not in picked and "unikey" not in picked
+    assert office.selected() == ""  # profile chọn Office 2016 nhưng chưa có kho
+
+    assert office.select("office365") and not office.select("office2016")
+    assert page.summary.text().endswith("(có Microsoft 365 Apps)")
+    assert page.install_button.text() == f"Cài {len(picked) + 1} mục"
 
     runs, asked = [], []
     monkeypatch.setattr(window.controller, "run", lambda actions, **kw: runs.append([a.id for a in actions]))
     monkeypatch.setattr(software_module.QMessageBox, "question",
                         lambda parent, title, text: asked.append(text) or software_module.QMessageBox.StandardButton.Yes)
-    page._items["office"].setCheckState(0, software_module.Qt.CheckState.Checked)
-    page.install(page.checked_apps())
-    assert runs and "app.putty" in runs[0] and "app.office" not in runs[0]
-    assert "Bỏ qua Microsoft Office" in window.log_panel.plain_text()
+    page.install(page.selected_apps() + [page.state.catalog.app("unikey")])
+    assert runs and runs[0][0] == "app.office365" and "app.putty" in runs[0] and "app.unikey" not in runs[0]
+    assert "Bỏ qua UniKey" in window.log_panel.plain_text()
+    assert page.views.currentIndex() == software_module.PROGRESS_VIEW and not page.bottom.isVisible()
+    page.progress.dismissed.emit()
+    assert page.views.currentIndex() == software_module.SELECT_VIEW
 
     putty = page.state.catalog.app("putty")
     window.controller.last_results["app.putty"] = ActionResult(software_module.install_action(putty, ""), Status.FAILED, "lỗi")
@@ -361,10 +377,108 @@ def test_software_page_preselects_extra_apps(window, qt_app):
     while (page.loading or page.state is None) and time.monotonic() < deadline:
         qt_app.processEvents()
         time.sleep(0.01)
-    page.preselect_profile("", ["7zip", "chrome", "khong-co"])
+    page.preselect_profile("", ["7zip", "chrome", "khong-co", "office365"])
     checked = [app.id for app in page.checked_apps()]
     assert checked == ["7zip"]  # Chrome đã cài sẵn (dữ liệu giả của fixture), mục không có thì bỏ qua
+    assert [app.id for app in page.chosen_apps()] == ["office365"]  # bản Office của mẫu chọn vào thẻ
     assert "khong-co" in window.log_panel.plain_text()
+
+
+def _wait_scan(qt_app, page):
+    deadline = time.monotonic() + 10
+    while (page.loading or page.state is None) and time.monotonic() < deadline:
+        qt_app.processEvents()
+        time.sleep(0.01)
+
+
+def test_software_page_removes_click_to_run_office_first(window, qt_app, monkeypatch, tmp_path):
+    from fvpl_ittools.software import catalog, detect, install, scan
+    from fvpl_ittools.software.detect import InstalledEntry
+    from fvpl_ittools.ui.pages import software as software_module
+
+    store = tmp_path / "SOFT"
+    store.mkdir()
+
+    def fake_scan(app):
+        loaded = catalog.load_catalog_file(catalog.BUNDLED_FILE)
+        entries = [InstalledEntry("Microsoft 365 Apps for business - en-us", "16.0", click_to_run=True)]
+        senv = install.SoftwareEnv(
+            is_admin=True, runs_as_other_user=False, winget="winget.exe", share_root=str(store), share_ok=True,
+            conflicts=(("office2016", "Microsoft 365 Apps for business - en-us"),), removable=frozenset({"office2016"}))
+        detections = {item.id: detect.Detection(False) for item in loaded.apps}
+        return scan.SoftwareState(loaded, senv, entries, detections)
+
+    monkeypatch.setattr(scan, "scan", fake_scan)
+    page = window.software
+    window.select_page("Phần mềm")
+    _wait_scan(qt_app, page)
+    page.rescan()
+    _wait_scan(qt_app, page)
+    assert page.store.title.text().endswith(str(store))
+    office = page.choice_groups["office"]
+    assert office.select("office2016")
+    assert not office.warning.isHidden() and office.warning_check.isChecked()
+    assert "Microsoft 365 Apps for business" in office.warning_text.text()
+    page._items["7zip"].setCheckState(0, software_module.Qt.CheckState.Checked)
+    actions, apps, blocked = page.plan(page.selected_apps())
+    assert [action.id for action in actions] == ["off.remove_c2r", "app.7zip", "app.office2016"] and not blocked
+    office.warning_check.setChecked(False)  # không cho gỡ thì Office 2016 bị bỏ qua
+    actions, apps, blocked = page.plan(page.selected_apps())
+    assert [action.id for action in actions] == ["app.7zip"] and blocked[0][0].id == "office2016"
+
+
+def test_software_page_choose_store_remembers_folder(window, qt_app, monkeypatch, tmp_path):
+    from fvpl_ittools.core import prefs
+    from fvpl_ittools.ui.pages import software as software_module
+    page = window.software
+    window.select_page("Phần mềm")
+    _wait_scan(qt_app, page)
+    store = tmp_path / "Kho"
+    (store / "config").mkdir(parents=True)
+    (store / "config" / "apps.yaml").write_text("apps: []\n", encoding="utf-8")
+    monkeypatch.setattr(software_module.QFileDialog, "getExistingDirectory", lambda *args: str(store))
+    rescans = []
+    monkeypatch.setattr(page, "rescan", lambda: rescans.append(1))
+    page.choose_store()
+    assert prefs.get(prefs.SOFTWARE_ROOT) == str(store)
+    assert window.app.software.root == str(store) and window.app.software.kind == "chosen"
+    assert window.app.env.share_root == str(store) and rescans
+
+
+def test_progress_panel_shows_items_and_result(window, qt_app, monkeypatch):
+    from fvpl_ittools.core import progress
+    from fvpl_ittools.core.executor import ActionResult, BatchResult, Status
+    from fvpl_ittools.ui import main_window
+    from fvpl_ittools.ui.components.progress_panel import ProgressPanel
+
+    from .test_executor import cmd_action
+    # Kết quả giả có "cần khởi động lại": cửa sổ chính hỏi khởi động lại, trả lời Không.
+    monkeypatch.setattr(main_window.QMessageBox, "question", lambda *args: main_window.QMessageBox.StandardButton.No)
+    controller = window.controller
+    panel = ProgressPanel(controller)
+    panel.can_retry = True
+    controller.progress.emit(progress.BatchStarted(1, (progress.PlanItem("a", "Cài A"),)))
+    assert panel.tracker is None  # chưa watch() thì không nhận lượt của trang khác
+    panel.watch("Cài phần mềm")
+    controller.progress.emit(progress.BatchStarted(2, (progress.PlanItem("a", "Cài A"), progress.PlanItem("b", "Cài B"),
+                                                       progress.PlanItem("c", "Cài C", "Cần quyền admin"))))
+    controller.progress.emit(progress.ItemUpdate(2, 0, progress.RUNNING))
+    controller.progress.emit(progress.ItemUpdate(2, 0, progress.RUNNING, 40.0, progress.DOWNLOADING))
+    assert panel.title.text() == "Cài phần mềm"
+    assert panel.headline.text() == "Mục 1/3: Cài A · Đang tải về 40%"
+    assert panel.rows[0].state.text() == "Đang tải về 40%" and not panel.rows[0].bar.isHidden()
+    assert panel.rows[2].reason.text() == "Cần quyền admin"
+    assert panel.bar.value() == int((1 + 0.4) / 3 * 1000)  # mục bị bỏ qua tính là xong
+    controller.progress.emit(progress.ItemUpdate(2, 0, progress.OK))
+    controller.progress.emit(progress.ItemUpdate(2, 1, progress.FAILED, message="Tải bộ cài lỗi"))
+    assert panel.rows[0].bar.isHidden() and panel.rows[1].reason.text() == "Tải bộ cài lỗi"
+    a, b = cmd_action(id="test.a"), cmd_action(id="test.b")
+    controller.finished.emit(BatchResult(results=[ActionResult(a, Status.OK, reboot_required=True),
+                                                  ActionResult(b, Status.FAILED, "Tải bộ cài lỗi")]))
+    assert panel.headline.text() == "Xong 1/3 mục, 1 mục lỗi"
+    assert "Tải bộ cài lỗi" in panel.result_box.text() and "Cần khởi động lại" in panel.result_box.text()
+    assert not panel.retry_button.isHidden() and panel.stop_button.isHidden()
+    panel.deleteLater()
 
 
 def _finish_batch(window, actions, status):

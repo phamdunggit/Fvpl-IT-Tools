@@ -62,6 +62,14 @@ SOFT\
 `AUTO_ACTIVATE` có sẵn: cài xong Office tự kích hoạt nếu máy có Internet. File có key **không** được đưa lên git hay
 gửi ra ngoài.
 
+**Tool tìm kho ở đâu:** thư mục `SOFT` nằm cạnh file exe (bản SSD) → kho đã chọn bằng nút **Chọn kho…** → `share_root`
+trong site.yaml. Đầu trang Phần mềm luôn có một dòng cho biết đang dùng kho nào, có đủ bộ cài không. Chạy bản zip
+không kèm `SOFT` thì dòng đó báo **Chưa có kho bộ cài**: bấm **Chọn kho…**, chọn thư mục `SOFT` (trên SSD, USB hoặc
+thư mục chung trên mạng). Tool nhớ kho đã chọn cho lần sau trên máy đó.
+
+Trong `config\apps.yaml`, các bản Office có dòng `choice: office` để trang Phần mềm gom chúng thành thẻ chọn một bản
+(xem [SOFTWARE.md](SOFTWARE.md)).
+
 **SyLink.xml cho Symantec:** gói "All Clients" tải từ Broadcom là bản *unmanaged* (không báo về SEPM). Muốn client tự
 vào SEPM của công ty: trong SEPM console → **Clients** → chuột phải nhóm máy trạm → **Export Communication Settings**
 → chọn chế độ *Computer* → lưu `SyLink.xml`, rồi chép đè vào `SOFT\Symantec\SEP-14.3-RU9-Win64\` (cùng thư mục với
@@ -87,25 +95,34 @@ Trang **Cài máy mới**, làm lần lượt từ trên xuống. Danh sách bư
 | 1. Thông tin máy | Chọn **Mẫu** nếu có (ví dụ "Kế toán – Laptop"), hoặc chọn phòng ban, bấm **Gợi ý tên** (hỏi AD lấy số kế tiếp), ghi người dùng, chọn profile và **phần mềm thêm** (bản Office). **Lưu thành mẫu…** để lần sau chọn lại |
 | 2. Đổi tên + join | Nhập tài khoản join. Tool chép mình vào máy, đổi tên và join OU trong một lần khởi động lại, hẹn tự mở lại |
 | 3. Sau khởi động lại | Đăng nhập bằng tài khoản domain có quyền admin: tool tự mở, bấm **Chạy các bước sau khởi động lại** |
-| 4. Cài phần mềm | Sang trang Phần mềm, các ứng dụng đã tick sẵn theo profile + phần mềm thêm, bấm **Cài mục đã chọn** (xem mục 4–6) |
+| 4. Cài phần mềm | Sang trang Phần mềm: bản Office của mẫu đã chọn sẵn, các ứng dụng đã tick sẵn theo profile + phần mềm thêm, bấm **Cài N mục** (xem mục 4–6) |
 | 5. Cấu hình chuẩn | Múi giờ, định dạng vi-VN, tắt Fast Startup, .NET 3.5, restore point… |
 | 6. Driver + Windows Update | Dell Command \| Update / Lenovo System Update rồi Windows Update |
 | 7. Báo cáo | HTML trên máy và trong `Reports\` cạnh tool; đồng thời lưu kiểm kê. Bấm **Kết thúc wizard** khi xong |
+
+Bước 3, 5, 6 chạy nhiều mục: khung bên phải chuyển thành **thanh tiến độ** (mục mấy / tổng mấy, mục nào xong, mục nào
+lỗi và vì sao). Chạy xong bấm **Xong** để quay lại bước.
 
 ---
 
 ## 4. Cài Office 2010 / 2013 / 2016 (bản volume)
 
-Office **không** nằm trong profile vì mỗi người dùng một bản: chọn ở **phần mềm thêm** của wizard (hoặc tick tay ở trang
-Phần mềm). Chỉ cài **một** bản Office trên một máy.
+Mỗi người dùng một bản Office, nên bản Office chọn ở thẻ **Microsoft Office** đầu trang **Phần mềm** (hoặc ở **phần
+mềm thêm** / mẫu của wizard, trang Phần mềm sẽ chọn sẵn). Thẻ chỉ cho chọn **một** bản: Không cài / Office 2016 /
+2013 / 2010 / Microsoft 365. Dòng nhỏ dưới tên mỗi bản cho biết cài được không: "Cài từ kho bộ cài", "Đã cài",
+"Cần kho bộ cài" (bấm **Chọn kho…** ở dòng trên), "Không thấy bộ cài trong kho"…
 
-1. **Máy có Microsoft 365 / Office cài sẵn?** Máy Dell, Lenovo mới thường có. Trang Phần mềm sẽ hiện ở cột Trạng thái
-   "Không cài được: máy đang có Microsoft 365…". Khi đó vào trang **Sửa lỗi → nhóm Office → Gỡ Microsoft 365 / Office
-   cài sẵn (Click-to-Run)**, chạy (5–15 phút), khởi động lại máy, quay lại trang Phần mềm bấm **Kiểm tra lại**.
-2. **Cài:** trang **Phần mềm**, nhóm Văn phòng, tick bản cần cài (Office 2016 64-bit, 2013 64-bit hoặc 2010 32-bit),
-   bấm **Cài mục đã chọn**. Tool tự mount ISO, chạy `setup.exe /config <file xml>` im lặng (không có cửa sổ, không có
-   thanh tiến độ), tháo ISO khi xong; mất 10–20 phút. Log của bộ cài Office nằm trong thư mục `%TEMP%` của tài khoản
-   chạy tool (tên `Office 2016 Standard Setup(…).txt`, theo dòng `Logging` trong file XML). Lỗi thì xem mục 8.
+1. **Máy có Microsoft 365 / Office cài sẵn?** Máy Dell, Lenovo mới thường có. Chọn bản Office cần cài: dưới thẻ hiện
+   cảnh báo "Máy đang có Microsoft 365…" và ô **Gỡ trước khi cài** đã tick. Để nguyên tick: lượt cài sẽ gỡ bản cài sẵn
+   trước (5–15 phút, đóng Word / Excel / Outlook trước), cài các phần mềm khác, cài Office sau cùng. Nếu Office báo lỗi
+   vì máy chưa khởi động lại sau khi gỡ: khởi động lại, mở lại trang Phần mềm, bấm **Thử lại mục lỗi**.
+   (Vẫn gỡ riêng được ở **Sửa lỗi → Office → Gỡ Microsoft 365 / Office cài sẵn (Click-to-Run)**.)
+2. **Cài:** bấm **Cài N mục** ở góc dưới. Trang chuyển sang **thanh tiến độ**: "Mục 3/7: Cài Office 2016 · Đang cài
+   đặt", mỗi mục có ✔ / ✖ / đang chạy; ứng dụng tải từ Internet có % tải về. Office cài im lặng từ ISO (tool tự mount,
+   chạy `setup.exe /config <file xml>`, tháo ISO), mất 10–20 phút, trong lúc đó thanh của Office chạy qua lại vì bộ
+   cài không báo phần trăm. **Dừng sau mục đang chạy** để dừng mà không cắt ngang bộ cài. Xong thì có thẻ kết quả: mục
+   nào lỗi, vì sao, có cần khởi động lại không. Log của bộ cài Office nằm trong thư mục `%TEMP%` của tài khoản chạy tool
+   (tên `Office 2016 Standard Setup(…).txt`, theo dòng `Logging` trong file XML). Lỗi thì xem mục 8.
 3. **Kích hoạt:** nếu lúc cài máy chưa có Internet hoặc chưa điền key, chạy **Sửa lỗi → Office → Kích hoạt Office bản
    volume (MAK) và xem trạng thái**. Dòng ✔ "đã kích hoạt" là xong; ✖ thì xem lời báo (thiếu Internet, key MAK hết
    lượt…).
@@ -125,7 +142,7 @@ Lưu ý:
 
 1. Đã chép `SyLink.xml` của SEPM vào thư mục gói client (mục 1.3). Không có file này máy vẫn cài được nhưng là bản
    *unmanaged*, không báo về SEPM.
-2. Trang **Phần mềm**, nhóm **Diệt virus**, tick **Symantec Endpoint Protection 14.3 RU9**, bấm **Cài mục đã chọn**.
+2. Trang **Phần mềm**, nhóm **Diệt virus**, tick **Symantec Endpoint Protection 14.3 RU9**, bấm **Cài N mục**.
    Tool chạy `Sep64.msi` im lặng (`SYMREBOOT=ReallySuppress`: không tự khởi động lại), log MSI nằm trong thư mục logs.
 3. **Khởi động lại máy** (tool hỏi nếu bộ cài báo cần khởi động lại; không hỏi thì vẫn nên khởi động lại một lần).
 4. **Kiểm tra:**
@@ -144,7 +161,8 @@ Lưu ý:
   chạy cùng Windows cho mọi người dùng.
 - **Ứng dụng winget** (Chrome, Foxit, Zalo, 7-Zip, UltraViewer, VLC…): cần Internet. Thiếu winget thì chạy **Sửa lỗi →
   Phần mềm → Sửa / cài lại winget**.
-- **Profile phòng ban:** chọn profile ở ô trên cùng rồi **Chọn theo profile** để tick sẵn các ứng dụng máy chưa có.
+- **Profile phòng ban:** ở dòng **Chọn nhanh theo phòng ban**, chọn profile rồi bấm **Chọn theo profile** để tick sẵn
+  các ứng dụng máy chưa có (và chọn sẵn bản Office nếu profile có).
 - **Công cụ hãng máy:** Dell Command | Update, Lenovo System Update (mục Cập nhật driver, BIOS của hãng tự cài khi cần).
 - Thêm / bớt phần mềm trong danh mục: sửa `SOFT\config\apps.yaml` theo [SOFTWARE.md](SOFTWARE.md).
 

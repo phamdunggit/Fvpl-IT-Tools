@@ -19,17 +19,57 @@ apps:
     source: winget
     winget_id: Mozilla.Firefox
 
-  # ---- Văn phòng
-  - id: office
-    name: Microsoft Office
+  # ---- Văn phòng: Office (choice: office → trang Phần mềm hiện thành thẻ chọn một bản)
+  # Bản volume cài thẳng từ ISO trong kho bộ cài, key MAK nằm trong file XML của kho (không bao giờ ở đây).
+  - id: office2016
+    name: Microsoft Office Standard 2016 (64-bit)
     group: Văn phòng
+    choice: office
     source: share
-    installer: '{share}\Installers\Office\setup.exe'
-    args: '/configure "{share}\Installers\Office\config-van-phong.xml"'
-    detect: { uninstall_name: 'Microsoft 365*|Microsoft Office*' }
+    installer: '{share}\SW_DVD5_Office_2016_64Bit_English_MLF_X20-42479.ISO'
+    args: '/config "{share}\config\office\office2016-standard.xml"'
+    detect: { uninstall_name: 'Microsoft Office Standard 2016*' }
+    conflicts: 'Microsoft 365*|Microsoft Office 365*|Microsoft Office Home*|Microsoft Office Professional*|Microsoft Office Standard 2013*|Microsoft Office Standard 2010*'
     timeout: 3600
     description: >
-      Cài bằng Office Deployment Tool với file cấu hình trên share, dùng license của công ty.
+      Bản mặc định cho máy mới. Bản volume, cài im lặng từ ISO trong kho bộ cài và tự kích hoạt bằng key MAK
+      trong config\office\office2016-standard.xml.
+  - id: office2013
+    name: Microsoft Office Standard 2013 (64-bit)
+    group: Văn phòng
+    choice: office
+    source: share
+    installer: '{share}\SW_DVD5_Office_2013w_SP1_64Bit_English_MLF_X19-34904.ISO'
+    args: '/config "{share}\config\office\office2013-standard.xml"'
+    detect: { uninstall_name: 'Microsoft Office Standard 2013*' }
+    conflicts: 'Microsoft 365*|Microsoft Office 365*|Microsoft Office Home*|Microsoft Office Professional*|Microsoft Office Standard 2016*|Microsoft Office Standard 2010*'
+    timeout: 3600
+    description: >
+      Cho máy cấu hình yếu. Bản volume SP1, cài im lặng từ ISO trong kho bộ cài (key trong
+      config\office\office2013-standard.xml).
+  - id: office2010
+    name: Microsoft Office Standard 2010 (32-bit)
+    group: Văn phòng
+    choice: office
+    source: share
+    installer: '{share}\Microsoft Office 2010 Standard Edition X86 SP1.iso'
+    args: '/config "{share}\config\office\office2010-standard.xml"'
+    detect: { uninstall_name: 'Microsoft Office Standard 2010*' }
+    conflicts: 'Microsoft 365*|Microsoft Office 365*|Microsoft Office Home*|Microsoft Office Professional*|Microsoft Office Standard 2016*|Microsoft Office Standard 2013*'
+    timeout: 3600
+    description: >
+      Chỉ khi phần mềm cũ bắt buộc cần bản này (Office 2010 đã hết hỗ trợ từ 2020).
+  - id: office365
+    name: Microsoft 365 Apps
+    group: Văn phòng
+    choice: office
+    source: winget
+    winget_id: Microsoft.Office
+    detect: { uninstall_name: 'Microsoft 365*|Microsoft Office 365*' }
+    conflicts: 'Microsoft Office Standard 20*|Microsoft Office Professional Plus 20*'
+    timeout: 3600
+    description: >
+      Tải từ Internet (khoảng 3–4GB). Người dùng phải có tài khoản Microsoft 365 trả phí để đăng nhập kích hoạt.
   - id: foxit
     name: Foxit PDF Reader
     group: Văn phòng
@@ -149,7 +189,7 @@ apps:
 profiles:
   van-phong:
     name: Văn phòng
-    apps: [chrome, office, foxit, unikey, zalo, ultraviewer, 7zip, vlc, vcredist, dotnet8-desktop]
+    apps: [chrome, office2016, foxit, unikey, zalo, ultraviewer, 7zip, vlc, vcredist, dotnet8-desktop]
   ke-toan:
     name: Kế toán
     extends: van-phong
