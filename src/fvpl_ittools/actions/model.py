@@ -38,6 +38,7 @@ BUILTIN_NAMES = {
     "restart_explorer": "Khởi động lại Explorer",
     "rebuild_icon_cache": "Tắt Explorer, xoá cache icon và thumbnail, mở lại Explorer",
     "restart_spooler": "Khởi động lại Print Spooler",
+    "notify_environment": "Báo cho Windows biết biến môi trường đã đổi",
 }
 
 SERVICE_ACTIONS = ("start", "stop", "restart")

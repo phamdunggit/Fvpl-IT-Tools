@@ -280,7 +280,7 @@ Danh sách mặc định gợi ý (**cần bồ chốt**; đã đưa phần có 
 | Sao lưu và cài lại driver ✔ | `pnputil /export-driver * <thư mục>` vào `DriverBackup\` cạnh tool; cài lại bằng `pnputil /add-driver /subdirs /install`. Tiện ích → Công cụ khác | P2 |
 | Xem nhanh Event Log ✔ | Lỗi Critical và Error trong 24 giờ / 7 / 30 ngày, gộp theo loại, gợi ý tiếng Việt cho lỗi hay gặp. Tiện ích → Event log | P2 |
 | Sửa file HOSTS ✔ | Sao lưu rồi mở bằng Notepad (quyền admin) | P2 |
-| Sửa biến PATH | | P3 |
+| Sửa biến PATH ✔ | PATH của máy và của người dùng, đánh dấu mục không tồn tại / trùng, thêm / gỡ / đổi thứ tự; ghi bằng mục registry có hoàn tác, báo WM_SETTINGCHANGE. Tiện ích → Công cụ khác | P3 |
 | Tìm process đang khoá file ✔ | Windows Restart Manager API (ctypes), file hoặc thư mục; kết thúc tiến trình có hỏi lại | P3 |
 | Xem mật khẩu Wi-Fi đã lưu ✔ | `netsh wlan export profile key=clear` ra thư mục tạm, đọc XML, xoá ngay; không ghi log | P3 |
 | Chạy chẩn đoán RAM ✔ | `mdsched`, ở Tiện ích → Mở nhanh | P3 |

@@ -655,10 +655,23 @@ def _restart_spooler(ctx: RunContext) -> StepOutcome:
     return _shell_outcome(result, BuiltinStep(name="restart_spooler"), 120)
 
 
+def _notify_environment(ctx: RunContext) -> StepOutcome:
+    """Gửi WM_SETTINGCHANGE "Environment" để Explorer và chương trình mở sau đó đọc lại PATH."""
+    ctx.say(Level.CMD, f"> {BUILTIN_NAMES['notify_environment']}")
+    try:
+        import ctypes
+        result = ctypes.c_ulong()
+        ctypes.windll.user32.SendMessageTimeoutW(0xFFFF, 0x001A, 0, "Environment", 0x0002, 5000, ctypes.byref(result))
+    except (OSError, AttributeError) as exc:
+        return StepOutcome(Status.FAILED, f"Không báo được cho Windows: {exc}. Đăng xuất / đăng nhập lại để có PATH mới.")
+    return StepOutcome(changed=False)
+
+
 BUILTINS: dict[str, Callable[[RunContext], StepOutcome]] = {
     "restart_explorer": _restart_explorer,
     "rebuild_icon_cache": _rebuild_icon_cache,
     "restart_spooler": _restart_spooler,
+    "notify_environment": _notify_environment,
 }
 
 

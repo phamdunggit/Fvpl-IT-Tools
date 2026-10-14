@@ -40,6 +40,7 @@ from ...core import drivers, eventlog, lockedfiles, paths, shell, wifi
 from ...core.executor import Level
 from ..controller import RunController
 from ..widgets import Worker, open_path
+from .path_dialog import PathDialog
 
 log = logging.getLogger(__name__)
 ROW_ROLE = Qt.ItemDataRole.UserRole
@@ -217,6 +218,18 @@ class ToolsPanel(QWidget):
         box.addLayout(row)
         layout.addWidget(card)
 
+        # PATH
+        card, box = self._card("Biến PATH")
+        box.addWidget(_note("Xem từng thư mục trong PATH của máy và của người dùng, bỏ mục không tồn tại / trùng, thêm "
+                            "hoặc gỡ thư mục. Dùng khi gõ lệnh báo \"is not recognized\" hoặc chạy nhầm bản chương trình."))
+        row = QHBoxLayout()
+        self.path_button = QPushButton("Sửa biến PATH…")
+        self.path_button.clicked.connect(self.open_path_editor)
+        row.addWidget(self.path_button)
+        row.addStretch(1)
+        box.addLayout(row)
+        layout.addWidget(card)
+
         # File bị khoá
         card, box = self._card("Chương trình đang khoá file")
         box.addWidget(_note("Khi không xoá / đổi tên / chép đè được file vì \"đang được dùng\": chọn file hoặc thư mục "
@@ -386,6 +399,9 @@ class ToolsPanel(QWidget):
         self.wifi_timer.stop()
 
     # chung
+
+    def open_path_editor(self) -> None:
+        PathDialog(self.app, self.controller, self).exec()
 
     def _done(self, name: str, result: object) -> None:
         if name == "lockers":

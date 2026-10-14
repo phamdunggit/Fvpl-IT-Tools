@@ -1067,3 +1067,23 @@ def test_welcome_shows_once_and_history_empty_state(window, monkeypatch):
     history.refresh()
     assert history.table.isHidden() and not history.empty.isHidden()
     assert window.sidebar.item(2).toolTip() == "Ctrl+3"
+
+
+def test_path_dialog_cleans_and_saves(window, tmp_path, monkeypatch):
+    from fvpl_ittools.core import envpath
+    from fvpl_ittools.ui.pages import path_dialog
+    good = tmp_path / "tools"
+    good.mkdir()
+    values = {envpath.MACHINE: f"{good};{tmp_path / 'da-xoa'}", envpath.USER: f"{good};{tmp_path}"}
+    monkeypatch.setattr(envpath, "read", lambda scope, key: values[scope])
+    dialog = path_dialog.PathDialog(window.app, window.controller)
+    assert [entry.state for entry in dialog.machine.entries] == ["ok", "missing"]
+    assert [entry.state for entry in dialog.user.entries] == ["duplicate", "ok"]  # trùng với PATH của máy
+    assert dialog.changes() == {} and not dialog.save_button.isEnabled()
+    dialog.user.clean()
+    assert dialog.changes() == {envpath.USER: str(tmp_path)} and dialog.save_button.isEnabled()
+    runs = []
+    monkeypatch.setattr(window.controller, "run", lambda actions, **kw: runs.append([a.id for a in actions]))
+    monkeypatch.setattr(path_dialog.QMessageBox, "question", lambda *args: path_dialog.QMessageBox.StandardButton.Yes)
+    dialog.save()
+    assert runs == [["env.path_user"]]

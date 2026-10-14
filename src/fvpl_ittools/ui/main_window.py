@@ -69,6 +69,8 @@ TOOLS = (
      "tab:utilities:Công cụ khác", "driver backup pnputil cài lại windows", False, "toolbox"),
     ("Sửa file HOSTS", "Sao lưu rồi mở file hosts bằng Notepad", "tab:utilities:Công cụ khác",
      "hosts chặn web", False, "toolbox"),
+    ("Sửa biến PATH", "Bỏ thư mục không tồn tại / trùng, thêm hoặc gỡ thư mục trong PATH", "tab:utilities:Công cụ khác",
+     "path biến môi trường environment is not recognized lệnh không chạy", True, "toolbox"),
     ("Tìm chương trình đang khoá file", "File / thư mục không xoá được vì đang mở", "tab:utilities:Công cụ khác",
      "file bị khoá không xoá được đang sử dụng in use", False, "toolbox"),
     ("Xem mật khẩu Wi-Fi đã lưu", "Lấy mật khẩu Wi-Fi để cài cho máy khác", "tab:utilities:Công cụ khác",
