@@ -254,7 +254,7 @@ Mỗi nhóm có một **gói sửa nhanh** (*Sửa mạng*, *Sửa máy in*, *S�
 | Sửa / cài lại winget | Đăng ký lại App Installer cho tài khoản; không được thì cài App Installer và các gói phụ thuộc từ share (giống "WinGet Reinstall" của WinUtil). *Đã làm: mục `sw.repair_winget` ở trang Sửa lỗi* | P1 |
 | Office | Cài bằng Office Deployment Tool với file `config.xml` trên share, dùng license của công ty | P1 |
 | Cập nhật app | `winget upgrade`, có danh sách loại trừ | P2 |
-| Gỡ cài đặt | | P2 |
+| Gỡ cài đặt ✔ | Tab **Gỡ phần mềm** (trang Tối ưu & dọn dẹp): Programs and Features của máy và của người đang đăng nhập, gỡ im lặng khi biết cách (MSI, QuietUninstallString, Inno, kiểu Chrome, winget, tham số khai báo), không thì mở trình gỡ của hãng; phần mềm rác (WPS, 360, McAfee dùng thử…) đánh dấu Nên gỡ, báo ở Trang chủ. Danh sách: `data/uninstall.yaml` + `SOFT\config\uninstall.yaml` | P2 |
 | Driver theo hãng ✔ (Dell, Lenovo) | Mục "Cập nhật driver, BIOS của hãng" (`55-drivers.yaml`): tự nhận hãng; Dell Command \| Update (`dcu-cli /applyUpdates`, tự tạm dừng BitLocker) hoặc Lenovo System Update (`tvsu /CM`), chưa có thì cài bằng winget; bước 6 của wizard dùng. HP chưa làm (máy HP ít) | P2 |
 
 Danh sách mặc định gợi ý (**cần bồ chốt**; đã đưa phần có winget vào `data/apps.yaml` đóng gói kèm tool):

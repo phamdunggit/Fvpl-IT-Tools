@@ -1,4 +1,4 @@
-"""Trang Tối ưu & dọn dẹp: dọn rác (quét trước rồi mới xoá) và các mục tối ưu / quyền riêng tư."""
+"""Trang Tối ưu & dọn dẹp: dọn rác (quét trước rồi mới xoá), gỡ phần mềm và các mục tối ưu / quyền riêng tư."""
 
 from __future__ import annotations
 
@@ -32,6 +32,7 @@ from ...core.executor import BatchResult, Level
 from ..controller import RunController
 from ..widgets import Worker, page_header
 from .actions_page import ActionsPage
+from .uninstall_panel import UninstallPanel
 
 log = logging.getLogger(__name__)
 CATEGORY_ROLE = Qt.ItemDataRole.UserRole
@@ -473,7 +474,8 @@ class OptimizePage(QWidget):
         root.setContentsMargins(24, 20, 24, 12)
         root.setSpacing(10)
         page_header(root, "Tối ưu & dọn dẹp",
-                    "Dọn rác có quét trước, tối ưu và tắt quảng cáo / theo dõi. Mục đổi registry hoàn tác được.")
+                    "Dọn rác có quét trước, gỡ phần mềm rác (WPS…), tối ưu và tắt quảng cáo / theo dõi. "
+                    "Mục đổi registry hoàn tác được.")
         self.tabs = QTabWidget()
         self.cleanup = CleanupPanel(app, controller)
         self.tweaks = ActionsPage(
@@ -482,8 +484,10 @@ class OptimizePage(QWidget):
         )
         self.startup = StartupPanel(app, controller)
         self.bigfiles = BigFilesPanel(controller)
+        self.uninstall = UninstallPanel(app, controller)
         self.tabs.addTab(self.cleanup, "Dọn rác")
         self.tabs.addTab(self.bigfiles, "File lớn")
+        self.tabs.addTab(self.uninstall, "Gỡ phần mềm")
         self.tabs.addTab(self.startup, "Khởi động cùng Windows")
         self.tabs.addTab(self.tweaks, "Tối ưu && quyền riêng tư")  # "&&": Qt hiểu "&" là phím tắt
         root.addWidget(self.tabs, 1)
@@ -497,6 +501,7 @@ class OptimizePage(QWidget):
             self._started = True
             self.cleanup.rescan()
             self.startup.refresh()
+            self.uninstall.refresh()
         super().showEvent(event)
 
     def stop(self) -> None:

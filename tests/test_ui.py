@@ -61,6 +61,15 @@ def window(qt_app, monkeypatch):
     # Khởi động cùng Windows: không đọc Task Scheduler thật.
     from fvpl_ittools.cleanup import startup
     monkeypatch.setattr(startup, "task_entries", lambda cancel=None: [])
+    # Gỡ phần mềm: danh sách mẫu, không đọc registry thật.
+    from fvpl_ittools.software import uninstall
+    monkeypatch.setattr(uninstall, "read_programs", lambda sid=None: [
+        uninstall.Program("7-Zip 24.08 (x64)", "HKLM:7zip", uninstall=r'"C:\7\Uninstall.exe"'),
+        uninstall.Program("Microsoft Visual C++ 2015-2022 Redistributable (x64)", "HKLM:vc",
+                          msi_code="{12345678-1234-1234-1234-123456789ABC}"),
+        uninstall.Program("WPS Office (12.2)", "HKU:wps", user_sid="S", uninstall=r'"C:\W\uninst.exe"'),
+        uninstall.Program("Thành phần ẩn", "HKLM:part", uninstall="x.exe", hidden=True),
+    ])
     # Trang Máy in: danh sách mẫu, không đọc máy thật.
     from fvpl_ittools.printers import manage
 
@@ -1143,3 +1152,36 @@ def test_migrate_panel_backup_restore_and_software(window, qt_app, tmp_path, mon
     monkeypatch.setattr(window.software, "preselect_profile", lambda profile, extra: picked.append((profile, list(extra))))
     panel.software_button.click()
     assert picked and "7zip" in picked[0][1] and window.stack.currentWidget() is window.software
+
+
+def test_uninstall_tab_marks_unwanted_and_uninstalls(window, qt_app, monkeypatch):
+    panel = window.optimize.uninstall
+    _wait(qt_app, lambda: window.unwanted is not None)  # đọc lúc mở cửa sổ, cho khung Tình trạng máy
+    assert window.unwanted == ["WPS Office (12.2)"]
+    assert any(item.target == "tab:optimize:Gỡ phần mềm" for item in window.home.health_items)
+    window.navigate("tab:optimize:Gỡ phần mềm")
+    _wait(qt_app, lambda: not panel.loading and panel.programs)
+    assert panel.tree.topLevelItemCount() == 3  # thành phần ẩn không hiện
+    assert panel.tree.topLevelItem(0).text(0) == "WPS Office (12.2)"  # phần mềm nên gỡ lên đầu
+    assert "Nên gỡ" in panel.tree.topLevelItem(0).text(6) and not panel.banner.isHidden()
+    panel.banner.button.click()
+    assert panel.checked_keys() == ["HKU:wps"]
+    panel.show_hidden.setChecked(True)
+    assert panel.tree.topLevelItemCount() == 4 and panel.checked_keys() == ["HKU:wps"]
+    panel.filter.setText("visual")
+    assert sum(not panel.tree.topLevelItem(i).isHidden() for i in range(4)) == 1
+    asked, runs = [], []
+    monkeypatch.setattr(panel, "confirm", lambda text, risky: asked.append((text, risky)) or True)
+    monkeypatch.setattr(window.controller, "run", lambda actions, **kw: runs.append(actions))
+    for index in range(4):
+        item = panel.tree.topLevelItem(index)
+        if item.text(0).startswith("Microsoft Visual"):
+            item.setCheckState(0, item.checkState(0).Checked)
+    panel.uninstall_button.click()
+    assert asked and asked[0][1] and "Cẩn thận" in asked[0][0]  # VC++ là mục nên giữ
+    actions = runs[0]
+    assert [action.name for action in actions] == ["Gỡ Microsoft Visual C++ 2015-2022 Redistributable (x64)",
+                                                   "Gỡ WPS Office (12.2)"]
+    assert "/qn" in actions[0].apply[0].script and "'/S'" in actions[1].apply[0].script
+    assert not actions[1].admin  # tool chạy bằng chính người dùng: không cần tác vụ chạy hộ
+

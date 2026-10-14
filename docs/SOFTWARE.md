@@ -127,6 +127,24 @@ Office 2019 trở đi không có bộ cài MSI: cài bằng Office Deployment To
 
 Symantec Endpoint Protection: gói client là file tự giải nén. Giải nén ra thư mục (7-Zip) rồi khai báo `Sep64.msi` với `args: 'SYMREBOOT=ReallySuppress'`. Gói "All Clients" tải về là bản unmanaged; muốn client báo về SEPM thì chép đè `SyLink.xml` xuất từ SEPM vào thư mục đó, hoặc xuất gói cài managed từ SEPM. Nhận biết đã cài dùng đúng tên `Symantec Endpoint Protection` (không có `*`), để không nhầm với máy chủ "Symantec Endpoint Protection Manager".
 
+## Phần mềm nên gỡ / nên giữ (tab Gỡ phần mềm)
+
+Tool có sẵn danh sách trong `data/uninstall.yaml`. Công ty muốn thêm (ví dụ không cho dùng Cốc Cốc) thì tạo `SOFT\config\uninstall.yaml` cùng dạng; mục trong file đó được xét trước mục có sẵn:
+
+```yaml
+unwanted:          # đánh dấu "Nên gỡ", báo ở Trang chủ
+  - match: 'Cốc Cốc*'
+    reason: Công ty dùng Chrome
+keep:              # đánh dấu "Nên giữ", hỏi lại trước khi gỡ
+  - match: 'MISA*'
+    reason: Phần mềm kế toán
+silent:            # tham số gỡ im lặng cho phần mềm không tự khai báo
+  - match: 'TeamViewer*'
+    args: /S
+```
+
+`match` giống `detect.uninstall_name` (`*` là chuỗi bất kỳ, nhiều mẫu ngăn bằng `|`). Phần mềm cài bằng MSI, Inno Setup, trình gỡ kiểu Chrome hay có QuietUninstallString thì tool tự gỡ im lặng, không cần khai báo. Thử tham số `silent` trên máy ảo trước: sai tham số thì trình gỡ có thể hiện cửa sổ hoặc báo lỗi.
+
 ## Lưu ý
 
 - **Máy chưa vào domain thì thường không vào được share.** Bước join domain của wizard Cài máy mới (GĐ2) sẽ lo việc này; hiện tại cần map share bằng tài khoản domain trước (`net use`), hoặc cài phần mềm sau khi join.

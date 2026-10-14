@@ -35,6 +35,7 @@ from ..actions.model import Risk
 from ..app import AppContext
 from ..core import health, prefs, progress, scenarios, search, shell, taskbar, updates
 from ..core.executor import BatchResult, Level, Status
+from ..software import uninstall
 from . import icons, theme
 from .components.command_palette import CommandPalette
 from .components.welcome import WelcomeDialog
@@ -83,6 +84,9 @@ TOOLS = (
     ("Dọn rác", "Quét dung lượng từng loại rác rồi mới xoá", "tab:optimize:Dọn rác",
      "dọn rác đầy ổ temp cleanup ổ c", False, "gauge"),
     ("Tìm file lớn", "Tìm file chiếm nhiều dung lượng", "tab:optimize:File lớn", "file lớn đầy ổ dung lượng", False, "disk"),
+    ("Gỡ phần mềm", "Gỡ phần mềm đã cài, phần mềm rác tự cài kèm (WPS, 360…)", "tab:optimize:Gỡ phần mềm",
+     "gỡ cài đặt uninstall xoá phần mềm wps kingsoft 360 mcafee adware phần mềm rác quảng cáo programs and features",
+     False, "apps"),
     ("Chương trình chạy cùng Windows", "Tắt bớt chương trình khởi động cùng máy", "tab:optimize:Khởi động cùng Windows",
      "startup khởi động máy chậm", False, "gauge"),
     ("Thêm máy in", "Thêm máy in qua IP hoặc máy in share", "tab:printers:Thêm máy in",
@@ -361,7 +365,10 @@ class MainWindow(QMainWindow):
         self._update_store_box()
         self.update_worker = Worker(self)
         self.update_worker.done.connect(self._update_checked)
+        self.unwanted: list[str] | None = None
+        self.optimize.uninstall.unwanted_found.connect(self._unwanted_found)
         self.check_for_update()
+        self.check_unwanted()
 
         self.controller.say(Level.INFO, f"Sẵn sàng. Log phiên này: {app.log_file or '(không ghi log)'}")
         if not app.env.is_admin:
@@ -511,7 +518,7 @@ class MainWindow(QMainWindow):
 
     def _update_health(self) -> None:
         overview = self.overview
-        items = health.items(overview.data, overview.basics())
+        items = health.items(overview.data, overview.basics(), self.unwanted)
         self.home.set_health(items, loading=overview.loading)
 
     # ------------------------------------------------------------ tìm kiếm, điều hướng
@@ -664,7 +671,21 @@ class MainWindow(QMainWindow):
         if folder is not None:
             self.update_worker.run("update", lambda: updates.check(folder, __version__))
 
-    def _update_checked(self, _name: str, result: object) -> None:
+    def check_unwanted(self) -> None:
+        """Phần mềm nên gỡ (WPS…) cho khung Tình trạng máy: đọc registry ở thread nền."""
+        sid, root = self.app.env.target_user.sid, self.app.software.root
+        self.update_worker.run("unwanted", lambda: [program.name for program, _reason in uninstall.unwanted(
+            uninstall.read_programs(sid), uninstall.load_rules(root))])
+
+    def _unwanted_found(self, names: list) -> None:
+        self.unwanted = list(names)
+        self._update_health()
+
+    def _update_checked(self, name: str, result: object) -> None:
+        if name == "unwanted":
+            if isinstance(result, list):
+                self._unwanted_found(result)
+            return
         if isinstance(result, updates.Release):
             self.home.show_update(result)
             self.controller.say(Level.INFO, f"Có bản tool mới {result.version}: {result.folder}")

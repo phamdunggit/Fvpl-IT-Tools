@@ -76,5 +76,10 @@ def test_health_items_from_inventory():
     assert update.target == "action:wu.scan_install"
     assert any(text.startswith("Máy chạy liên tục") for text in texts)
     assert "Đã vào domain corp.example" in texts
+    assert not any("nên gỡ" in text for text in texts)
+    unwanted = health.items(SAMPLE, basics, ["WPS Office", "Baidu", "360 Total Security", "McAfee"])
+    item = next(item for item in unwanted if "nên gỡ" in item.text)
+    assert item.text == "Có phần mềm nên gỡ: WPS Office, Baidu, 360 Total Security…"
+    assert item.state == "warn" and item.target == "tab:optimize:Gỡ phần mềm"
     workgroup = inventory.Basics("PC", "Workgroup WORKGROUP", False, "Windows 11", "PC\\an", True)
     assert health.items({}, workgroup)[0].target == "page:newpc"

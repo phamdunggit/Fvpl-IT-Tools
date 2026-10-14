@@ -1,0 +1,49 @@
+# Danh sách cho tab "Gỡ phần mềm" (trang Tối ưu & dọn dẹp). So với tên trong Programs and Features, không phân biệt
+# hoa thường: '*' là chuỗi bất kỳ, nhiều mẫu ngăn bằng '|'.
+#
+# Công ty muốn thêm / đổi: tạo SOFT\config\uninstall.yaml cùng dạng này. Mục trong file đó được xét trước mục ở đây.
+#
+#   unwanted: phần mềm nên gỡ khỏi máy công ty. Có mục là tool hiện "Nên gỡ" và tick sẵn.
+#   keep:     phần mềm máy cần để chạy. Tool hỏi lại trước khi gỡ.
+#   silent:   tham số gỡ im lặng cho phần mềm không tự khai báo (thêm vào sau lệnh gỡ trong Programs and Features).
+#             Phần mềm cài bằng MSI, Inno Setup, trình gỡ kiểu Chrome thì tool tự biết, không cần khai báo.
+
+unwanted:
+  - match: 'WPS Office*|Kingsoft Office*|WPS PDF*'
+    reason: Bộ văn phòng hay tự cài kèm phần mềm khác, giành quyền mở file Word / Excel, có quảng cáo
+  - match: '360 Total Security*|360 Security*|360安全*'
+    reason: Phần mềm diệt virus kèm quảng cáo, xung đột với Symantec
+  - match: 'Baidu*'
+    reason: Phần mềm Baidu hay tự cài kèm, có quảng cáo
+  - match: 'McAfee*'
+    reason: Bản dùng thử cài sẵn trên máy mới, xung đột với Symantec
+  - match: 'Norton Security*|Norton 360*|Norton AntiVirus*|Norton Internet Security*'
+    reason: Bản dùng thử cài sẵn, xung đột với Symantec Endpoint Protection
+  - match: 'Avast Free Antivirus*|AVG AntiVirus*|AVG Protection*|Avira*'
+    reason: Diệt virus miễn phí, xung đột với Symantec
+  - match: 'Driver Booster*|Advanced SystemCare*|IObit*|Driver Easy*|DriverPack*|Driver Genius*'
+    reason: Phần mềm "tối ưu máy" kèm quảng cáo, tự cài driver không rõ nguồn
+  - match: 'OneLaunch*|Wave Browser*|WebDiscover*|Web Companion*|ByteFence*|Segurazo*|SAntivirus*|PC App Store*|Shift Browser*'
+    reason: Phần mềm quảng cáo (adware) hay cài kèm khi tải phần mềm miễn phí
+  - match: 'KMSpico*|KMSAuto*|KMS Tools*|AAct*'
+    reason: Công cụ bẻ khoá bản quyền, thường kèm mã độc
+
+keep:
+  - match: 'Microsoft Visual C++*|Microsoft .NET*|Microsoft Windows Desktop Runtime*|Microsoft ASP.NET*'
+    reason: Thư viện nhiều phần mềm khác cần để chạy
+  - match: 'Symantec Endpoint Protection*'
+    reason: Phần mềm diệt virus của công ty
+  - match: 'Microsoft Edge*|Microsoft Edge WebView2*'
+    reason: Windows và Office cần Edge WebView2
+  - match: '*Driver*|Intel(R)*|Realtek*|NVIDIA*|AMD Software*|Synaptics*|Dolby*|Conexant*|ELAN*'
+    reason: Driver phần cứng, gỡ có thể làm mất âm thanh, Wi-Fi, chuột cảm ứng…
+  - match: 'Dell Command | Update*|Lenovo System Update*'
+    reason: Công cụ cập nhật driver, BIOS của hãng
+
+silent:
+  - match: 'WPS Office*|Kingsoft Office*'
+    args: /S
+  - match: 'Notepad++*|VLC media player*'
+    args: /S
+  - match: '7-Zip*'
+    args: /S

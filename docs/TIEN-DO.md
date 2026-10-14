@@ -4,6 +4,7 @@ Cập nhật: 14/10/2026. File này được cập nhật trước mỗi commit.
 
 ## Đang làm
 
+- **Ba việc bồ yêu cầu ngày 14/10/2026**: (1) gỡ phần mềm, phần mềm rác như WPS (**xong**), (2) sao lưu dữ liệu ổ C trước khi cài lại Windows, tự lưu về một chỗ rồi lấy lại, (3) chỗ nhập key Windows / Office (mỗi bản nhiều key), lưu vào một file mang đi dùng được, kích hoạt từ tool.
 - **Làm mới giao diện** theo [kế hoạch](KE-HOACH-GIAO-DIEN.md) (bồ đã duyệt 14/10/2026). **Xong cả 4 đợt (P0 → P3).** Còn lại là thử với người thật (2–3 người không làm IT tự làm "Không in được", "Cài phần mềm") và thử trên máy ảo có lỗi thật.
 
 ## Đã xong (code xong, **chưa chạy thử bằng quyền admin trên máy ảo**)
@@ -18,7 +19,7 @@ Cập nhật: 14/10/2026. File này được cập nhật trước mỗi commit.
 | GĐ1 Tổng quan + Sửa lỗi | Trang Tổng quan (copy, xuất HTML); các mục sửa lỗi P1; gói sửa nhanh; Tiện ích (mở nhanh 29 công cụ, ping/tracert/nslookup/cổng) |
 | GĐ2 Cài máy mới | **Wizard 8 bước:** kiểm tra trước; tên `FVPL-<mã phòng><2 số>` (thêm mã phòng mới, lưu vào site.yaml; gợi ý số kế tiếp từ AD); đổi tên + join OU chung; tự mở lại sau khi khởi động lại; gpupdate, nhóm IT vào Administrators; phần mềm theo profile; cấu hình chuẩn (có vi-VN); driver / BIOS của hãng (Dell Command \| Update, Lenovo System Update) + Windows Update; báo cáo HTML trên máy và ổ mang theo. **Mẫu** (ví dụ "Kế toán – Laptop": phòng, profile, phần mềm thêm như bản Office) chọn lại một lần là xong. Trang Cài phần mềm (winget, share MSI/EXE/ISO/portable); danh mục công ty trong `SOFT` |
 | Hai bản mang theo | **USB** (tool + cài qua share) và **SSD** (tool + kho `SOFT` cạnh exe, không cần mạng); `packaging/deploy.py usb/ssd` chép ra ổ |
-| GĐ3 Tối ưu & dọn dẹp | Dọn rác có quét trước (8 loại, có cache trình duyệt); tìm file lớn; khởi động cùng Windows (khoá Run, thư mục Startup, **task chạy lúc đăng nhập / bật máy**); hiệu ứng hình ảnh cho máy yếu; dịch vụ cập nhật Edge / Chrome / Adobe sang Manual; chặn app "đồng hành" driver; tắt quảng cáo / theo dõi; power; gỡ app cài sẵn; các mục sửa lỗi P2 (hosts, firewall, Windows Update, WMI, MSI, Teams, RDP, BitLocker, Defender…) |
+| GĐ3 Tối ưu & dọn dẹp | Dọn rác có quét trước (8 loại, có cache trình duyệt); tìm file lớn; **gỡ phần mềm** (tab Gỡ phần mềm: cả phần mềm cài riêng cho người dùng như WPS, gỡ im lặng khi được, phần mềm rác đánh dấu Nên gỡ và báo ở Trang chủ, danh sách sửa được ở `SOFT\config\uninstall.yaml`); khởi động cùng Windows (khoá Run, thư mục Startup, **task chạy lúc đăng nhập / bật máy**); hiệu ứng hình ảnh cho máy yếu; dịch vụ cập nhật Edge / Chrome / Adobe sang Manual; chặn app "đồng hành" driver; tắt quảng cáo / theo dõi; power; gỡ app cài sẵn; các mục sửa lỗi P2 (hosts, firewall, Windows Update, WMI, MSI, Teams, RDP, BitLocker, Defender…) |
 | Giao diện mới, đợt P3 | Mọi trang theo khung mới (màu trang Thông tin máy, Nhật ký có dòng báo trống); **thanh tiến độ trên taskbar** Windows (đỏ khi có lỗi); **"còn khoảng N phút"** theo thời gian chạy thật các lần trước (`durations.json`); **hướng dẫn nhanh 3 bước** lần đầu mở tool (F1 xem lại); phím tắt **Ctrl+1…0**; ô Trang chủ tự giãn khi cỡ chữ 150%; **ảnh giao diện mới** trong hướng dẫn sử dụng |
 | Giao diện mới, đợt P2 (phần sau) | Trang **Cài phần mềm dạng thẻ** (mỗi phần mềm một thẻ: tên, một câu giải thích, nguồn / trạng thái, bấm để chọn); wizard **thanh bước nằm ngang**, **thẻ chọn bản Office** ở bước 1, mỗi bước cuộn được khi cửa sổ thấp; **tên dễ hiểu** (`basic_name`) cho 17 mục có tên kỹ thuật ở chế độ Cơ bản; **thông báo khay hệ thống** khi chạy xong mà cửa sổ đang thu nhỏ |
 | Giao diện mới, đợt P2 (phần đầu) | **Sửa lỗi theo tình huống** từng bước (Kiểm tra → Sửa → Kết quả) cho 6 tình huống: mạng, máy in, domain / ổ chung, máy chậm, Office, Windows Update (`scenarios.yaml`, script kiểm tra chỉ đọc trong `data/scripts/scenarios/`, đã chạy thật trên máy dev); mở từ ô Trang chủ, Ctrl+K, thanh "Hướng dẫn từng bước" trên trang Sửa lỗi. **Gửi kết quả cho IT**: báo cáo vào clipboard + file HTML |
@@ -33,7 +34,9 @@ Cập nhật: 14/10/2026. File này được cập nhật trước mỗi commit.
 | # | Việc | Ghi chú |
 |---|---|---|
 | 1 | Thử giao diện mới với 2–3 người không làm IT, sửa theo góp ý | [Kế hoạch](KE-HOACH-GIAO-DIEN.md) mục 7, cột "Xong khi" của P2 |
-| 2 | Bản 1.0 | Mọi chức năng GĐ4 đã có code. Chờ chạy thử trên VM bằng quyền admin (HANDOFF) rồi bồ duyệt mới đặt 1.0 và merge vào main |
+| 2 | Sao lưu dữ liệu trước khi cài lại Windows | Tự chọn chỗ lưu không nằm trên ổ C, gồm cả thư mục lạ trên ổ C, Wi-Fi, driver; cài lại xong tự tìm bản sao lưu |
+| 3 | Quản lý key Windows / Office, kích hoạt | File key nằm ngoài repo, không ghi key vào log |
+| 4 | Bản 1.0 | Mọi chức năng GĐ4 đã có code. Chờ chạy thử trên VM bằng quyền admin (HANDOFF) rồi bồ duyệt mới đặt 1.0 và merge vào main |
 
 ## Bồ cần làm
 

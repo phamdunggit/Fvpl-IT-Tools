@@ -9,7 +9,7 @@ Cập nhật lần cuối: 14/10/2026, sau khi xong giao diện mới (P0 → P3
 | Giai đoạn | **GĐ1, GĐ2 (wizard Cài máy mới), phần lớn GĐ3 xong phần code.** Còn chạy thử các mục đổi hệ thống bằng quyền admin trên VM (danh sách bên dưới) rồi mới coi là xong |
 | Nhánh | Code mới làm trên `featured`. Chỉ merge về `main` khi được duyệt |
 | Phiên bản | 0.2.0, xem [CHANGELOG.md](../CHANGELOG.md) (trang Phần mềm nằm ở mục "Chưa phát hành") |
-| Test | 379 test pytest, tất cả đều qua (khoảng 1 phút) |
+| Test | 386 test pytest, tất cả đều qua (khoảng 1 phút) |
 | Bản exe | `python packaging\build.py`: thư mục 64MB, zip 27MB. `--test` chạy selftest trên exe, gồm cả đọc thông tin máy |
 
 Đã có:
@@ -26,6 +26,7 @@ Cập nhật lần cuối: 14/10/2026, sau khi xong giao diện mới (P0 → P3
 - **Tiến độ:** `executor._run_batch` phát `progress.BatchStarted` / `ItemUpdate` qua `RunContext.report` (→ signal `RunController.progress`); `RunContext.output` đọc phần trăm từ output. Giao diện: `ui/components/progress_panel.py` (gọi `watch(title)` ngay trước `controller.run`), thanh nhỏ trong khung log. Dừng mềm: `RunController.stop_after_current()`.
 - Trang **Cài máy mới**: wizard 8 bước (`ui/pages/newpc.py`, `newpc/`): kiểm tra trước, thông tin máy (mã phòng lưu vào site.yaml, gợi ý tên bằng AD), đổi tên + join, sau khởi động lại, phần mềm, cấu hình chuẩn, Windows Update, báo cáo. Tiến độ lưu ở `newpc-wizard.json` trong thư mục dữ liệu; bước 2 chép tool vào `%ProgramData%\FVPL-ITTools\app` và hẹn tác vụ `FVPL-ITTools-TiepTucCaiMay` mở lại tool (`--resume`) khi admin đăng nhập.
 - Trang **Tối ưu & dọn dẹp** (GĐ3): dọn rác có quét trước (`cleanup/junk.py`), chương trình khởi động cùng Windows (`cleanup/startup.py`), tối ưu / quyền riêng tư / nguồn điện / gỡ app cài sẵn (`75-optimize.yaml`).
+- **Gỡ phần mềm** (tab ở trang Tối ưu): `software/uninstall.py` đọc khoá Uninstall (HKLM 64 / WOW6432Node, HKU của người đang đăng nhập), `plan()` chọn lệnh gỡ, `uninstall_action()` sinh mục `soft.uninstall_<hash>`: chạy trình gỡ rồi chờ khoá biến mất (không tin mã thoát), phần mềm cài riêng cho người dùng mà tool chạy bằng tài khoản khác thì chạy trình gỡ qua tác vụ Interactive của người dùng. Danh sách nên gỡ / giữ / tham số im lặng: `data/uninstall.yaml` + `<kho>\config\uninstall.yaml`. Giao diện `ui/pages/uninstall_panel.py`; Trang chủ có dòng "Có phần mềm nên gỡ" (`MainWindow.check_unwanted`).
 - Trang **Nhật ký**: hoàn tác thay đổi registry.
 
 ## Bắt đầu
@@ -177,6 +178,11 @@ Tiện ích GĐ4. Đã chạy thật trên máy dev (chỉ đọc): Event log (t
 - [ ] **Sửa HOSTS:** bản sao lưu nằm cạnh file gốc, Notepad mở được bằng quyền admin và lưu được.
 - [ ] **Kết thúc tiến trình** đang khoá file: chương trình của người dùng khác (cần admin), tiến trình hệ thống bị từ chối và báo rõ.
 - [ ] **Sửa PATH** bằng quyền admin: bỏ mục hỏng ở PATH hệ thống, mở cmd mới thấy PATH mới (không cần đăng xuất); Hoàn tác ở trang Nhật ký trả lại giá trị cũ.
+
+Gỡ phần mềm. Đã chạy thật trên máy dev với mục giả trong `HKCU\Software\FVPL-ITTools-Test`: gỡ được, trình gỡ đóng mà mục còn (báo mã 5 sau 15 giây), thiếu file trình gỡ (mã 3), đã gỡ trước đó. Đọc danh sách thật: 142 phần mềm, 100 gỡ im lặng được. Còn:
+- [ ] **WPS Office thật** (cài riêng cho người dùng): `uninst.exe /S` gỡ im lặng hết không, có mở trang khảo sát không; tool chạy bằng tài khoản admin khác người đang đăng nhập (đi qua tác vụ Interactive). Sau khi gỡ, file .docx mở bằng Word.
+- [ ] **Bấm theo trình gỡ** (ví dụ TeamViewer): cửa sổ gỡ hiện lên, bấm Huỷ → báo "vẫn còn"; gỡ xong → ✔.
+- [ ] Gỡ MSI cần khởi động lại (mã 3010) → tool hỏi khởi động lại.
 
 Chuyển dữ liệu máy cũ. Đã chạy thật trên máy dev: sao lưu Music + bookmark Chrome / Edge của người dùng thật vào thư mục tạm (robocopy, manifest đúng), khôi phục sang hồ sơ giả: Chrome đang mở → mục bookmark báo đóng trình duyệt, không ghi. Còn:
 - [ ] **Máy cũ chạy bằng quyền admin** (tool mở bằng "Run as administrator", người dùng khác đang đăng nhập): quét đúng thư mục của người đang đăng nhập, không phải của admin; Documents chuyển sang OneDrive thì không tick sẵn.

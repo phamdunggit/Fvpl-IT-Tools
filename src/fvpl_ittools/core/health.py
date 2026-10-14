@@ -47,8 +47,11 @@ def _system_drive(data: dict) -> HealthItem | None:
     return None
 
 
-def items(data: dict, basics: Basics) -> list[HealthItem]:
-    """Dòng có vấn đề trước, dòng ổn sau. Phần nào chưa đọc xong thì chưa có dòng của phần đó."""
+def items(data: dict, basics: Basics, unwanted: list[str] | None = None) -> list[HealthItem]:
+    """Dòng có vấn đề trước, dòng ổn sau. Phần nào chưa đọc xong thì chưa có dòng của phần đó.
+
+    `unwanted`: tên phần mềm nên gỡ đang có trên máy (software/uninstall.py), None khi chưa đọc.
+    """
     result: list[HealthItem] = []
     if basics.joined_domain:
         checks = data.get("dns_checks") or []
@@ -103,6 +106,10 @@ def items(data: dict, basics: Basics) -> list[HealthItem]:
         if days is not None and days > UPDATE_MAX_DAYS:
             result.append(HealthItem(f"Windows chưa cập nhật {days} ngày", "warn", "Cập nhật",
                                      "action:wu.scan_install"))
+
+    if unwanted:
+        names = ", ".join(unwanted[:3]) + ("…" if len(unwanted) > 3 else "")
+        result.append(HealthItem(f"Có phần mềm nên gỡ: {names}", "warn", "Gỡ", "tab:optimize:Gỡ phần mềm"))
 
     os_info = data.get("os") or {}
     boot = _parse_time(os_info.get("last_boot"))
