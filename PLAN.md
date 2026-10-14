@@ -284,7 +284,7 @@ Danh sách mặc định gợi ý (**cần bồ chốt**; đã đưa phần có 
 | Tìm process đang khoá file ✔ | Windows Restart Manager API (ctypes), file hoặc thư mục; kết thúc tiến trình có hỏi lại | P3 |
 | Xem mật khẩu Wi-Fi đã lưu ✔ | `netsh wlan export profile key=clear` ra thư mục tạm, đọc XML, xoá ngay; không ghi log | P3 |
 | Chạy chẩn đoán RAM ✔ | `mdsched`, ở Tiện ích → Mở nhanh | P3 |
-| Chuyển dữ liệu từ máy cũ sang máy mới | Desktop, Documents, Downloads, bookmark Chrome/Edge, chữ ký Outlook, danh sách máy in, danh sách phần mềm | P3 |
+| Chuyển dữ liệu từ máy cũ sang máy mới ✔ | Desktop, Documents, Downloads, Pictures (Videos, Music tuỳ chọn), bookmark Chrome/Edge, chữ ký Outlook, danh sách máy in, danh sách phần mềm (chọn sẵn ở trang Cài phần mềm). Tiện ích → Chuyển máy | P3 |
 
 ### 5.8 Phần dùng chung (log, sao lưu, hoàn tác)
 

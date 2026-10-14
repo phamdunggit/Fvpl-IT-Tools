@@ -35,6 +35,7 @@ from ..controller import RunController
 from ..credential_dialog import ask_credential
 from ..widgets import Worker, page_header
 from . import system_tools
+from .migrate_panel import MigratePanel
 
 log = logging.getLogger(__name__)
 from .actions_page import ActionsPage
@@ -459,6 +460,8 @@ class UtilitiesPage(QWidget):
         self.tabs.addTab(self.network, "Công cụ mạng")
         self.tabs.addTab(self.events, "Event log")
         self.tabs.addTab(system_tools.scroll(self.tools), "Công cụ khác")
+        self.migrate = MigratePanel(app, controller)
+        self.tabs.addTab(system_tools.scroll(self.migrate), "Chuyển máy")
         self.tabs.addTab(self.secrets, "LAPS && BitLocker")  # "&&": Qt hiểu "&" là phím tắt
         if any(action.page == "utilities" for action in app.actions):
             self.tabs.addTab(ActionsPage("utilities", "", "", "", app, controller, show_header=False), "Mục khác")

@@ -1103,3 +1103,43 @@ def test_home_shows_new_release(window, tmp_path, monkeypatch):
     assert opened == [tmp_path]  # thư mục bản mới chưa có thì mở thư mục cha
     window._update_checked("update", updates.UpdateError("share không trả lời"))
     assert "Không kiểm tra được bản tool mới" in window.log_panel.plain_text()
+
+
+def test_migrate_panel_backup_restore_and_software(window, qt_app, tmp_path, monkeypatch):
+    from fvpl_ittools.core import migrate
+    from fvpl_ittools.ui.pages import migrate_panel
+    desktop = tmp_path / "Desktop"
+    desktop.mkdir()
+    (desktop / "a.txt").write_text("x", encoding="utf-8")
+    sources = [migrate.Source(migrate.SPECS["desktop"], str(desktop), True, 1, 1),
+               migrate.Source(migrate.SPECS["videos"], str(tmp_path / "Videos"), True, 0, 0),
+               migrate.Source(migrate.SPECS["documents"], str(tmp_path / "OneDrive" / "Documents"), True, 5, 1,
+                              onedrive=True)]
+    monkeypatch.setattr(migrate_panel, "_collect", lambda app, cancel=None: (
+        sources, [{"name": "HP", "where": "10.0.0.5"}], ["7-Zip 24.08 (x64)"]))
+    panel = window.utilities.migrate
+    panel.root = panel.target = tmp_path / migrate.FOLDER
+    window.navigate("tab:utilities:Chuyển máy")
+    _wait(qt_app, lambda: not panel.scanning and panel.sources)
+    assert [source.spec.id for source in panel.selected_sources()] == ["desktop"]  # thư mục trống, OneDrive: không tick
+    runs = []
+    monkeypatch.setattr(window.controller, "run", lambda actions, **kw: runs.append([a.id for a in actions]))
+    panel.backup()
+    assert runs == [["move.backup_desktop"]]
+    manifests = list(panel.root.glob("*/manifest.json"))
+    assert len(manifests) == 1 and "7-Zip" in manifests[0].read_text(encoding="utf-8")
+    (manifests[0].parent / "Desktop").mkdir()  # controller.run giả không chép thật
+
+    def no_dialog(*args):
+        raise AssertionError(f"Không được hiện hộp thoại: {args[1:3]}")
+    monkeypatch.setattr(migrate_panel.QMessageBox, "information", no_dialog)
+    monkeypatch.setattr(migrate_panel.QMessageBox, "warning", no_dialog)
+    panel.refresh_backups()
+    assert panel.current_backup() is not None and "10.0.0.5" in panel.backup_info.text()
+    monkeypatch.setattr(migrate_panel.QMessageBox, "question", lambda *args: migrate_panel.QMessageBox.StandardButton.Yes)
+    panel.restore()
+    assert runs[-1] == ["move.restore_desktop"]
+    picked = []
+    monkeypatch.setattr(window.software, "preselect_profile", lambda profile, extra: picked.append((profile, list(extra))))
+    panel.software_button.click()
+    assert picked and "7zip" in picked[0][1] and window.stack.currentWidget() is window.software

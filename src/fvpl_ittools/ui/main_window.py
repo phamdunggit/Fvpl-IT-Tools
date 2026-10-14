@@ -69,6 +69,9 @@ TOOLS = (
      "tab:utilities:Công cụ khác", "driver backup pnputil cài lại windows", False, "toolbox"),
     ("Sửa file HOSTS", "Sao lưu rồi mở file hosts bằng Notepad", "tab:utilities:Công cụ khác",
      "hosts chặn web", False, "toolbox"),
+    ("Chuyển dữ liệu máy cũ sang máy mới", "Sao lưu Desktop, Documents, bookmark, chữ ký Outlook rồi khôi phục",
+     "tab:utilities:Chuyển máy", "chuyển máy đổi máy máy mới máy cũ sao lưu backup khôi phục restore dữ liệu bookmark",
+     False, "download"),
     ("Sửa biến PATH", "Bỏ thư mục không tồn tại / trùng, thêm hoặc gỡ thư mục trong PATH", "tab:utilities:Công cụ khác",
      "path biến môi trường environment is not recognized lệnh không chạy", True, "toolbox"),
     ("Tìm chương trình đang khoá file", "File / thư mục không xoá được vì đang mở", "tab:utilities:Công cụ khác",
@@ -459,6 +462,7 @@ class MainWindow(QMainWindow):
         self.overview.alerts_changed.connect(self.header.set_alerts)
         self.newpc.open_software.connect(self._open_software)
         self.software.store_changed.connect(self._update_store_box)
+        self.utilities.migrate.software_wanted.connect(self._software_from_old_machine)
 
     def _guide_bar(self) -> QFrame:
         bar = QFrame()
@@ -619,6 +623,17 @@ class MainWindow(QMainWindow):
                 self.sidebar.setCurrentRow(-1)
                 self.sidebar.blockSignals(False)
                 self.stack.setCurrentWidget(self.guide)
+
+    def _software_from_old_machine(self, names: list) -> None:
+        """Chọn sẵn ở trang Cài phần mềm các ứng dụng máy cũ đã cài (khớp tên với danh mục)."""
+        from ..core import migrate
+        from ..software import catalog as catalog_module
+        state = self.software.state
+        catalog = state.catalog if state is not None else catalog_module.load_catalog(self.app.software.root)
+        ids = migrate.match_software(list(names), catalog.apps)
+        self.controller.say(Level.INFO, f"Máy cũ có {len(names)} phần mềm, {len(ids)} có trong danh mục: chọn sẵn ở trang "
+                                        "Cài phần mềm.")
+        self._open_software("", ids)
 
     def _open_software(self, profile_id: str, extra_apps: object) -> None:
         self.select_page("software")
