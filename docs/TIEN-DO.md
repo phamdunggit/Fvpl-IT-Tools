@@ -53,3 +53,5 @@ Cập nhật: 14/10/2026. File này được cập nhật trước mỗi commit.
 - Xuất `SyLink.xml` từ SEPM, chép đè vào `SOFT\Symantec\SEP-14.3-RU9-Win64\`.
 - Chép thư mục UniKey vào `SOFT\UniKey\`, driver token Viettel-CA, VNPT-CA, FPT-CA vào `SOFT` (mình thêm vào danh mục khi có), driver máy in hay dùng (đã giải nén) vào `SOFT\Drivers\Printers\<hãng>\`.
 - Build bản phát hành rồi chép ra ổ: `packaging\deploy.py usb E:\` / `ssd F:\`.
+- **Symantec đã cách ly exe (14/10/2026, `SONAR.SuspOpen!gen11`)**: trước khi phát tool cho máy khác, ký số theo
+  [KY-SO.md](KY-SO.md) cách C (công ty chưa có AD CS) và thêm exception trong SEPM (mục 3 của file đó).
