@@ -63,7 +63,7 @@ ActionsPage (bấm Chạy, hoặc nút gói sửa nhanh)
           cmd                → core/shell.py run_cmd
           powershell/service → core/shell.py run_powershell: thêm biến ($TargetUser*, $ReportDir),
                                thêm hàm dựng sẵn nếu script có dùng (core/pslib.py),
-                               chạy bằng -Command + đoạn mồi giải mã base64, tài khoản qua stdin
+                               dòng lệnh chỉ có đoạn mồi ngắn; tài khoản + script qua stdin (UTF-8)
           registry           → core/registry.py, lưu trước/sau vào core/journal.py
           builtin            → executor.BUILTINS
         lỗi thì đổi mã thoát thành lời giải thích (khoá messages)
@@ -223,7 +223,7 @@ GĐ0:
 
 GĐ1:
 - **Cmdlet phải nạp module rất chậm trên máy dev** (có phần mềm diệt virus): `Get-NetAdapter` 29 giây, `Get-PhysicalDisk` 16 giây, `Get-MpComputerStatus` 9 giây, `Get-NetIPConfiguration` 17 giây, `Get-NetFirewallProfile` 8 giây; gọi thẳng lớp CIM chỉ 0,1 giây. `Resolve-DnsName -QuickTimeout` vẫn chờ 15 giây mỗi DNS server không trả lời, nên tự hỏi DNS bằng UDP (`Test-DnsSrv`).
-- **`-EncodedCommand` làm cảnh báo, `Write-Host`, verbose ra stderr dạng CLIXML.** `-OutputFormat Text` không giúp được; chuyển sang `-Command` với đoạn mồi giải mã base64.
+- **`-EncodedCommand` làm cảnh báo, `Write-Host`, verbose ra stderr dạng CLIXML.** `-OutputFormat Text` không giúp được; dùng `-Command` với đoạn mồi (ban đầu giải mã base64, nay đọc stdin, xem mục Symantec bên dưới).
 - **`Write-Output` trong hàm PowerShell thành giá trị trả về;** `Write-Host` thì ra CLIXML (xem trên). Hàm vừa in vừa trả giá trị dùng `[Console]::Out.WriteLine` (`Write-Line` trong pslib).
 - **PowerShell 5.1: giá trị "không có output" đặt thẳng vào hashtable thành `{}` trong JSON.** Gán vào biến trước, hoặc trả `$null` tường minh; Python đổi `{}` thành `None` cho chắc (`inventory._clean`).
 - **`Get-Tpm` không có quyền admin không báo lỗi mà trả "không có TPM".** Chỉ đọc TPM/BitLocker khi có admin.
@@ -233,7 +233,8 @@ GĐ1:
 - **Mã thoát âm** (HRESULT như `0x800705B4`) về Python thành số không dấu; khoá `messages` viết dạng hex là khớp.
 
 GĐ2:
-- **Script quá dài so với dòng lệnh** chỉ lộ ra khi chạy thật (mục "Kiểm tra share máy in" dài 32.400 ký tự sau khi mã hoá, giới hạn 32.000). Giờ hàm dựng sẵn chỉ được thêm khi script gọi tới, và `test_every_powershell_script_fits_command_line` soát mọi script.
+- **Script quá dài so với dòng lệnh** chỉ lộ ra khi chạy thật (mục "Kiểm tra share máy in" dài 32.400 ký tự sau khi mã hoá, giới hạn 32.000). Hàm dựng sẵn chỉ được thêm khi script gọi tới. Từ 15/10/2026 script đi qua stdin nên hết giới hạn này.
+- **Symantec SONAR cách ly exe (`SONAR.SuspOpen!gen11`, 14/10/2026)**: exe mới, chưa ký, mở PowerShell với dòng lệnh `…FromBase64String('<script>')…` (kiểu mã độc giấu lệnh) và tự mở đọc mọi tiến trình. Đã đổi: `shell.run_powershell` đưa tài khoản + script qua stdin (`powershell_input`), dòng lệnh chỉ còn đoạn mồi đọc stdin (`_PS_BOOTSTRAP`), `-ExecutionPolicy RemoteSigned` thay `Bypass`; danh sách tiến trình hỏi qua WMI (`Win32_Process`) thay vì `Get-Process` + `.Path`. Build ghi SHA-256 của exe (`dist/…sha256.txt`, `version.json` → `exe_sha256`) để thêm exception trong SEPM. Vẫn cần ký số + exception (docs/KY-SO.md).
 - **`Win32_Printer.Shared` của máy in share (`\\máy\tên`) là True:** đó là trạng thái bên máy chia sẻ. Muốn biết máy này có share máy in nào thì bỏ các máy in có tên bắt đầu bằng `\\`.
 - **Tác vụ chạy bằng quyền admin phải trỏ vào thư mục người dùng thường không ghi được.** Thư mục con của ProgramData mặc định cho Users tạo file (thả DLL cạnh exe là chạy bằng quyền admin), nên bước join `icacls` lại `%ProgramData%\FVPL-ITTools`. Kho SOFT trên ổ mang theo (`origin`) vẫn là chỗ tin tưởng ổ cắm vào: trang Phần mềm luôn ghi rõ đang dùng kho nào.
 - **Programs and Features ẩn các mục `SystemComponent = 1` và có `ParentKeyName`** (bản cập nhật). Máy dev có 321 mục trong registry nhưng chỉ 142 mục hiện; báo cáo bỏ mục ẩn, còn phát hiện "đã cài" vẫn đọc tất cả.

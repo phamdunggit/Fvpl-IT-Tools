@@ -494,7 +494,9 @@ def _robocopy(source: str, target: str, extra: str = "") -> str:
 def _copy_bookmarks(source_dir: str, target_dir: str, spec: ItemSpec) -> str:
     running = f"Get-Process -Name {spec.browser} -ErrorAction SilentlyContinue"
     if spec.browser_path:
-        running += f" | Where-Object {{ -not $_.Path -or $_.Path -like '*{spec.browser_path}*' }}"
+        # Tên tiến trình chung chung ("browser"): xem đường dẫn exe qua WMI, không tự mở tiến trình đó.
+        running = (f"Get-CimInstance Win32_Process -Filter \"Name = '{spec.browser}.exe'\" -ErrorAction SilentlyContinue"
+                   f" | Where-Object {{ -not $_.ExecutablePath -or $_.ExecutablePath -like '*{spec.browser_path}*' }}")
     return (f"if ({running}) {{ exit 4 }}\n"
             f"$source = Join-Path {shell.ps_quote(source_dir)} 'Bookmarks'\n"
             "if (-not (Test-Path -LiteralPath $source)) { Write-Output \"Không thấy $source\"; exit 16 }\n"

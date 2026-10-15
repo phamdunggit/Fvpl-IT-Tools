@@ -3,7 +3,8 @@
     python packaging/build.py            # bản phát hành: exe tự xin quyền admin (UAC)
     python packaging/build.py --test     # bản thử: không xin UAC, tự chạy selftest sau khi build
 
-Kết quả nằm trong dist/: thư mục FVPL-ITTools/ và FVPL-ITTools-v<phiên bản>.zip
+Kết quả nằm trong dist/: thư mục FVPL-ITTools/, FVPL-ITTools-v<phiên bản>.zip và FVPL-ITTools-v<phiên bản>.sha256.txt
+(mã SHA-256 của exe, để thêm exception theo hash trong SEPM khi Symantec chặn nhầm).
 
 Ký số (bản phát hành): đặt biến môi trường FVPL_SIGN_THUMBPRINT = thumbprint của chứng chỉ Code Signing đã cài trong
 Certificates của tài khoản đang build (xem docs/KY-SO.md). Không đặt thì bỏ qua, exe chưa ký.
@@ -12,6 +13,7 @@ Certificates của tài khoản đang build (xem docs/KY-SO.md). Không đặt t
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import re
@@ -105,6 +107,14 @@ def sign(exe: Path) -> bool:
     return True
 
 
+def sha256(file: Path) -> str:
+    digest = hashlib.sha256()
+    with file.open("rb") as stream:
+        for block in iter(lambda: stream.read(1024 * 1024), b""):
+            digest.update(block)
+    return digest.hexdigest().upper()
+
+
 def main() -> None:
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     parser = argparse.ArgumentParser()
@@ -122,12 +132,17 @@ def main() -> None:
         check=True, cwd=ROOT, env=env,
     )
     folder = DIST / NAME
+    exe = folder / f"{NAME}.exe"
     if args.test:
-        selftest(folder / f"{NAME}.exe")
+        selftest(exe)
         return
-    sign(folder / f"{NAME}.exe")  # ký trước khi nén để file zip có bản đã ký
+    signed = sign(exe)  # ký trước khi nén để file zip có bản đã ký
+    digest = sha256(exe)
+    (DIST / f"{NAME}-v{version}.sha256.txt").write_text(
+        f"{digest}  {NAME}.exe  v{version}{'  (đã ký số)' if signed else ''}\n", encoding="utf-8")
     archive = shutil.make_archive(str(DIST / f"{NAME}-v{version}"), "zip", DIST, NAME)
     size = sum(file.stat().st_size for file in folder.rglob("*") if file.is_file()) / 1024 / 1024
+    print(f"SHA-256 của {NAME}.exe: {digest} (exception theo hash trong SEPM, xem docs/KY-SO.md)")
     print(f"Xong: {folder} ({size:.0f} MB), {archive}")
 
 

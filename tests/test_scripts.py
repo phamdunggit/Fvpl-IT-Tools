@@ -105,23 +105,6 @@ def test_every_powershell_script_parses(env, tmp_path):
     assert problems == [], "\n".join(f"{p['name']} dòng {p['line']}: {p['message']}" for p in problems)
 
 
-def test_every_powershell_script_fits_command_line(env):
-    """Script truyền qua dòng lệnh, Windows giới hạn độ dài. Quá thì mục chỉ báo lỗi khi chạy thật, nên soát trước.
-
-    Biến dựng sẵn đặt dài 250 ký tự (đường dẫn profile, share dài) cho chắc.
-    """
-    variables = {name: "x" * 250 for name in executor.ps_variables(env)}
-    scripts = [(name, script, credential) for name, script, credential in _bundled_steps()]
-    scripts += [(item["name"], item["script"], False) for item in _internal_scripts()]
-    too_long = []
-    for name, script, credential in scripts:
-        try:
-            shell.encode_for_command_line(script, with_credential=credential, variables=variables)
-        except ValueError:
-            too_long.append(name)
-    assert too_long == [], f"Script quá dài, cần tách nhỏ: {too_long}"
-
-
 def test_helpers_are_added_only_when_called():
     script = "if (Test-Port $ip 445) { Write-Ok 'mở' }"
     full = pslib.with_helpers(script)

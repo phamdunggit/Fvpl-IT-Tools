@@ -86,6 +86,7 @@
 
 ### Sửa
 
+- **Giảm bị Symantec chặn nhầm** (14/10/2026 SEP cách ly exe, `SONAR.SuspOpen!gen11`): tool không còn đặt script PowerShell mã hoá base64 trên dòng lệnh (kiểu mã độc hay dùng) mà đưa qua stdin, dòng lệnh chỉ còn đoạn mồi ngắn, `-ExecutionPolicy RemoteSigned` thay `Bypass`; hết giới hạn độ dài script 32.000 ký tự. Gỡ phần mềm và khôi phục bookmark Cốc Cốc hỏi danh sách tiến trình qua WMI thay vì tự mở từng tiến trình. Build ghi SHA-256 của exe vào `dist/FVPL-ITTools-v<bản>.sha256.txt`, `deploy.py share` ghi vào `version.json` (`exe_sha256`) để thêm exception theo hash trong SEPM. Hướng dẫn ký số khi chưa có AD CS (chứng chỉ tự tạo + GPO) trong docs/KY-SO.md.
 - Hàm PowerShell dựng sẵn chỉ được thêm khi script gọi tới (trước đây thêm cả bộ khoảng 7.000 ký tự), để script dài không vượt giới hạn dòng lệnh. Có test soát độ dài mọi script.
 
 ### Bỏ

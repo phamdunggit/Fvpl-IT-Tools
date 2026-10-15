@@ -24,6 +24,12 @@ def test_sign_is_skipped_without_thumbprint(monkeypatch, capsys):
     assert "Chưa ký số" in capsys.readouterr().out
 
 
+def test_sha256_of_exe(tmp_path):
+    file = tmp_path / "a.exe"
+    file.write_bytes(b"abc")
+    assert build.sha256(file) == "BA7816BF8F01CFEA414140DE5DAE2223B00361A396177A9CB410FF61F20015AD"
+
+
 def test_find_signtool_honours_override(monkeypatch, tmp_path):
     tool = tmp_path / "signtool.exe"
     tool.write_bytes(b"")

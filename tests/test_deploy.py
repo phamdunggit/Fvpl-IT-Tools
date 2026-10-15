@@ -36,4 +36,5 @@ def test_share_publishes_versioned_folder_zip_and_manifest():
     manifest = deploy.release_manifest("1.0.0", [], datetime.date(2026, 10, 20))
     assert manifest == {"version": "1.0.0", "date": "2026-10-20", "folder": "FVPL-ITTools-v1.0.0",
                         "zip": "FVPL-ITTools-v1.0.0.zip", "notes": ["Xem CHANGELOG.md trong repo"]}
+    assert deploy.release_manifest("1.0.0", ["x"], exe_sha256="AB12")["exe_sha256"] == "AB12"
     assert deploy.read_version()

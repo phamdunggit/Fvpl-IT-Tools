@@ -3,6 +3,8 @@ from __future__ import annotations
 import threading
 import time
 
+import pytest
+
 from fvpl_ittools.core import shell
 
 
@@ -63,10 +65,14 @@ def test_run_powershell_other_streams_are_plain_text():
     assert result.output.splitlines() == ["WARNING: cảnh báo", "dòng host", "xong"]
 
 
-def test_long_script_is_compacted_to_fit_command_line():
-    body = "\n".join(f"    # chú thích dài {'x' * 80}\n    $a{i} = {i}" for i in range(300))
-    result = shell.run_powershell(body + "\nWrite-Output $a299")
-    assert result.output == "299"
+def test_script_goes_through_stdin_not_command_line():
+    # Dài hơn giới hạn 32.000 ký tự của dòng lệnh: vẫn chạy được vì script đi qua stdin.
+    body = "\n".join(f"    # chú thích dài {'x' * 80}\n    $a{i} = {i}" for i in range(600))
+    result = shell.run_powershell(body + "\nWrite-Output $a599")
+    assert result.output == "599"
+    command = " ".join(shell.powershell_command())
+    assert "Base64" not in command and "Bypass" not in command and "$a599" not in command and len(command) < 400
+    assert shell.powershell_input("Write-Output 1").startswith(b"\n\n")  # dòng tài khoản, mật khẩu rỗng
 
 
 def test_run_powershell_error_becomes_exit_code_1():
@@ -80,6 +86,12 @@ def test_run_powershell_credential_via_stdin():
     result = shell.run_powershell(script, credential=("CORP\\test", "mật khẩu 'có' ngoặc"))
     assert result.ok
     assert result.output == "CORP\\test|mật khẩu 'có' ngoặc"
+    # Script không đọc lại được mật khẩu thô của đoạn mồi.
+    leftover = shell.run_powershell("Write-Output ([bool](Get-Variable __pass, __user, __in -ErrorAction SilentlyContinue))",
+                                    credential=("CORP\\test", "pw"))
+    assert leftover.output == "False"
+    with pytest.raises(ValueError):
+        shell.powershell_input("x", credential=("CORP\\test", "pw\nexit 0"))
 
 
 def test_run_powershell_cancel():

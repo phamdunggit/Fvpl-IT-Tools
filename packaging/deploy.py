@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import argparse
 import datetime
+import hashlib
 import json
 import re
 import shutil
@@ -35,11 +36,22 @@ def read_version() -> str:
     return re.search(r'__version__ = "([^"]+)"', text).group(1)
 
 
-def release_manifest(version: str, notes: list[str], today: datetime.date | None = None) -> dict:
-    """Nội dung version.json (cùng định dạng core/updates.py đọc)."""
-    return {"version": version, "date": (today or datetime.date.today()).isoformat(),
-            "folder": f"{NAME}-v{version}", "zip": f"{NAME}-v{version}.zip",
-            "notes": notes or ["Xem CHANGELOG.md trong repo"]}
+def release_manifest(version: str, notes: list[str], today: datetime.date | None = None, exe_sha256: str = "") -> dict:
+    """Nội dung version.json (cùng định dạng core/updates.py đọc). `exe_sha256`: để IT thêm exception trong SEPM."""
+    manifest = {"version": version, "date": (today or datetime.date.today()).isoformat(),
+                "folder": f"{NAME}-v{version}", "zip": f"{NAME}-v{version}.zip",
+                "notes": notes or ["Xem CHANGELOG.md trong repo"]}
+    if exe_sha256:
+        manifest["exe_sha256"] = exe_sha256
+    return manifest
+
+
+def exe_sha256() -> str:
+    digest = hashlib.sha256()
+    with (DIST / EXE).open("rb") as stream:
+        for block in iter(lambda: stream.read(1024 * 1024), b""):
+            digest.update(block)
+    return digest.hexdigest().upper()
 
 
 def folder_size(folder: Path) -> int:
@@ -117,7 +129,8 @@ def main(argv: list[str] | None = None) -> int:
     if args.mode == "share":
         # Ghi version.json sau cùng: máy khác chỉ thấy bản mới khi thư mục đã chép xong.
         (target_root / VERSION_FILE).write_text(
-            json.dumps(release_manifest(version, args.note), ensure_ascii=False, indent=2), encoding="utf-8")
+            json.dumps(release_manifest(version, args.note, exe_sha256=exe_sha256()), ensure_ascii=False, indent=2),
+            encoding="utf-8")
         print(f"Xong: {target_root / f'{NAME}-v{version}'} và {target_root / VERSION_FILE} (bản {version})")
         return 0
     print(f"Xong: {target_root / NAME}" + (" (có kho bộ cài SOFT)" if args.mode == "ssd" else ""))

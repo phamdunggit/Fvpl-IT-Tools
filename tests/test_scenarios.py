@@ -5,7 +5,7 @@ import re
 import pytest
 
 from fvpl_ittools.actions import loader
-from fvpl_ittools.core import scenarios, shell
+from fvpl_ittools.core import scenarios
 from fvpl_ittools.core.support_report import SupportReport
 
 ACTIONS = {action.id: action for action in loader.load_builtin_actions()[0]}
@@ -36,7 +36,6 @@ def test_scripts_are_read_only_emit_known_findings_and_fit(item):
     for verb in ("set-itemproperty", "remove-item", "stop-service", "restart-service", "new-item", "set-service",
                  "start-process", "remove-printjob", "ipconfig /", "netsh winhttp reset", "w32tm /resync"):
         assert verb not in lowered, f"script kiểm tra phải chỉ đọc: có {verb}"
-    shell.encode_for_command_line(scenarios.script(item))  # không quá giới hạn dòng lệnh
 
 
 def test_parse_findings_and_errors():

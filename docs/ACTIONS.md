@@ -86,7 +86,7 @@ Mỗi bước có đúng **một** trong các khoá sau:
 | Loại | Cách viết | Ghi chú |
 |---|---|---|
 | `cmd` | `- cmd: ipconfig /flushdns` | Chạy bằng `cmd.exe /d /s /c` sau khi `chcp 65001`. Lệnh có sẵn của cmd như `echo` không in được chữ có dấu, chỗ đó dùng PowerShell. Lệnh hỏi Y/N thì trả lời trước bằng `echo n\|`, ví dụ `echo n\| gpupdate /force`. |
-| `powershell` | `- powershell: \|` rồi các dòng script | Windows PowerShell 5.1, gặp lỗi là dừng (`$ErrorActionPreference = 'Stop'`), output UTF-8. Mã thoát là mã của lệnh native cuối cùng, gặp lỗi thì là 1; tự đặt được bằng `exit N`. Script dài tối đa khoảng 11.000 ký tự (quá thì tool tự bỏ chú thích và thụt lề). Có sẵn biến và hàm, xem phần dưới. |
+| `powershell` | `- powershell: \|` rồi các dòng script | Windows PowerShell 5.1, gặp lỗi là dừng (`$ErrorActionPreference = 'Stop'`), output UTF-8. Mã thoát là mã của lệnh native cuối cùng, gặp lỗi thì là 1; tự đặt được bằng `exit N`. Script đi qua stdin nên không giới hạn độ dài. Có sẵn biến và hàm, xem phần dưới. |
 | `registry` | `- registry: { key, name, type, value }` | `type`: `DWORD`, `QWORD`, `SZ`, `EXPAND_SZ`, `MULTI_SZ` (danh sách chuỗi), `BINARY` (chuỗi hex `"01 0a ff"` hoặc danh sách số). `name: ""` là giá trị mặc định của khoá. Xoá giá trị thì viết `{ key, name, delete: true }`. Giá trị đã đúng sẵn thì bỏ qua và không ghi nhật ký. Không được ghi thẳng `HKU`. |
 | `service` | `- service: { name: Spooler, action: restart }` | `action`: `start` / `stop` / `restart`. Đổi kiểu khởi động làm ở GĐ3. |
 | `builtin` | `- builtin: restart_explorer` | Thao tác viết bằng Python. Hiện có: `restart_explorer`, `rebuild_icon_cache` (tắt Explorer, xoá cache icon/thumbnail của người dùng, mở lại), `restart_spooler` (cho các mục đổi thiết lập máy in). |
@@ -115,7 +115,7 @@ Biến, có sẵn trong mọi script:
 | `$ShareRoot` | Kho bộ cài: thư mục `SOFT` cạnh file exe (bản SSD) nếu có, không thì `share_root` trong site.yaml (bản USB); rỗng nếu chưa có. Ví dụ nguồn .NET 3.5 offline: `$ShareRoot\Sources\sxs\<build>`. |
 | `$Credential` | Chỉ có ở mục `needs_credential`. |
 
-Hàm, khai báo trong `src/fvpl_ittools/core/pslib.py`. Tool chỉ thêm vào script những hàm script gọi tới (kèm hàm mà chúng gọi), để script không dài quá giới hạn dòng lệnh; nút "Copy lệnh" copy kèm luôn để chạy tay vẫn đúng.
+Hàm, khai báo trong `src/fvpl_ittools/core/pslib.py`. Tool chỉ thêm vào script những hàm script gọi tới (kèm hàm mà chúng gọi), cho script gọn; nút "Copy lệnh" copy kèm luôn để chạy tay vẫn đúng.
 
 | Hàm | Làm gì |
 |---|---|

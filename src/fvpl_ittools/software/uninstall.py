@@ -306,12 +306,14 @@ __MARK__
 $start = Get-Date
 $temps = @([IO.Path]::GetTempPath())
 if ($TargetUserProfile) { $temps += Join-Path $TargetUserProfile 'AppData\\Local\\Temp' }
+$since = [Management.ManagementDateTimeConverter]::ToDmtfDateTime($start)
+# Hỏi WMI (không tự mở từng tiến trình, phần mềm diệt virus coi đó là hành vi đáng ngờ): còn tiến trình nào chạy từ
+# thư mục tạm, bắt đầu sau lúc gỡ không.
 function Test-Helper {
-    foreach ($item in Get-Process -ErrorAction SilentlyContinue) {
-        try {
-            if (-not $item.Path -or $item.StartTime -lt $start) { continue }
-            foreach ($temp in $temps) { if ($item.Path.StartsWith($temp, 'OrdinalIgnoreCase')) { return $true } }
-        } catch { }
+    foreach ($item in @(Get-CimInstance Win32_Process -Filter "CreationDate > '$since'" -ErrorAction SilentlyContinue)) {
+        $path = [string]$item.ExecutablePath
+        if (-not $path) { continue }
+        foreach ($temp in $temps) { if ($path.StartsWith($temp, 'OrdinalIgnoreCase')) { return $true } }
     }
     return $false
 }

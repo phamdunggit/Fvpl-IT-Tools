@@ -94,7 +94,7 @@ nhớ chọn cả loại quét SONAR):
 | Loại exception | Ưu | Nhược |
 |---|---|---|
 | Theo **chứng chỉ** (nếu bản SEPM có loại này trong *Add → Windows Exceptions*) | Một lần cho mọi bản build sau | Phải ký số trước |
-| Theo **file / hash SHA-256** của exe | Chắc chắn đúng file | Mỗi bản build mới phải thêm lại |
+| Theo **file / hash SHA-256** của exe (build in ra và ghi vào `dist/FVPL-ITTools-v<bản>.sha256.txt`; bản phát hành lên share có trong `version.json`, khoá `exe_sha256`) | Chắc chắn đúng file | Mỗi bản build mới phải thêm lại |
 | Theo **thư mục** | Bản chép trong máy `C:\ProgramData\FVPL-ITTools\app\`, share cố định | USB / SSD đổi ký tự ổ thì không khớp |
 
 File đã bị cách ly: khôi phục trong SEP client (**View Quarantine → Restore**) hoặc từ SEPM sau khi đã thêm exception.

@@ -4,6 +4,7 @@ Cập nhật: 14/10/2026. File này được cập nhật trước mỗi commit.
 
 ## Đang làm
 
+- **Giảm bị Symantec chặn nhầm** (15/10/2026, **xong phần code**): PowerShell chạy qua stdin thay vì dòng lệnh base64, hỏi tiến trình qua WMI, build ghi SHA-256. Còn bồ: ký số (KY-SO.md cách C) + exception trong SEPM.
 - **Ba việc bồ yêu cầu ngày 14/10/2026**: (1) gỡ phần mềm, phần mềm rác như WPS (**xong**), (2) sao lưu dữ liệu ổ C trước khi cài lại Windows, tự lưu về một chỗ rồi lấy lại (**xong**), (3) chỗ nhập key Windows / Office (mỗi bản nhiều key), lưu vào một file mang đi dùng được, kích hoạt từ tool (**xong**).
 - **Làm mới giao diện** theo [kế hoạch](KE-HOACH-GIAO-DIEN.md) (bồ đã duyệt 14/10/2026). **Xong cả 4 đợt (P0 → P3).** Còn lại là thử với người thật (2–3 người không làm IT tự làm "Không in được", "Cài phần mềm") và thử trên máy ảo có lỗi thật.
 

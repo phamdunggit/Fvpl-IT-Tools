@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import base64
 import codecs
 import logging
 import os
@@ -19,7 +18,6 @@ from . import winapi
 log = logging.getLogger(__name__)
 
 CREATE_NO_WINDOW = 0x08000000
-MAX_COMMAND_LINE = 32000
 
 LineCallback = Callable[[str, bool], None]
 """Nhận (dòng, là_dòng_tiến_độ). Dòng tiến độ kết thúc bằng '\\r' đơn lẻ như thanh % của DISM."""
@@ -239,13 +237,20 @@ try { [Console]::OutputEncoding = New-Object System.Text.UTF8Encoding $false } c
 $OutputEncoding = New-Object System.Text.UTF8Encoding $false
 """
 
+# Đoạn mồi trên dòng lệnh: đọc stdin (UTF-8) gồm dòng tài khoản, dòng mật khẩu (rỗng khi không cần), rồi cả script,
+# và chạy script đó. Script không nằm trên dòng lệnh, không mã hoá base64: dòng lệnh "powershell … FromBase64String"
+# là kiểu mã độc hay dùng để giấu lệnh, phần mềm diệt virus (Symantec SONAR) dễ chặn nhầm.
+_PS_BOOTSTRAP = (
+    "$__in = New-Object IO.StreamReader([Console]::OpenStandardInput(), (New-Object Text.UTF8Encoding $false)); "
+    "$__user = $__in.ReadLine(); $__pass = $__in.ReadLine(); "
+    "& ([ScriptBlock]::Create($__in.ReadToEnd()))"
+)
+
 _PS_CREDENTIAL = """\
-try { [Console]::InputEncoding = New-Object System.Text.UTF8Encoding $false } catch { }
-$__user = [Console]::In.ReadLine()
-$__pass = [Console]::In.ReadLine()
 $Credential = New-Object System.Management.Automation.PSCredential($__user, (ConvertTo-SecureString $__pass -AsPlainText -Force))
-Remove-Variable __user, __pass
 """
+
+_PS_FORGET = "Remove-Variable __user, __pass, __in -Scope Global -ErrorAction SilentlyContinue\n"
 
 
 def powershell_exe() -> str:
@@ -272,6 +277,7 @@ def build_powershell_script(
     return (
         _PS_PRELUDE
         + (_PS_CREDENTIAL if with_credential else "")
+        + _PS_FORGET
         + ps_variable_lines(variables or {})
         + "try {\n& {\n"
         + script
@@ -280,35 +286,20 @@ def build_powershell_script(
     )
 
 
-def _encode(script: str) -> str:
-    return base64.b64encode(script.encode("utf-16-le")).decode("ascii")
+def powershell_command() -> list[str]:
+    """Dòng lệnh chạy PowerShell: chỉ có đoạn mồi đọc stdin, không có nội dung script."""
+    return [powershell_exe(), "-NoLogo", "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "RemoteSigned",
+            "-Command", _PS_BOOTSTRAP]
 
 
-def compact_powershell(script: str) -> str:
-    """Bỏ dòng trống, dòng chú thích '#' và thụt đầu dòng, để script dài vừa giới hạn dòng lệnh.
-
-    Không dùng được cho script có here-string (@' '@) vì nội dung bên trong sẽ bị đổi.
-    """
-    if "@'" in script or '@"' in script:
-        return script
-    lines = (line.strip() for line in script.splitlines())
-    return "\n".join(line for line in lines if line and not line.startswith("#"))
-
-
-def encode_for_command_line(
-    script: str, with_credential: bool = False, variables: dict[str, str] | None = None
-) -> str:
-    """Script đã bọc, mã hoá base64 để đặt trên dòng lệnh; quá dài thì bỏ chú thích và thụt lề rồi thử lại.
-
-    Vẫn quá giới hạn thì ValueError. Test gọi hàm này cho mọi script để biết trước, không phải đợi chạy thật.
-    """
-    encoded = _encode(build_powershell_script(script, with_credential=with_credential, variables=variables))
-    if len(encoded) > MAX_COMMAND_LINE:
-        compact = compact_powershell(script)
-        encoded = _encode(build_powershell_script(compact, with_credential=with_credential, variables=variables))
-    if len(encoded) > MAX_COMMAND_LINE:
-        raise ValueError("Script PowerShell quá dài để truyền qua dòng lệnh, hãy tách nhỏ.")
-    return encoded
+def powershell_input(script: str, credential: tuple[str, str] | None = None,
+                     variables: dict[str, str] | None = None) -> bytes:
+    """Dữ liệu đưa vào stdin: dòng tài khoản, dòng mật khẩu (rỗng khi không có), rồi script đã bọc."""
+    user, password = credential or ("", "")
+    if "\n" in user or "\r" in user or "\n" in password or "\r" in password:
+        raise ValueError("Tài khoản / mật khẩu không được có ký tự xuống dòng")
+    wrapped = build_powershell_script(script, with_credential=credential is not None, variables=variables)
+    return f"{user}\n{password}\n{wrapped}".encode("utf-8")
 
 
 def run_powershell(
@@ -320,23 +311,15 @@ def run_powershell(
 ) -> ShellResult:
     """Chạy script bằng Windows PowerShell 5.1 có sẵn trên mọi máy Win10/11.
 
-    Script được mã hoá base64 và truyền qua -Command kèm đoạn mồi tự giải mã, nên không bị Execution
-    Policy (kể cả do GPO đặt) chặn. Không dùng -EncodedCommand: với cờ đó PowerShell ghi cảnh báo,
-    Write-Host, verbose ra stderr dạng CLIXML thay vì chữ thường.
-    Tài khoản (nếu có) đi qua stdin, không nằm trên dòng lệnh, nên không lộ trong danh sách tiến trình.
-    Trong script dùng biến $Credential. `variables` đặt sẵn các biến chuỗi khác cho script.
+    Script đi qua stdin (không nằm trên dòng lệnh, không mã hoá, không giới hạn độ dài), chạy trong bộ nhớ nên
+    Execution Policy không chặn; `-ExecutionPolicy RemoteSigned` để nạp được module có sẵn của Windows khi máy để
+    Restricted. Không dùng -EncodedCommand: với cờ đó PowerShell ghi cảnh báo, Write-Host, verbose ra stderr dạng
+    CLIXML thay vì chữ thường.
+    Tài khoản (nếu có) cũng đi qua stdin, không nằm trên dòng lệnh, nên không lộ trong danh sách tiến trình; trong
+    script dùng biến $Credential. `variables` đặt sẵn các biến chuỗi khác cho script.
     """
-    encoded = encode_for_command_line(script, with_credential=credential is not None, variables=variables)
-    bootstrap = f"& ([ScriptBlock]::Create([Text.Encoding]::Unicode.GetString([Convert]::FromBase64String('{encoded}'))))"
-    argv = [
-        powershell_exe(), "-NoLogo", "-NoProfile", "-NonInteractive",
-        "-ExecutionPolicy", "Bypass", "-Command", bootstrap,
-    ]
-    stdin_data = None
-    if credential is not None:
-        user, password = credential
-        stdin_data = f"{user}\n{password}\n".encode("utf-8")
-    return run_process(argv, stdin_data=stdin_data, **kwargs)
+    stdin_data = powershell_input(script, credential, variables)
+    return run_process(powershell_command(), stdin_data=stdin_data, **kwargs)
 
 
 def ps_quote(text: str) -> str:
