@@ -104,8 +104,31 @@ def _selftest(window, app_ctx, out_dir: Path) -> int:
     return 0 if ok else 1
 
 
+MIN_WINDOWS_BUILD = 17763  # Windows 10 1809: the oldest build Qt 6 runs on
+
+
+def windows_too_old(build: int) -> str | None:
+    """Message for a Windows build Qt cannot run on, None when the build is fine."""
+    if build >= MIN_WINDOWS_BUILD:
+        return None
+    return (f"{APP_NAME} cần Windows 10 bản 1809 (build {MIN_WINDOWS_BUILD}) trở lên, máy này là build {build}.\n\n"
+            "Cập nhật Windows lên Win10 22H2 rồi mở lại tool.")
+
+
+def _refuse_old_windows() -> bool:
+    """Show a plain Windows message box (no Qt, which would crash here) and return True on a too-old build."""
+    message = windows_too_old(sys.getwindowsversion().build)
+    if message is None:
+        return False
+    import ctypes
+    ctypes.windll.user32.MessageBoxW(None, message, APP_NAME, 0x10)  # MB_ICONERROR
+    return True
+
+
 def main(argv: list[str] | None = None) -> int:
     raw_args = list(sys.argv[1:] if argv is None else argv)
+    if _refuse_old_windows():
+        return 1
     args = _parse_args(raw_args)
     if args.selftest and "QT_QPA_PLATFORM" not in os.environ:
         os.environ["QT_QPA_PLATFORM"] = "offscreen"

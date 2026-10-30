@@ -32,6 +32,7 @@
     PIN hoặc thay mainboard thì IT tra được khoá. Cần GPO cho phép lưu khoá BitLocker vào AD.
   apply:
     - powershell: |
+        if (-not (Get-Command Get-BitLockerVolume -ErrorAction SilentlyContinue)) { exit 5 }
         $volume = Get-BitLockerVolume -MountPoint $env:SystemDrive
         $protectors = @($volume.KeyProtector | Where-Object { "$($_.KeyProtectorType)" -eq 'RecoveryPassword' })
         if (-not $protectors) { exit 3 }
@@ -42,6 +43,7 @@
       timeout: 120
       messages:
         3: Ổ hệ thống chưa bật BitLocker hoặc chưa có khoá khôi phục dạng 48 chữ số
+        5: Bản Windows này không có BitLocker (bản Home), cần bản Pro, Enterprise hoặc Education
 
 # BitLocker và LAPS sau khi đã làm GPO theo docs/BITLOCKER-LAPS-GPO.md. Không in mật khẩu / khoá ra log:
 # Add-BitLockerKeyProtector in khoá trong cảnh báo, nên tắt cảnh báo và bỏ kết quả trả về.
@@ -60,6 +62,7 @@
   apply:
     - powershell: |
         $drive = $env:SystemDrive
+        if (-not (Get-Command Get-BitLockerVolume -ErrorAction SilentlyContinue)) { exit 5 }
         $volume = Get-BitLockerVolume -MountPoint $drive
         if ("$($volume.VolumeStatus)" -ne 'FullyDecrypted') {
             Write-Ok ('BitLocker đã bật trên ổ {0} ({1}, {2}%). Chạy mục Sao lưu khoá BitLocker lên AD để chắc có khoá trong AD.' -f $drive, $volume.VolumeStatus, $volume.EncryptionPercentage)
@@ -93,6 +96,7 @@
       messages:
         3: TPM chưa sẵn sàng
         4: Chưa có GPO lưu khoá BitLocker lên AD, không bật để tránh mất khoá
+        5: Bản Windows này không có BitLocker (bản Home), cần bản Pro, Enterprise hoặc Education
   undo:
     - powershell: |
         Disable-BitLocker -MountPoint $env:SystemDrive | Out-Null
@@ -109,11 +113,14 @@
     làm việc này.
   apply:
     - powershell: |
+        if (-not (Get-Command Get-BitLockerVolume -ErrorAction SilentlyContinue)) { exit 5 }
         $volume = Get-BitLockerVolume -MountPoint $env:SystemDrive
         if ("$($volume.VolumeStatus)" -eq 'FullyDecrypted') { Write-Output 'Ổ hệ thống chưa bật BitLocker, không cần tạm dừng.'; exit 0 }
         Suspend-BitLocker -MountPoint $env:SystemDrive -RebootCount 1 | Out-Null
         Write-Output 'Đã tạm dừng BitLocker cho một lần khởi động lại.'
       timeout: 120
+      messages:
+        5: 'Bản Windows này không có lệnh BitLocker (bản Home). Máy có mã hoá thiết bị thì tạm dừng bằng lệnh: manage-bde -protectors -disable C: -RebootCount 1'
 
 - id: sec.laps_check
   name: Kiểm tra Windows LAPS trên máy này

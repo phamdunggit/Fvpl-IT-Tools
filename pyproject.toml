@@ -8,7 +8,9 @@ description = "Công cụ IT: cài máy mới, join domain, sửa lỗi thườn
 dynamic = ["version"]
 requires-python = ">=3.12"
 dependencies = [
-    "PySide6>=6.7",
+    # Qt 6.12 is the last release that supports Windows 10 (doc.qt.io/qt-6/windows.html). Do not lift the cap
+    # while Win10 machines are still supported; tests/test_win10.py checks the installed version.
+    "PySide6>=6.7,<6.13",
     "PyYAML>=6.0",
 ]
 

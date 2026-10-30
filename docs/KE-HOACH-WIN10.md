@@ -29,6 +29,19 @@ Người dùng báo: mở tool trên Win10 thì "lỗi tùm lum". Kế hoạch n
 | F | Giao diện hiển thị lệch | Win10 hay đặt scale 125% / 150%, font render khác, không bo góc cửa sổ |
 | G | Mục Win11 lọt sang Win10 | Mục nói tới Win11 mà quên khai báo `os:`; gói sửa nhanh (`packs.yaml`) chứa mục không hợp Win10 |
 
+## Tiến độ (30/10/2026)
+
+| Việc | Trạng thái |
+|---|---|
+| Bước 1: khoá Qt `<6.13`, báo lỗi rõ khi build < 17763 | ✔ Xong, có test (`tests/test_win10.py`) |
+| B: BitLocker trên bản Home | ✔ Mục BitLocker kiểm `Get-Command` trước, báo "bản Home không có BitLocker"; test bắt mục mới quên kiểm |
+| B: LAPS thiếu bản cập nhật 04/2023 | ✔ Đã có sẵn từ trước (`adsecrets.py`, `sec.laps_check`) |
+| A: không có winget | ✔ Đã có sẵn: thẻ phần mềm winget bị khoá, lý do "Chưa có winget…" chỉ tới mục Sửa / cài lại winget |
+| C: thiếu `DisplayVersion` | ✔ Đã có sẵn: `core/sysinfo.py` đọc `ReleaseId` |
+| G: mục chỉ dành cho Win11 | ✔ Rà xong: các mục "(Win11)" đều có `os.min_build`; gói sửa nhanh tự bỏ qua mục không hợp bản Windows; có test |
+| Bước 0, 2: gom lỗi thật, thử trên VM Win10 | ☐ Chưa làm: chưa có log / ảnh lỗi từ máy Win10 |
+| D, E, F | ☐ Chờ lỗi thật từ Bước 0 / 2 |
+
 ## 3. Các bước
 
 ### Bước 0: Gom lỗi thật (làm trước, ước 0,5 ngày)
