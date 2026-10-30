@@ -8,6 +8,10 @@ Kết quả nằm trong dist/: thư mục FVPL-ITTools/, FVPL-ITTools-v<phiên b
 
 Ký số (bản phát hành): đặt biến môi trường FVPL_SIGN_THUMBPRINT = thumbprint của chứng chỉ Code Signing đã cài trong
 Certificates của tài khoản đang build (xem docs/KY-SO.md). Không đặt thì bỏ qua, exe chưa ký.
+
+Files the IT team keeps next to the exe in dist/FVPL-ITTools (SOFT, site.yaml, ... see KEEP_BESIDE_EXE) survive a
+rebuild: PyInstaller wipes that folder, so they are moved aside first and moved back afterwards. They never go into
+the zip.
 """
 
 from __future__ import annotations
@@ -31,6 +35,10 @@ SIGN_THUMBPRINT = "FVPL_SIGN_THUMBPRINT"
 SIGN_TIMESTAMP = "FVPL_SIGN_TIMESTAMP"
 SIGNTOOL = "FVPL_SIGNTOOL"
 DEFAULT_TIMESTAMP = "http://timestamp.digicert.com"
+# Kept next to the exe across rebuilds, left out of the zip (installers, company info, real machine data).
+KEEP_BESIDE_EXE = ("SOFT", "site.yaml", "wizard-templates.json", "license-keys*.json",
+                   "Reports", "Inventory", "DriverBackup")
+STASH = DIST / f".{NAME}-keep"
 
 VERSION_TEMPLATE = """\
 VSVersionInfo(
@@ -115,6 +123,30 @@ def sha256(file: Path) -> str:
     return digest.hexdigest().upper()
 
 
+def stash_kept(folder: Path, stash: Path) -> list[str]:
+    """Move KEEP_BESIDE_EXE items out of `folder` into `stash` (a rename, so large ISOs are not copied)."""
+    restore_kept(folder, stash)  # a previous build was interrupted: put its items back first
+    moved = []
+    for pattern in KEEP_BESIDE_EXE:
+        for item in sorted(folder.glob(pattern)) if folder.is_dir() else []:
+            stash.mkdir(parents=True, exist_ok=True)
+            item.rename(stash / item.name)
+            moved.append(item.name)
+    return moved
+
+
+def restore_kept(folder: Path, stash: Path) -> None:
+    if not stash.is_dir():
+        return
+    folder.mkdir(parents=True, exist_ok=True)
+    for item in sorted(stash.iterdir()):
+        target = folder / item.name
+        if target.exists():
+            raise SystemExit(f"Không chép lại được {item} vì {target} đã có: tự gộp hai thư mục này rồi build lại")
+        item.rename(target)
+    stash.rmdir()
+
+
 def main() -> None:
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     parser = argparse.ArgumentParser()
@@ -126,24 +158,30 @@ def main() -> None:
     env = dict(os.environ)
     if args.test:
         env["FVPL_NO_UAC"] = "1"
-    subprocess.run(
-        [sys.executable, "-m", "PyInstaller", str(PACKAGING / "fvpl_ittools.spec"),
-         "--noconfirm", "--clean", "--distpath", str(DIST), "--workpath", str(ROOT / "build")],
-        check=True, cwd=ROOT, env=env,
-    )
     folder = DIST / NAME
-    exe = folder / f"{NAME}.exe"
-    if args.test:
-        selftest(exe)
-        return
-    signed = sign(exe)  # ký trước khi nén để file zip có bản đã ký
-    digest = sha256(exe)
-    (DIST / f"{NAME}-v{version}.sha256.txt").write_text(
-        f"{digest}  {NAME}.exe  v{version}{'  (đã ký số)' if signed else ''}\n", encoding="utf-8")
-    archive = shutil.make_archive(str(DIST / f"{NAME}-v{version}"), "zip", DIST, NAME)
-    size = sum(file.stat().st_size for file in folder.rglob("*") if file.is_file()) / 1024 / 1024
-    print(f"SHA-256 của {NAME}.exe: {digest} (exception theo hash trong SEPM, xem docs/KY-SO.md)")
-    print(f"Xong: {folder} ({size:.0f} MB), {archive}")
+    kept = stash_kept(folder, STASH)
+    try:
+        subprocess.run(
+            [sys.executable, "-m", "PyInstaller", str(PACKAGING / "fvpl_ittools.spec"),
+             "--noconfirm", "--clean", "--distpath", str(DIST), "--workpath", str(ROOT / "build")],
+            check=True, cwd=ROOT, env=env,
+        )
+        exe = folder / f"{NAME}.exe"
+        if args.test:
+            selftest(exe)
+            return
+        signed = sign(exe)  # ký trước khi nén để file zip có bản đã ký
+        digest = sha256(exe)
+        (DIST / f"{NAME}-v{version}.sha256.txt").write_text(
+            f"{digest}  {NAME}.exe  v{version}{'  (đã ký số)' if signed else ''}\n", encoding="utf-8")
+        archive = shutil.make_archive(str(DIST / f"{NAME}-v{version}"), "zip", DIST, NAME)  # before restoring kept items
+        size = sum(file.stat().st_size for file in folder.rglob("*") if file.is_file()) / 1024 / 1024
+        print(f"SHA-256 của {NAME}.exe: {digest} (exception theo hash trong SEPM, xem docs/KY-SO.md)")
+        print(f"Xong: {folder} ({size:.0f} MB), {archive}")
+    finally:
+        restore_kept(folder, STASH)
+        if kept:
+            print(f"Giữ lại cạnh exe (không có trong file zip): {', '.join(kept)}")
 
 
 if __name__ == "__main__":

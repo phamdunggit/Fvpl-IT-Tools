@@ -48,6 +48,8 @@ tool tự thêm khi bồ bấm "Thêm mã phòng" trong wizard).
 
 ### 1.3 Kho bộ cài (`SOFT` trên SSD hoặc thư mục share)
 
+Làm từng bước, kèm cách quản lý key bản quyền: [HUONG-DAN-KHO-SOFT.md](HUONG-DAN-KHO-SOFT.md).
+
 ```
 SOFT\
 ├── config\apps.yaml                     danh mục phần mềm công ty, profile phòng ban
@@ -58,7 +60,7 @@ SOFT\
 ├── SW_DVD5_Office_2013w_SP1_64Bit_English_MLF_X19-34904.ISO
 ├── Microsoft Office 2010 Standard Edition X86 SP1.iso
 ├── Symantec\SEP-14.3-RU9-Win64\          gói client đã giải nén (Sep64.msi) + SyLink.xml của SEPM
-├── UniKey\                               thư mục UniKey (có UniKeyNT.exe)
+├── Installers\UniKey\                    thư mục UniKey (có UniKeyNT.exe)
 └── Drivers\Printers\<hãng>\              driver máy in đã giải nén (có file .inf)
 ```
 
@@ -211,7 +213,7 @@ Lưu ý:
 
 ## 6. Phần mềm khác
 
-- **UniKey:** nhóm Gõ tiếng Việt. Tool chép thư mục `SOFT\UniKey` vào Program Files, tạo shortcut Start Menu và cho
+- **UniKey:** nhóm Gõ tiếng Việt. Tool chép thư mục `SOFT\Installers\UniKey` vào Program Files, tạo shortcut Start Menu và cho
   chạy cùng Windows cho mọi người dùng.
 - **Ứng dụng winget** (Chrome, Foxit, Zalo, 7-Zip, UltraViewer, VLC…): cần Internet. Thiếu winget thì chạy **Sửa lỗi →
   Phần mềm → Sửa / cài lại winget**.

@@ -32,9 +32,24 @@ def test_share_publishes_versioned_folder_zip_and_manifest():
     import datetime
     steps = deploy.commands("share", Path("S:/ITTools"), Path("D:/Kho"), None, "1.0.0")
     assert steps[0][2].endswith("FVPL-ITTools-v1.0.0") and "/MIR" in steps[0]
-    assert steps[1][3] == "FVPL-ITTools-v1.0.0.zip" and not any("SOFT" in part for step in steps for part in step)
+    assert steps[1][3] == "FVPL-ITTools-v1.0.0.zip" and not any("SOFT" in part for step in steps for part in step[1:3])
     manifest = deploy.release_manifest("1.0.0", [], datetime.date(2026, 10, 20))
     assert manifest == {"version": "1.0.0", "date": "2026-10-20", "folder": "FVPL-ITTools-v1.0.0",
                         "zip": "FVPL-ITTools-v1.0.0.zip", "notes": ["Xem CHANGELOG.md trong repo"]}
     assert deploy.release_manifest("1.0.0", ["x"], exe_sha256="AB12")["exe_sha256"] == "AB12"
     assert deploy.read_version()
+
+
+def test_share_release_leaves_out_kho_and_company_files():
+    mirror = deploy.commands("share", Path("S:/ITTools"), Path("D:/Kho"), None, "1.0.0")[0]
+    excluded_dirs = mirror[mirror.index("/XD") + 1:mirror.index("/XF")]
+    excluded_files = mirror[mirror.index("/XF") + 1:]
+    assert "SOFT" in excluded_dirs and "Inventory" in excluded_dirs
+    assert "site.yaml" in excluded_files and "license-keys*.json" in excluded_files
+
+
+def test_kept_lists_match_build_script():
+    spec_build = importlib.util.spec_from_file_location("build_script", ROOT / "packaging" / "build.py")
+    build = importlib.util.module_from_spec(spec_build)
+    spec_build.loader.exec_module(build)
+    assert sorted(build.KEEP_BESIDE_EXE) == sorted(deploy.KEPT_FOLDERS + deploy.KEPT_FILES)

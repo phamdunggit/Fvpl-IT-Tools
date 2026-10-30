@@ -2,7 +2,7 @@
 
     python packaging/deploy.py usb E:\\                # tool + site.yaml  →  E:\\FVPL-ITTools
     python packaging/deploy.py ssd F:\\                # thêm kho bộ cài   →  F:\\FVPL-ITTools\\SOFT
-    python packaging/deploy.py ssd F:\\ --soft D:\\Kho  # lấy kho từ thư mục khác (mặc định: SOFT trong repo)
+    python packaging/deploy.py ssd F:\\ --soft D:\\Kho  # lấy kho từ thư mục khác (mặc định: dist\\FVPL-ITTools\\SOFT, không có thì SOFT trong repo)
     python packaging/deploy.py share \\\\srv\\IT$\\SOFT\\ITTools --note "Sửa lỗi theo tình huống"
         # phát hành: thư mục FVPL-ITTools-v<bản>, file zip và version.json (tool đọc để báo có bản mới)
 
@@ -29,6 +29,21 @@ NAME = "FVPL-ITTools"
 EXE = f"{NAME}.exe"
 ROBOCOPY_OPTIONS = ["/R:1", "/W:1", "/NJH", "/NDL"]
 VERSION_FILE = "version.json"
+# Same items as KEEP_BESIDE_EXE in build.py.
+KEPT_FOLDERS = ["SOFT", "Reports", "Inventory", "DriverBackup"]
+KEPT_FILES = ["site.yaml", "wizard-templates.json", "license-keys*.json"]
+
+
+def default_soft() -> Path:
+    """The kho next to the built exe (dist\\FVPL-ITTools\\SOFT), else SOFT in the repo root."""
+    beside_exe = DIST / "SOFT"
+    return beside_exe if beside_exe.is_dir() else ROOT / "SOFT"
+
+
+def default_site_file() -> Path:
+    """site.yaml in the repo root, else the one next to the built exe."""
+    in_repo = ROOT / "site.yaml"
+    return in_repo if in_repo.is_file() else DIST / "site.yaml"
 
 
 def read_version() -> str:
@@ -63,7 +78,9 @@ def commands(mode: str, target_root: Path, soft: Path, site_file: Path | None, v
     if mode == "share":
         # Mỗi bản một thư mục riêng (bản cũ giữ lại để quay về được), kèm file zip để chép ra USB.
         target = target_root / f"{NAME}-v{version}"
-        steps = [["robocopy", str(DIST), str(target), "/MIR", *ROBOCOPY_OPTIONS],
+        # The kho and company files kept next to the exe in dist never go to the release folder.
+        steps = [["robocopy", str(DIST), str(target), "/MIR", *ROBOCOPY_OPTIONS,
+                  "/XD", *KEPT_FOLDERS, "/XF", *KEPT_FILES],
                  ["robocopy", str(DIST.parent), str(target_root), f"{NAME}-v{version}.zip", *ROBOCOPY_OPTIONS]]
         if site_file is not None:
             steps.append(["robocopy", str(site_file.parent), str(target), site_file.name, *ROBOCOPY_OPTIONS])
@@ -88,7 +105,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("mode", choices=("usb", "ssd", "share"),
                         help="usb: chỉ tool; ssd: tool + kho bộ cài SOFT; share: phát hành kèm version.json")
     parser.add_argument("drive", help="ổ hoặc thư mục đích, ví dụ E:\\ hoặc \\\\srv\\IT$\\SOFT\\ITTools")
-    parser.add_argument("--soft", default=str(ROOT / "SOFT"), help="thư mục kho bộ cài (bản ssd)")
+    parser.add_argument("--soft", default=str(default_soft()), help="thư mục kho bộ cài (bản ssd)")
     parser.add_argument("--note", action="append", default=[], help="dòng ghi chú bản mới (share), lặp lại được")
     args = parser.parse_args(argv)
 
@@ -115,9 +132,9 @@ def main(argv: list[str] | None = None) -> int:
         if need > free:
             print(f"Ổ đích không đủ chỗ: cần tới {need / 1024**3:.1f} GB, còn trống {free / 1024**3:.1f} GB")
             return 1
-    site_file = ROOT / "site.yaml"
+    site_file = default_site_file()
     if not site_file.is_file():
-        print("Lưu ý: chưa có site.yaml ở thư mục repo, ổ đích sẽ không có thông tin domain/share.")
+        print("Lưu ý: chưa có site.yaml ở thư mục repo hay cạnh exe trong dist, ổ đích sẽ không có thông tin domain/share.")
         site_file = None
 
     for command in commands(args.mode, target_root, soft, site_file, version):

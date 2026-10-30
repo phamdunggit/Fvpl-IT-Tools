@@ -15,6 +15,7 @@ Chức năng chính:
 
 | Tài liệu | Nội dung |
 |---|---|
+| [docs/HUONG-DAN-KHO-SOFT.md](docs/HUONG-DAN-KHO-SOFT.md) | **Dựng kho bộ cài `SOFT`** cạnh exe, key bản quyền Windows / Office (nhiều key mỗi bản) |
 | [docs/HUONG-DAN-SU-DUNG.md](docs/HUONG-DAN-SU-DUNG.md) | **Hướng dẫn sử dụng:** chuẩn bị kho bộ cài, cài máy mới, **cài Office, Symantec**, các trang |
 | [docs/TIEN-DO.md](docs/TIEN-DO.md) | **Xem nhanh:** đã làm tới đâu, còn lại gì |
 | [docs/HANDOFF.md](docs/HANDOFF.md) | **Đọc đầu tiên:** trạng thái, quy tắc, luồng chạy, việc chưa kiểm, việc tiếp theo |
